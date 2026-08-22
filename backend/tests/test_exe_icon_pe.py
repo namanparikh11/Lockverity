@@ -1,13 +1,12 @@
-"""v2.1.4 PE-resource regression guards for the Lockverity EXE icon.
+"""PE-resource regression guards for the Lockverity EXE icon.
 
 The Windows shell renders the application icon from
 the ``RT_ICON`` / ``RT_GROUP_ICON`` resources embedded
-in the executable. The v2.1.4 fix upgrades the
-canonical ICO to the
-``{16, 20, 24, 32, 40, 48, 64, 128, 256}`` size set
-and switches the dark-frame-crop pipeline so the
-icon matches the apparent size of neighbouring
-Windows app icons.
+in the executable. The canonical ICO is the
+``{16, 20, 24, 32, 40, 48, 64, 128, 256}`` size set of
+the transparent blue-symbol mark (the v2.1.5 contract;
+see ``tests/test_exe_icon.py`` for the frame-level
+contract).
 
 The tests in this module inspect the
 ``Lockverity.exe`` resource directory directly via
@@ -17,10 +16,11 @@ the resource structure with a non-icon set is caught
 at unit-test time, not at user-install time.
 
 The tests skip gracefully if the Lockverity.exe has
-not been built yet (``build/dev/dist/...`` is a
-gitignored output directory) so the test suite still
-runs in a clean checkout.
+not been built yet (``build/dev/...`` is a gitignored
+output directory) so the test suite still runs in a
+clean checkout.
 """
+
 from __future__ import annotations
 
 import struct
@@ -32,19 +32,26 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 BACKEND_ROOT = REPO_ROOT / "backend"
 DERIVATIVE_ICO = BACKEND_ROOT / "pyinstaller" / "favicon-exe.ico"
 
-# Possible Lockverity.exe build paths. The build
-# script writes to ``build/dev/dist/...`` for the
-# portable layout; the spec outputs to
-# ``build/dev/work/...`` for a single-EXE layout.
-# The test walks every candidate. The portable
-# layout is checked first because it is the
-# canonical fresh development artefact; the
-# per-build ``gui-v*`` paths are matched second
-# so a build that wrote to ``gui-v214`` is still
-# found.
+# Possible Lockverity.exe build paths. The GUI-only
+# icon-iteration build (``gui-transparent``) is checked
+# first because it is the freshest visual-iteration
+# artefact; the full portable layout follows. The test
+# walks every candidate and uses the first that exists.
 EXE_CANDIDATES = (
-    BACKEND_ROOT / "build" / "dev" / "packaging" / "Lockverity-2.1.2-windows-x64-portable" / "Lockverity.exe",
-    BACKEND_ROOT / "build" / "dev" / "packaging" / "pyinstaller_out" / "Lockverity" / "Lockverity.exe",
+    BACKEND_ROOT / "build" / "dev" / "dist" / "gui-transparent" / "Lockverity" / "Lockverity.exe",
+    BACKEND_ROOT
+    / "build"
+    / "dev"
+    / "packaging"
+    / "Lockverity-2.1.2-windows-x64-portable"
+    / "Lockverity.exe",
+    BACKEND_ROOT
+    / "build"
+    / "dev"
+    / "packaging"
+    / "pyinstaller_out"
+    / "Lockverity"
+    / "Lockverity.exe",
     BACKEND_ROOT / "build" / "dev" / "dist" / "gui-v214" / "Lockverity" / "Lockverity.exe",
     BACKEND_ROOT / "build" / "dev" / "dist" / "gui" / "Lockverity" / "Lockverity.exe",
     BACKEND_ROOT / "build" / "dev" / "dist" / "gui-clean" / "Lockverity" / "Lockverity.exe",
@@ -134,17 +141,15 @@ def _png_dimensions(body: bytes) -> tuple[int, int] | None:
 def lockverity_exe() -> Path:
     p = _find_lockverity_exe()
     if p is None:
-        pytest.skip(
-            "Lockverity.exe not built yet; run scripts/build_windows_portable.py"
-        )
+        pytest.skip("Lockverity.exe not built yet; run scripts/build_windows_portable.py")
     return p
 
 
 class TestExeIconResource:
-    """The Lockverity.exe PE resource carries the full v2.1.4 icon set."""
+    """The Lockverity.exe PE resource carries the full canonical icon set."""
 
-    def test_derivative_ico_has_full_v214_size_set(self) -> None:
-        """The on-disk derivative ICO is the v2.1.4 canonical size set.
+    def test_derivative_ico_has_full_size_set(self) -> None:
+        """The on-disk derivative ICO is the canonical size set.
 
         The :func:`build_exe_icon` script is the
         single chokepoint for the derivative ICO;
@@ -160,12 +165,12 @@ class TestExeIconResource:
             "Run scripts/generate_exe_icon.py to regenerate."
         )
 
-    def test_exe_has_v214_icon_count(self, lockverity_exe: Path) -> None:
-        """The EXE embeds the full v2.1.4 icon set in its PE resources.
+    def test_exe_has_full_icon_count(self, lockverity_exe: Path) -> None:
+        """The EXE embeds the full icon set in its PE resources.
 
         The Windows shell queries the PE resource
         directory for the application icon. The
-        v2.1.4 contract is nine ``RT_ICON``
+        contract is nine ``RT_ICON``
         resources (16/20/24/32/40/48/64/128/256).
         A regression that drops a frame, replaces
         the ICO with a smaller set, or omits the
@@ -180,14 +185,12 @@ class TestExeIconResource:
             "Did the build embed the wrong ICO?"
         )
 
-    def test_exe_icon_dimensions_match_v214_set(
-        self, lockverity_exe: Path
-    ) -> None:
-        """The EXE icon dimensions are exactly the v2.1.4 canonical sizes.
+    def test_exe_icon_dimensions_match_size_set(self, lockverity_exe: Path) -> None:
+        """The EXE icon dimensions are exactly the canonical sizes.
 
         The Windows shell picks the closest entry
         to the requested size. If the embedded
-        PNG/BMP payloads do not match the v2.1.4
+        PNG/BMP payloads do not match the
         set the shell picks the wrong frame and
         the taskbar icon appears blurry or
         oversized.
@@ -210,12 +213,27 @@ class TestExeIconResource:
         widths = {d[0] for d in seen}
         assert widths == canonical, (
             f"Lockverity.exe RT_ICON widths {sorted(widths)} do not match "
-            f"the v2.1.4 canonical size set {sorted(canonical)}."
+            f"the canonical size set {sorted(canonical)}."
         )
 
-    def test_derivative_256_entry_is_png(
-        self, lockverity_exe: Path
-    ) -> None:
+    def test_exe_icon_resources_match_generated_ico(self, lockverity_exe: Path) -> None:
+        """Every ``RT_ICON`` body is byte-identical to the canonical ICO entry.
+
+        The PE resource must embed the generated frames
+        as-is. A build that re-encodes, reorders, or
+        replaces a frame with a stale ICO breaks the
+        byte-equality contract between
+        ``backend/pyinstaller/favicon-exe.ico`` and the
+        executable the shell actually renders.
+        """
+        ico_bodies = {body for _w, _h, _size, body in _parse_ico_sizes(DERIVATIVE_ICO.read_bytes())}
+        exe_bodies = set(_extract_icons_from_exe(lockverity_exe))
+        assert exe_bodies == ico_bodies, (
+            "Lockverity.exe RT_ICON resources do not match the canonical "
+            "favicon-exe.ico payloads; rebuild with the current ICO"
+        )
+
+    def test_derivative_256_entry_is_png(self, lockverity_exe: Path) -> None:
         """The 256x256 RT_ICON resource is a PNG payload.
 
         Windows Vista+ decodes PNG-encoded ICO
@@ -236,7 +254,5 @@ class TestExeIconResource:
                 "256x256 RT_ICON resource is not a PNG payload; "
                 "the ICO may use BMP DIB at 256x256 (legacy)."
             )
-        PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
-        assert body_256.startswith(PNG_MAGIC), (
-            "the 256x256 RT_ICON resource must be a PNG payload"
-        )
+        png_magic = b"\x89PNG\r\n\x1a\n"
+        assert body_256.startswith(png_magic), "the 256x256 RT_ICON resource must be a PNG payload"

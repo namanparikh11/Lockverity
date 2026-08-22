@@ -195,13 +195,14 @@ def _regenerate_exe_icon() -> Path:
 
     The PyInstaller specs reference
     ``backend/pyinstaller/favicon-exe.ico`` for the
-    executable icon resource. The file is a
-    mechanical re-packaging of the approved web
-    favicon's 16/32/48 entries plus a Lanczos
-    downscale of the approved 1024x1024 source PNG
-    to 256x256. The brand assets themselves are not
-    modified; the conversion is the documented
-    v2.1 Part B3A packaging technical correction.
+    executable icon resource. The file is the
+    transparent blue-symbol derivative (see
+    ``scripts/generate_exe_icon.py`` and
+    ``docs/windows-icon.md``): the approved
+    ``frontend/public/brand/lockverity-symbol.png`` is
+    cleaned of its export residue and every canonical
+    Windows shell frame is rendered from the cleaned
+    mark. The brand assets themselves are not modified.
     The function delegates to the dedicated
     ``scripts/generate_exe_icon.py`` so the
     derivation logic is exercised by

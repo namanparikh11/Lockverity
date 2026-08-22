@@ -1,95 +1,68 @@
-"""Tests for the v2.1.2 canonical Windows ICO.
+"""Tests for the v2.1.5 transparent Windows ICO.
 
-The approved brand asset is the
-``frontend/public/favicon-source.png`` ``1024x1024``
-RGBA source. The brand-board web favicon at
-``frontend/public/favicon.ico`` contains the
-``16x16``, ``32x32`` and ``48x48`` entries the
-browser needs. The canonical Windows ICO at
-``backend/pyinstaller/favicon-exe.ico`` is a
-mechanical re-packaging of the approved source
-optimised for the Windows shell:
+The v2.1.5 Windows icon contract is the **pure blue
+Lockverity symbol on a transparent background** — no
+dark navy rounded-square tile. The v2.1.2-v2.1.4
+dark-tile icon read as "the icon" on the Windows 11
+taskbar while the recognisable blue glyph occupied only
+about 62% of the frame width, and the tile boundary
+produced worn edge artefacts at taskbar size.
 
-  - 16, 20, 24, 32, 40, 48, 64, 128, 256 entries
-    are Pillow Lanczos downscales of the
-    dark-frame-cropped 1024x1024 PNG;
-  - the dark-frame-crop step is the v2.1.4
-    policy that places the dark navy tile flush
-    with the icon canvas, matching the standard
-    Windows app-icon pattern (Chrome, Docker,
-    PowerShell, Slack).
+The canonical source is the approved standalone product
+symbol at ``frontend/public/brand/lockverity-symbol.png``
+(the design board's own 1024x1024 RGBA raster extraction;
+no SVG source exists — see ``docs/brand-assets.md``).
+``scripts/generate_exe_icon.py``:
 
-The approved brand assets are never modified.
+  1. keeps the source alpha only within 3px of the
+     strong (alpha >= 128) core, which deletes the
+     export's soft shadow / cutout residue while
+     retaining the genuine antialiasing ramp;
+  2. replaces the RGB under near-edge transparent
+     pixels with the nearest mark colour so resampling
+     cannot blend a black/navy halo into the edge;
+  3. renders every canonical frame
+     ``{16, 20, 24, 32, 40, 48, 64, 128, 256}`` as a
+     single Lanczos resample of the cleaned mark at
+     90-92% visible occupancy, with a deterministic
+     alpha-gamma stroke boost on the 16/20/24px frames;
+  4. applies the alpha hygiene pass (sub-8 fringe clamp,
+     opaque ceiling clamp, isolated-speck removal) and a
+     frame-level nearest-colour edge extension.
 
-v2.1.4 dark-frame-crop
-======================
+The tests below assert the documented contract without
+being pixel-perfect:
 
-The v2.1.3 padding-normalisation tightened the
-transparent margin around the *alpha* bounding box
-but the icon was still visibly smaller than
-neighbouring Windows 11 taskbar applications on the
-user's real desktop. The approved source layout is:
+  1. The derivative ICO has the full canonical Windows
+     size set ``{16, 20, 24, 32, 40, 48, 64, 128, 256}``
+     with PNG payloads.
+  2. The background is genuinely transparent (corners
+     empty, a substantial transparent fraction — a tile
+     would cover the canvas).
+  3. The visible mark is blue-only: no navy tile pixels,
+     opaque pixels are blue-dominant.
+  4. The mark fills 85-97% of every frame and is centred
+     within a sensible optical tolerance.
+  5. No clipping: the frame borders stay non-opaque and
+     the corners are fully transparent.
+  6. No isolated alpha components or sub-floor fringe
+     pixels; edge-adjacent transparent pixels carry a
+     clean mark colour (not black).
+  7. The 1024px committed master is transparent and
+     mark-only.
+  8. The build is idempotent, never modifies the
+     approved source, and fails loud on a hostile
+     (empty or tiny-mark) source.
 
-  - dark navy rounded-square *tile* fills about
-    ``82%`` of the 1024x1024 canvas;
-  - bright blue ``Lockverity`` glyph fills about
-    ``88%`` of the dark tile;
-  - outer transparent margin (about ``9%`` of the
-    canvas on every side) was the dominant cause
-    of the apparent-size regression.
-
-The v2.1.4 fix changes the *normalisation anchor*
-from the alpha bounding box to the *dark-frame
-bounding box*. The script:
-
-  1. Detects the dark navy tile as the bounding box
-     of any pixel whose summed ``R+G+B`` is below
-     80 and whose ``alpha`` is at least 32.
-  2. Crops the source to the dark-frame bounding
-     box plus 2% of the frame width per side.
-  3. Resizes the cropped region to the 1024x1024
-     working canvas and from there to each
-     canonical ICO size.
-
-The result: the dark navy tile fills the full
-icon canvas (matching the standard Windows
-app-icon pattern), the bright blue glyph is
-the recognisable mark on top, and the brand
-shape (dark rounded square + bright blue glyph)
-is preserved exactly.
-
-The tests below assert:
-
-  1. The derivative ICO has the full canonical
-     Windows size set
-     ``{16, 20, 24, 32, 40, 48, 64, 128, 256}``.
-  2. The dark-frame-crop step fills at least
-     :data:`generate_exe_icon.MIN_DARK_FRAME_FILL_RATIO`
-     (80%) of the source canvas.
-  3. The 1024x1024 working canvas is fully covered
-     by visible content (no transparent margin
-     around the dark frame).
-  4. The dark-frame detection is fail-loud: a
-     source without a dark frame raises
-     :class:`ValueError`.
-  5. The brand shape is preserved: the normalised
-     source keeps the bright blue glyph at full
-     colour fidelity.
-  6. The dark-frame-crop step is idempotent: a
-     second pass over the same source produces a
-     bit-identical output.
-  7. Every per-frame content bounding box exceeds
-     the v2.1.3 minimum ratio (85%) -- defence in
-     depth against a future regression that loosens
-     the policy.
-
-The tests do not require the build script to have
-been run; they verify the artefact and the
-re-generation logic in isolation.
+The tests do not require the build script to have been
+run; they verify the artefact and the regeneration logic
+in isolation. The PE-resource side of the contract is
+covered by ``tests/test_exe_icon_pe.py``.
 """
 
 from __future__ import annotations
 
+import hashlib
 import io
 import struct
 from pathlib import Path
@@ -98,9 +71,9 @@ import pytest
 from scripts import generate_exe_icon
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-APPROVED_ICO = REPO_ROOT / "frontend" / "public" / "favicon.ico"
-APPROVED_PNG = REPO_ROOT / "frontend" / "public" / "favicon-source.png"
+APPROVED_SYMBOL_PNG = REPO_ROOT / "frontend" / "public" / "brand" / "lockverity-symbol.png"
 DERIVATIVE_ICO = REPO_ROOT / "backend" / "pyinstaller" / "favicon-exe.ico"
+MASTER_PNG = REPO_ROOT / "backend" / "pyinstaller" / "favicon-exe-master.png"
 
 
 def _parse_ico_sizes(data: bytes) -> list[tuple[int, int, int, bytes]]:
@@ -126,37 +99,64 @@ def _parse_ico_sizes(data: bytes) -> list[tuple[int, int, int, bytes]]:
     return out
 
 
-@pytest.fixture
-def regenerated_derivative(tmp_path: Path) -> Path:
-    """Regenerate the derivative ICO in a temp path for inspection.
+def _load_frames(
+    ico_path: Path,
+) -> dict[int, object]:
+    """Return ``{size: RGBA Image}`` for every PNG entry in the ICO."""
+    from PIL import Image  # type: ignore[import-not-found]
 
-    The fixture is the documented chokepoint: any
-    test that exercises the derivative can call
-    :func:`build_exe_icon` against an isolated
-    output path so the on-disk artefact is not
-    modified.
+    frames: dict[int, object] = {}
+    for width, _height, _size, body in _parse_ico_sizes(ico_path.read_bytes()):
+        with Image.open(io.BytesIO(body)) as image:
+            image.load()
+            frames[width] = image.convert("RGBA")
+    return frames
+
+
+@pytest.fixture(scope="module")
+def regenerated_derivative(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Regenerate the derivative ICO into an isolated temp path once.
+
+    The fixture is the documented chokepoint: every test
+    inspects the same isolated build so the on-disk
+    artefact is not modified by the suite.
     """
-    out = tmp_path / "favicon-exe.ico"
+    out = tmp_path_factory.mktemp("exe-icon") / "favicon-exe.ico"
     generate_exe_icon.build_exe_icon(
-        approved_ico=APPROVED_ICO,
-        approved_png=APPROVED_PNG,
+        approved_symbol_png=APPROVED_SYMBOL_PNG,
         derivative_ico=out,
+        master_png=None,
     )
     return out
 
 
-class TestApprovedFaviconUnchanged:
-    """The brand-board web favicon is never modified by the build."""
+@pytest.fixture(scope="module")
+def regenerated_master(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Regenerate the 1024px transparent master into an isolated path."""
+    tmp = tmp_path_factory.mktemp("exe-icon-master")
+    generate_exe_icon.build_exe_icon(
+        approved_symbol_png=APPROVED_SYMBOL_PNG,
+        derivative_ico=tmp / "favicon-exe.ico",
+        master_png=tmp / "favicon-exe-master.png",
+    )
+    return tmp / "favicon-exe-master.png"
 
-    def test_approved_favicon_exists(self) -> None:
-        assert APPROVED_ICO.is_file(), f"approved favicon missing at {APPROVED_ICO}"
 
-    def test_approved_favicon_has_small_entries(self) -> None:
-        data = APPROVED_ICO.read_bytes()
-        sizes = {entry[0] for entry in _parse_ico_sizes(data)}
-        assert 16 in sizes
-        assert 32 in sizes
-        assert 48 in sizes
+class TestApprovedSymbolUnchanged:
+    """The approved brand symbol is never modified by the build."""
+
+    def test_approved_symbol_exists(self) -> None:
+        assert APPROVED_SYMBOL_PNG.is_file(), f"approved symbol missing at {APPROVED_SYMBOL_PNG}"
+
+    def test_build_does_not_modify_approved_symbol(self, tmp_path: Path) -> None:
+        before = hashlib.sha256(APPROVED_SYMBOL_PNG.read_bytes()).hexdigest()
+        generate_exe_icon.build_exe_icon(
+            approved_symbol_png=APPROVED_SYMBOL_PNG,
+            derivative_ico=tmp_path / "favicon-exe.ico",
+            master_png=None,
+        )
+        after = hashlib.sha256(APPROVED_SYMBOL_PNG.read_bytes()).hexdigest()
+        assert before == after
 
 
 class TestDerivativeIcoStructure:
@@ -167,25 +167,15 @@ class TestDerivativeIcoStructure:
         assert data[:4] == b"\x00\x00\x01\x00"
 
     def test_derivative_has_canonical_size_set(self, regenerated_derivative: Path) -> None:
-        """The canonical Windows size set is the union of every shell size
-        Windows 10/11 queries: ``{16, 20, 24, 32, 40, 48, 64, 128, 256}``.
+        """The canonical Windows size set is ``{16, 20, 24, 32, 40, 48, 64,
+        128, 256}``.
 
-        The Windows shell queries these sizes
-        (and only these sizes) when rendering the
-        application icon for the taskbar, Start
-        tile, Installed apps list, File Explorer
-        and the uninstaller UI. A missing entry
-        causes the shell to fall back to the
-        generic application icon, which is the
-        regression v2.1.2 fixes. The set is the
-        documented union of every shell size
-        Windows 10/11 queries.
-
-        v2.1.4 adds the 20x20 and 40x40 entries
-        so the medium- and extra-density taskbar
-        sizes carry an explicit, hand-rendered
-        frame instead of relying on Windows to
-        scale a distant frame.
+        The Windows shell queries these sizes when
+        rendering the application icon for the taskbar,
+        Start tile, Installed apps list, File Explorer
+        and the uninstaller UI. A missing entry causes
+        the shell to fall back to the generic
+        application icon.
         """
         data = regenerated_derivative.read_bytes()
         sizes = {entry[0] for entry in _parse_ico_sizes(data)}
@@ -196,470 +186,352 @@ class TestDerivativeIcoStructure:
             "to the generic application icon for any missing size."
         )
 
-    def test_derivative_superset_size(self, regenerated_derivative: Path) -> None:
-        """Convenience assertion: every size in the documented
-        canonical set is present (defence-in-depth for
-        the superset-relation check above)."""
+    def test_derivative_entries_are_png_payloads(self, regenerated_derivative: Path) -> None:
+        """Every entry is a PNG payload the Windows shell decodes directly."""
         data = regenerated_derivative.read_bytes()
-        sizes = {entry[0] for entry in _parse_ico_sizes(data)}
-        for required in (16, 20, 24, 32, 40, 48, 64, 128, 256):
-            assert required in sizes, (
-                f"Canonical Windows ICO is missing the {required}x{required} entry; "
-                "the Windows shell will fall back to the generic application icon."
+        for width, _height, _size, body in _parse_ico_sizes(data):
+            assert body.startswith(b"\x89PNG\r\n\x1a\n"), (
+                f"the {width}x{width} entry must be a PNG payload; "
+                "the Windows shell decodes PNG-in-ICO directly (Vista+)"
             )
 
-    def test_derivative_256_entry_is_png(self, regenerated_derivative: Path) -> None:
-        """The 256x256 entry is a PNG payload.
 
-        Windows accepts PNG-compressed ICO entries
-        directly (Vista+); the test asserts the
-        payload starts with the PNG magic so the
-        Windows shell can decode the high-DPI icon
-        without an extra re-rasterisation.
+class TestTransparentBackgroundContract:
+    """v2.1.5 contract: transparent background, blue mark only."""
+
+    def test_corners_are_fully_transparent(self, regenerated_derivative: Path) -> None:
+
+        for size, frame in _load_frames(regenerated_derivative).items():
+            pixels = frame.load()
+            for corner in (
+                (0, 0),
+                (size - 1, 0),
+                (0, size - 1),
+                (size - 1, size - 1),
+            ):
+                assert pixels[corner][3] == 0, (
+                    f"ICO frame {size}x{size} corner {corner} has alpha "
+                    f"{pixels[corner][3]}; the transparent-background contract "
+                    "requires fully transparent corners"
+                )
+
+    def test_background_is_substantially_transparent(self, regenerated_derivative: Path) -> None:
+        """A genuine transparent background, not a shrunken tile.
+
+        The dark-tile icons filled ~88-95% of every frame
+        with the navy rounded square. The transparent
+        contract keeps a clear majority-transparent
+        canvas: the mark is line art, so even the 256px
+        frame stays well below half coverage.
         """
-        data = regenerated_derivative.read_bytes()
-        entries = _parse_ico_sizes(data)
-        entry_256 = next(entry for entry in entries if entry[0] == 256)
-        assert entry_256[3].startswith(b"\x89PNG\r\n\x1a\n"), (
-            "the 256x256 entry must be a PNG payload; the Windows shell decodes PNG-in-ICO directly"
-        )
-
-    def test_derivative_uses_dark_frame_anchor(self, regenerated_derivative: Path) -> None:
-        """v2.1.4 contract: every per-frame alpha bbox fills the canvas.
-
-        The dark-frame-crop step places the dark
-        navy tile flush with the icon canvas, so
-        every per-frame alpha bounding box is the
-        full canvas (modulo the small 2% margin
-        on the 1024x1024 working canvas). The
-        test asserts the alpha bbox fills at
-        least 90% of every ICO frame.
-        """
-        from PIL import Image  # type: ignore[import-not-found]
-
-        data = regenerated_derivative.read_bytes()
-        for w, h, _size, body in _parse_ico_sizes(data):
-            with Image.open(io.BytesIO(body)) as im:
-                if im.mode != "RGBA":
-                    im = im.convert("RGBA")
-                bbox = im.getbbox()
-                if bbox is None:
-                    continue
-                left, top, right, bottom = bbox
-                used = (right - left) * (bottom - top)
-                full = w * h
-                ratio = used / full
-                assert ratio >= 0.90, (
-                    f"ICO frame {w}x{h} alpha bounding box is "
-                    f"{ratio * 100:.1f}% of the canvas; expected at "
-                    "least 90% (the v2.1.4 dark-frame-crop contract)."
-                )
-
-    def test_derivative_is_centered(self, regenerated_derivative: Path) -> None:
-        """v2.1.4 contract: every per-frame alpha bbox is centered.
-
-        The dark-frame-crop step is the geometric
-        centre of the source; the resulting
-        per-frame alpha bbox is centred within
-        each ICO frame to a small tolerance. The
-        test asserts the centroid of the alpha
-        bbox is within 10% of the frame centre
-        on each axis.
-        """
-        from PIL import Image  # type: ignore[import-not-found]
-
-        data = regenerated_derivative.read_bytes()
-        for w, h, _size, body in _parse_ico_sizes(data):
-            with Image.open(io.BytesIO(body)) as im:
-                if im.mode != "RGBA":
-                    im = im.convert("RGBA")
-                bbox = im.getbbox()
-                if bbox is None:
-                    continue
-                left, top, right, bottom = bbox
-                cx = (left + right) / 2.0
-                cy = (top + bottom) / 2.0
-                dx = abs(cx - w / 2.0) / w
-                dy = abs(cy - h / 2.0) / h
-                assert dx <= 0.10 and dy <= 0.10, (
-                    f"ICO frame {w}x{h} alpha bbox is off-centre: "
-                    f"dx={dx * 100:.1f}% dy={dy * 100:.1f}%; "
-                    "the v2.1.4 dark-frame-crop contract requires "
-                    "the alpha bbox to be centred within 10%."
-                )
-
-    def test_frames_have_one_clean_contiguous_alpha_shape(
-        self, regenerated_derivative: Path
-    ) -> None:
-        """No isolated fringe component or cutout hole survives the clean mask."""
-        from PIL import Image  # type: ignore[import-not-found]
-
-        data = regenerated_derivative.read_bytes()
-        for width, height, _size, body in _parse_ico_sizes(data):
-            with Image.open(io.BytesIO(body)) as image:
-                alpha = image.convert("RGBA").getchannel("A")
-                pixels = alpha.load()
-                active = {
-                    (x, y)
-                    for y in range(height)
-                    for x in range(width)
-                    if pixels[x, y] >= generate_exe_icon.ALPHA_FRINGE_FLOOR
-                }
-                components: list[int] = []
-                unseen = set(active)
-                while unseen:
-                    seed = unseen.pop()
-                    stack = [seed]
-                    count = 0
-                    while stack:
-                        x, y = stack.pop()
-                        count += 1
-                        for neighbour in (
-                            (x - 1, y),
-                            (x + 1, y),
-                            (x, y - 1),
-                            (x, y + 1),
-                        ):
-                            if neighbour in unseen:
-                                unseen.remove(neighbour)
-                                stack.append(neighbour)
-                    components.append(count)
-                assert len(components) == 1, (
-                    f"ICO frame {width}x{height} has {len(components)} alpha "
-                    "components; isolated corner/fringe pixels are forbidden"
-                )
-                # A mathematical rounded rectangle has at most one run in
-                # every scanline. This catches notches and leftover cutouts
-                # while allowing the exact antialias values to vary.
-                for y in range(height):
-                    xs = [x for x in range(width) if (x, y) in active]
-                    if xs:
-                        assert len(xs) == max(xs) - min(xs) + 1
-                for x in range(width):
-                    ys = [y for y in range(height) if (x, y) in active]
-                    if ys:
-                        assert len(ys) == max(ys) - min(ys) + 1
-
-    def test_clean_edge_is_symmetric_and_not_clipped(self, regenerated_derivative: Path) -> None:
-        """The replacement edge is symmetric and never opaque at the bounds."""
-        from PIL import Image  # type: ignore[import-not-found]
-
-        data = regenerated_derivative.read_bytes()
-        for width, height, _size, body in _parse_ico_sizes(data):
-            with Image.open(io.BytesIO(body)) as image:
-                alpha = image.convert("RGBA").getchannel("A")
-                pixels = alpha.load()
-                symmetry_error = 0
-                for y in range(height):
-                    for x in range(width):
-                        symmetry_error = max(
-                            symmetry_error,
-                            abs(pixels[x, y] - pixels[width - 1 - x, y]),
-                            abs(pixels[x, y] - pixels[x, height - 1 - y]),
-                        )
-                assert symmetry_error <= 4, (
-                    f"ICO frame {width}x{height} alpha edge is asymmetric by "
-                    f"{symmetry_error}; expected no more than 4 alpha levels"
-                )
-                border = (
-                    [pixels[x, 0] for x in range(width)]
-                    + [pixels[x, height - 1] for x in range(width)]
-                    + [pixels[0, y] for y in range(1, height - 1)]
-                    + [pixels[width - 1, y] for y in range(1, height - 1)]
-                )
-                assert max(border) <= 160, (
-                    f"ICO frame {width}x{height} reaches alpha {max(border)} "
-                    "at its border; the rounded tile may be clipped"
-                )
-                assert all(
-                    pixels[x, y] == 0
-                    for x, y in (
-                        (0, 0),
-                        (width - 1, 0),
-                        (0, height - 1),
-                        (width - 1, height - 1),
-                    )
-                )
-
-    def test_tile_occupancy_stays_in_visual_comfort_band(
-        self, regenerated_derivative: Path
-    ) -> None:
-        """Guard against both accidental shrinkage and accidental overscaling."""
-        from PIL import Image  # type: ignore[import-not-found]
-
-        data = regenerated_derivative.read_bytes()
-        for width, height, _size, body in _parse_ico_sizes(data):
-            with Image.open(io.BytesIO(body)) as image:
-                alpha = image.convert("RGBA").getchannel("A")
-                pixels = alpha.load()
-                occupied = sum(pixels[x, y] >= 32 for y in range(height) for x in range(width))
-                ratio = occupied / (width * height)
-                assert 0.88 <= ratio <= 0.95, (
-                    f"ICO frame {width}x{height} rounded-tile occupancy is "
-                    f"{ratio * 100:.1f}%; expected 88-95%"
-                )
-
-
-class TestBuildExeIconIdempotency:
-    """The build script regenerates the derivative without side effects."""
-
-    def test_build_exe_icon_creates_file(self, regenerated_derivative: Path) -> None:
-        assert regenerated_derivative.is_file()
-        assert regenerated_derivative.stat().st_size > 0
-
-    def test_build_exe_icon_does_not_modify_approved_sources(self) -> None:
-        # Snapshot the approved sources' SHA-256,
-        # run the build, and confirm the hash is
-        # unchanged. The function is a side-effect
-        # check; a future maintainer cannot
-        # accidentally start writing to the approved
-        # tree without breaking the test.
-        import hashlib
-
-        before_ico = hashlib.sha256(APPROVED_ICO.read_bytes()).hexdigest()
-        before_png = hashlib.sha256(APPROVED_PNG.read_bytes()).hexdigest()
-        generate_exe_icon.build_exe_icon(
-            approved_ico=APPROVED_ICO,
-            approved_png=APPROVED_PNG,
-            derivative_ico=DERIVATIVE_ICO,  # idempotent overwrite
-        )
-        after_ico = hashlib.sha256(APPROVED_ICO.read_bytes()).hexdigest()
-        after_png = hashlib.sha256(APPROVED_PNG.read_bytes()).hexdigest()
-        assert before_ico == after_ico
-        assert before_png == after_png
-
-
-class TestDarkFrameCrop:
-    """v2.1.4 dark-frame-crop step.
-
-    The manual-QA pass on the native Windows shell
-    surfaced the taskbar icon as visually undersized
-    relative to neighbouring Windows 11 application
-    icons on the user's real desktop. The fix is a
-    *dark-frame-crop* step at the very start of the
-    ICO build: the script crops the approved source
-    to the dark navy tile bounding box plus a small
-    fixed margin (2% of the frame width per side)
-    and resizes the cropped region to a 1024x1024
-    working canvas. The brand shape is preserved
-    exactly; the dark navy tile is now flush with
-    the icon canvas, matching the standard Windows
-    app-icon pattern.
-
-    The tests below assert:
-
-      1. The dark-frame-crop step fills at least
-         :data:`generate_exe_icon.MIN_DARK_FRAME_FILL_RATIO`
-         (80%) of the source canvas.
-      2. The 1024x1024 working canvas is fully
-         covered by visible content (alpha bbox
-         fills ``>= 95%`` of the working canvas).
-      3. The dark-frame detection is fail-loud: a
-         source without a dark frame raises
-         :class:`ValueError`.
-      4. The brand shape is preserved: the
-         normalised source keeps the bright blue
-         glyph at full colour fidelity.
-      5. The dark-frame-crop step is idempotent: a
-         second pass over the same source produces
-         a bit-identical normalised source.
-      6. Every per-frame content bounding box
-         exceeds the v2.1.3 minimum ratio (85%) --
-         defence in depth against a future
-         regression that loosens the policy.
-    """
-
-    def test_dark_frame_crop_fills_minimum_ratio(self) -> None:
-        """The detected dark frame fills at least 80% of the source canvas.
-
-        The approved Lockverity source uses a
-        dark navy tile that fills about 82% of
-        the 1024x1024 canvas. The
-        dark-frame-crop step asserts the
-        detected frame exceeds the documented
-        80% minimum so a future maintainer
-        cannot ship a derivative with a tiny
-        dark frame without breaking the test.
-        """
-        from PIL import Image  # type: ignore[import-not-found]
-
-        source_bytes = APPROVED_PNG.read_bytes()
-        normalised_bytes = generate_exe_icon._normalise_padding(source_bytes)
-        with (
-            Image.open(io.BytesIO(source_bytes)) as source,
-            Image.open(io.BytesIO(normalised_bytes)) as normalised,
-        ):
-            source.load()
-            normalised.load()
-            # Detect the dark frame in the source
-            # using the same threshold the
-            # normalisation step uses.
-            sw, sh = source.size
-            px = source.load()
-            step = 4
-            minx, miny, maxx, maxy = sw, sh, -1, -1
-            for y in range(0, sh, step):
-                for x in range(0, sw, step):
-                    r, g, b, a = px[x, y]
-                    if a < 32:
-                        continue
-                    if r + g + b < 80:
-                        if x < minx:
-                            minx = x
-                        if y < miny:
-                            miny = y
-                        if x > maxx:
-                            maxx = x
-                        if y > maxy:
-                            maxy = y
-            assert maxx > 0, "no dark frame detected in the source"
-            frame_w = maxx - minx
-            frame_h = maxy - miny
-            ratio = max(frame_w / sw, frame_h / sh)
-            assert ratio >= generate_exe_icon.MIN_DARK_FRAME_FILL_RATIO, (
-                f"detected dark frame is {ratio * 100:.1f}% of the source "
-                f"canvas; expected at least "
-                f"{generate_exe_icon.MIN_DARK_FRAME_FILL_RATIO * 100:.0f}%"
+        for size, frame in _load_frames(regenerated_derivative).items():
+            alpha = frame.getchannel("A")
+            transparent = alpha.histogram()[0]
+            ratio = transparent / (size * size)
+            assert ratio >= 0.40, (
+                f"ICO frame {size}x{size} is only {ratio * 100:.1f}% "
+                "transparent; the v2.1.5 contract is a mark on a transparent "
+                "background, not a filled tile"
             )
 
-    def test_dark_frame_crop_fills_working_canvas(self) -> None:
-        """The normalised 1024x1024 working canvas is fully covered.
+    def test_mark_has_no_navy_tile_pixels(self, regenerated_derivative: Path) -> None:
+        """No opaque pixel may carry the dark navy tile colour.
 
-        After the dark-frame-crop step the
-        alpha bounding box of the 1024x1024
-        working canvas fills at least 95% of
-        the canvas. The brand mark reaches the
-        Windows taskbar edges without the
-        loose padding of the historical asset.
+        The v2.1.4 tile was detected in the source as
+        ``R+G+B < 160``. The blue->teal gradient mark's
+        darkest stop sums to ~339, so any dark cluster is
+        leftover tile geometry and fails the contract.
         """
-        from PIL import Image  # type: ignore[import-not-found]
+        for size, frame in _load_frames(regenerated_derivative).items():
+            pixels = frame.load()
+            dark = sum(
+                1
+                for y in range(size)
+                for x in range(size)
+                if pixels[x, y][3] >= 128 and sum(pixels[x, y][:3]) < 200
+            )
+            assert dark == 0, (
+                f"ICO frame {size}x{size} contains {dark} dark tile-like "
+                "pixels; the v2.1.5 contract has no navy tile"
+            )
 
-        source_bytes = APPROVED_PNG.read_bytes()
-        normalised_bytes = generate_exe_icon._normalise_padding(source_bytes)
-        with Image.open(io.BytesIO(normalised_bytes)) as normalised:
-            bbox = normalised.getbbox()
+    def test_mark_is_blue_dominant(self, regenerated_derivative: Path) -> None:
+        """The visible mark keeps the approved blue->teal gradient.
+
+        Every strongly-opaque pixel must have
+        ``blue > red`` (the gradient runs #2563EB ->
+        #14B8A6; both stops satisfy the relation).
+        """
+        for size, frame in _load_frames(regenerated_derivative).items():
+            pixels = frame.load()
+            opaque = [
+                pixels[x, y] for y in range(size) for x in range(size) if pixels[x, y][3] >= 200
+            ]
+            assert len(opaque) > size, f"ICO frame {size}x{size} has almost no opaque mark pixels"
+            bad = sum(1 for r, _g, b, _a in opaque if b <= r)
+            assert bad == 0, (
+                f"ICO frame {size}x{size} has {bad} opaque pixels that are "
+                "not blue-dominant; the mark must keep the approved "
+                "blue->teal gradient"
+            )
+
+
+class TestMarkFillAndCentering:
+    """The mark fills the frame at professional weight and is centred."""
+
+    def test_mark_fills_canvas_in_documented_band(self, regenerated_derivative: Path) -> None:
+        """Visible-mark occupancy stays in the 85-97% band.
+
+        The documented target is 88-92% for the
+        taskbar sizes and up to ~93% for 64px+; the
+        test band allows for rounding at 16px without
+        being pixel-perfect. The old dark-tile glyph
+        occupied ~62% of the frame width and read as
+        visibly undersized next to Chrome/Docker.
+        """
+        for size, frame in _load_frames(regenerated_derivative).items():
+            bbox = frame.getchannel("A").getbbox()
+            assert bbox is not None, f"frame {size} is empty"
+            width_ratio = (bbox[2] - bbox[0]) / size
+            height_ratio = (bbox[3] - bbox[1]) / size
+            occupancy = max(width_ratio, height_ratio)
+            assert 0.85 <= occupancy <= 0.97, (
+                f"ICO frame {size}x{size} visible-mark occupancy is "
+                f"{occupancy * 100:.1f}%; expected the 85-97% band "
+                "(professional taskbar weight, no clipping)"
+            )
+
+    def test_mark_is_optically_centered(self, regenerated_derivative: Path) -> None:
+        """The mark's bounding box is centred within 6% per axis."""
+        for size, frame in _load_frames(regenerated_derivative).items():
+            bbox = frame.getchannel("A").getbbox()
             assert bbox is not None
-            left, top, right, bottom = bbox
-            used = (right - left) * (bottom - top)
-            full = normalised.size[0] * normalised.size[1]
-            ratio = used / full
-            assert ratio >= 0.95, (
-                f"normalised source content bounding box is {ratio * 100:.1f}% "
-                f"of the working canvas; expected at least 95%"
+            cx = (bbox[0] + bbox[2]) / 2.0
+            cy = (bbox[1] + bbox[3]) / 2.0
+            dx = abs(cx - size / 2.0) / size
+            dy = abs(cy - size / 2.0) / size
+            assert dx <= 0.06 and dy <= 0.06, (
+                f"ICO frame {size}x{size} mark is off-centre: "
+                f"dx={dx * 100:.1f}% dy={dy * 100:.1f}%; "
+                "the contract requires optical centring within 6%"
             )
 
-    def test_dark_frame_crop_preserves_brand_shape(self) -> None:
-        """The normalised source is a *crop* of the approved source.
-
-        The dark-frame-crop step must never
-        recolour, redraw, or reinterpolate the
-        brand. The test asserts the *brightest*
-        pixel in the normalised source is present
-        in the approved source (the brand's
-        signature blue is preserved). A regression
-        that recoloured the source would change
-        the brightest pixel and the assertion would
-        fail.
-        """
-        from PIL import Image  # type: ignore[import-not-found]
-
-        source_bytes = APPROVED_PNG.read_bytes()
-        normalised_bytes = generate_exe_icon._normalise_padding(source_bytes)
-        with (
-            Image.open(io.BytesIO(source_bytes)) as source,
-            Image.open(io.BytesIO(normalised_bytes)) as normalised,
-        ):
-            source.load()
-            normalised.load()
-            assert source.mode == "RGBA"
-            assert normalised.mode == "RGBA"
-            source_pixels = source.load()
-            normalised_pixels = normalised.load()
-            source_max_b = 0
-            for y in range(0, source.size[1], 64):
-                for x in range(0, source.size[0], 64):
-                    _r, _g, b, a = source_pixels[x, y]
-                    if a > 200:
-                        source_max_b = max(source_max_b, b)
-            assert source_max_b > 0, (
-                "approved source has no fully-opaque blue pixel; "
-                "this is unexpected for the Lockverity brand asset"
+    def test_mark_is_not_clipped_at_borders(self, regenerated_derivative: Path) -> None:
+        """The frame borders stay non-opaque: the mark never touches them."""
+        for size, frame in _load_frames(regenerated_derivative).items():
+            alpha = frame.getchannel("A").load()
+            border = (
+                [alpha[x, 0] for x in range(size)]
+                + [alpha[x, size - 1] for x in range(size)]
+                + [alpha[0, y] for y in range(1, size - 1)]
+                + [alpha[size - 1, y] for y in range(1, size - 1)]
             )
-            normalised_max_b = 0
-            for y in range(0, normalised.size[1], 64):
-                for x in range(0, normalised.size[0], 64):
-                    _r, _g, b, a = normalised_pixels[x, y]
-                    if a > 200:
-                        normalised_max_b = max(normalised_max_b, b)
-            assert normalised_max_b >= int(source_max_b * 0.9), (
-                f"normalised source loses the brand's signature blue: "
-                f"source_max_b={source_max_b}, normalised_max_b={normalised_max_b}"
+            assert max(border) <= 96, (
+                f"ICO frame {size}x{size} reaches alpha {max(border)} at "
+                "its border; the mark may be clipped by the frame bounds"
             )
 
-    def test_dark_frame_crop_is_idempotent(self) -> None:
-        """A second pass over the same source produces a bit-identical output.
 
-        The dark-frame-crop step must be a pure
-        function of the source bytes: no random
-        resampling, no timestamp-based
-        differences, no per-invocation state.
-        Two consecutive calls must produce the
-        same bytes.
+class TestAlphaEdgeQuality:
+    """Smooth, halo-free, residue-free alpha edges at every size."""
+
+    def test_no_isolated_alpha_components(self, regenerated_derivative: Path) -> None:
+        """Every frame carries only the mark's own large components.
+
+        The approved symbol is two interlocked components
+        (they may merge into one at 16px). Anything small
+        is resampling residue and must have been removed
+        by the hygiene pass.
         """
-        source_bytes = APPROVED_PNG.read_bytes()
-        first = generate_exe_icon._normalise_padding(source_bytes)
-        second = generate_exe_icon._normalise_padding(source_bytes)
-        assert first == second
+        floor = generate_exe_icon.ALPHA_FRINGE_FLOOR
+        for size, frame in _load_frames(regenerated_derivative).items():
+            alpha = frame.getchannel("A")
+            pixels = alpha.load()
+            active = {(x, y) for y in range(size) for x in range(size) if pixels[x, y] >= floor}
+            components: list[int] = []
+            unseen = set(active)
+            while unseen:
+                seed = unseen.pop()
+                stack = [seed]
+                count = 0
+                while stack:
+                    x, y = stack.pop()
+                    count += 1
+                    for neighbour in (
+                        (x - 1, y),
+                        (x + 1, y),
+                        (x, y - 1),
+                        (x, y + 1),
+                    ):
+                        if neighbour in unseen:
+                            unseen.remove(neighbour)
+                            stack.append(neighbour)
+                components.append(count)
+            assert 1 <= len(components) <= 3, (
+                f"ICO frame {size}x{size} has {len(components)} alpha "
+                "components; isolated fringe components are forbidden "
+                "(the mark is two interlocked components, merging to one "
+                "at the smallest sizes)"
+            )
+            assert min(components) >= 8, (
+                f"ICO frame {size}x{size} smallest alpha component is "
+                f"{min(components)}px; isolated specks are forbidden"
+            )
 
-    def test_dark_frame_detection_fails_loud_without_frame(self) -> None:
-        """A source without a dark frame raises ValueError.
+    def test_no_subfloor_fringe_alpha(self, regenerated_derivative: Path) -> None:
+        """No alpha value survives in the 1..fringe-floor-1 ringing band.
 
-        The dark-frame detection is fail-loud: a
-        source that has no dark navy tile (a
-        hostile or accidental replacement) raises
-        :class:`ValueError` so the build aborts
-        before writing a silently-undersized
-        derivative. The test builds a fully
-        transparent image and asserts the call
-        raises.
+        The hygiene pass clamps sub-floor residue to true
+        zero, so any surviving sub-floor alpha would mean
+        the pass regressed.
         """
-        from PIL import Image  # type: ignore[import-not-found]
+        floor = generate_exe_icon.ALPHA_FRINGE_FLOOR
+        for size, frame in _load_frames(regenerated_derivative).items():
+            histogram = frame.getchannel("A").histogram()
+            fringe = sum(histogram[1:floor])
+            assert fringe == 0, (
+                f"ICO frame {size}x{size} carries {fringe} sub-floor "
+                f"(1..{floor - 1}) fringe pixels; residue must be truly "
+                "transparent"
+            )
 
-        hostile = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
-        buffer = io.BytesIO()
-        hostile.save(buffer, format="PNG")
-        with pytest.raises(ValueError, match="no dark-frame content"):
-            generate_exe_icon._normalise_padding(buffer.getvalue())
-
-    def test_derivative_frames_exceed_min_visible_bbox_ratio(
+    def test_edge_adjacent_transparent_rgb_is_mark_coloured(
         self, regenerated_derivative: Path
     ) -> None:
-        """Every per-frame content bbox exceeds the v2.1.3 minimum.
+        """Transparent pixels next to the mark carry a clean mark colour.
 
-        The v2.1.3 fix tightens the transparent
-        padding so the brand mark fills more of
-        every ICO frame. The minimum acceptable
-        ratio is :data:`generate_exe_icon.MIN_VISIBLE_BBOX_RATIO`
-        (85%). A regression that loosens the
-        padding would drop the ratio below the
-        minimum and the test would fail.
+        The nearest-colour edge extension guarantees the
+        RGB under edge-adjacent transparent pixels is a
+        mark blue (never raw black or navy), so a
+        non-premultiplied resample in the shell cannot
+        blend a dark halo into the antialiased edge.
         """
+        for size, frame in _load_frames(regenerated_derivative).items():
+            pixels = frame.load()
+            checked = 0
+            for y in range(size):
+                for x in range(size):
+                    if pixels[x, y][3] != 0:
+                        continue
+                    near_mark = any(
+                        0 <= x + dx < size and 0 <= y + dy < size and pixels[x + dx, y + dy][3] > 0
+                        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
+                    )
+                    if not near_mark:
+                        continue
+                    checked += 1
+                    red, green, blue, _alpha = pixels[x, y]
+                    assert red + green + blue >= 120, (
+                        f"ICO frame {size}x{size} transparent edge pixel "
+                        f"({x}, {y}) carries dark RGB "
+                        f"({red}, {green}, {blue}); resampling could blend "
+                        "a dark halo into the mark edge"
+                    )
+            assert checked > 0, (
+                f"ICO frame {size}x{size} has no edge-adjacent transparent "
+                "pixels to verify; unexpected for the mark geometry"
+            )
+
+
+class TestTransparentMaster:
+    """The generated 1024px master is a transparent mark-only canvas."""
+
+    def test_master_is_transparent_mark_only(self, regenerated_master: Path) -> None:
         from PIL import Image  # type: ignore[import-not-found]
 
-        data = regenerated_derivative.read_bytes()
-        for w, h, _size, body in _parse_ico_sizes(data):
-            with Image.open(io.BytesIO(body)) as im:
-                if im.mode != "RGBA":
-                    im = im.convert("RGBA")
-                bbox = im.getbbox()
-                if bbox is None:
-                    continue
-                left, top, right, bottom = bbox
-                used = (right - left) * (bottom - top)
-                full = w * h
-                ratio = used / full
-                assert ratio >= generate_exe_icon.MIN_VISIBLE_BBOX_RATIO, (
-                    f"ICO frame {w}x{h} content bounding box is "
-                    f"{ratio * 100:.1f}% of the canvas; expected at least "
-                    f"{generate_exe_icon.MIN_VISIBLE_BBOX_RATIO * 100:.1f}%"
-                )
+        with Image.open(regenerated_master) as image:
+            frame = image.convert("RGBA")
+        size = frame.size[0]
+        assert frame.size == (1024, 1024)
+        pixels = frame.load()
+        for corner in ((0, 0), (size - 1, 0), (0, size - 1), (size - 1, size - 1)):
+            assert pixels[corner][3] == 0
+        bbox = frame.getchannel("A").getbbox()
+        assert bbox is not None
+        occupancy = max(bbox[2] - bbox[0], bbox[3] - bbox[1]) / size
+        assert 0.85 <= occupancy <= 0.97
+        dark = sum(
+            1
+            for y in range(size)
+            for x in range(size)
+            if pixels[x, y][3] >= 128 and sum(pixels[x, y][:3]) < 200
+        )
+        assert dark == 0, "the master must not contain navy tile pixels"
+
+
+class TestBuildSafety:
+    """The build is idempotent and fails loud on hostile sources."""
+
+    def test_build_is_idempotent(self, tmp_path: Path) -> None:
+        first = tmp_path / "first.ico"
+        second = tmp_path / "second.ico"
+        generate_exe_icon.build_exe_icon(
+            approved_symbol_png=APPROVED_SYMBOL_PNG,
+            derivative_ico=first,
+            master_png=None,
+        )
+        generate_exe_icon.build_exe_icon(
+            approved_symbol_png=APPROVED_SYMBOL_PNG,
+            derivative_ico=second,
+            master_png=None,
+        )
+        assert first.read_bytes() == second.read_bytes()
+
+    def test_fail_loud_on_empty_source(self, tmp_path: Path) -> None:
+        from PIL import Image  # type: ignore[import-not-found]
+
+        hostile = tmp_path / "empty.png"
+        Image.new("RGBA", (1024, 1024), (0, 0, 0, 0)).save(hostile, format="PNG")
+        with pytest.raises(ValueError, match="no symbol content"):
+            generate_exe_icon.build_exe_icon(
+                approved_symbol_png=hostile,
+                derivative_ico=tmp_path / "out.ico",
+                master_png=None,
+            )
+
+    def test_fail_loud_on_tiny_mark_source(self, tmp_path: Path) -> None:
+        """A source whose mark fills far less than the approved symbol
+        aborts the build instead of shipping an undersized derivative."""
+        from PIL import Image, ImageDraw  # type: ignore[import-not-found]
+
+        hostile = tmp_path / "tiny.png"
+        image = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
+        ImageDraw.Draw(image).rectangle((462, 462, 661, 661), fill=(37, 99, 235, 255))
+        image.save(hostile, format="PNG")
+        with pytest.raises(ValueError, match="fills only"):
+            generate_exe_icon.build_exe_icon(
+                approved_symbol_png=hostile,
+                derivative_ico=tmp_path / "out.ico",
+                master_png=None,
+            )
+
+    def test_cleaned_source_is_residue_free(self) -> None:
+        """The cleaned mark keeps no distant low-alpha residue.
+
+        Every kept non-core pixel must sit within the
+        documented keep radius of a strong core pixel;
+        the approved export's shadow lives beyond that
+        radius with alpha <= 84 and must be gone.
+        """
+        from PIL import Image, ImageFilter  # type: ignore[import-not-found]
+
+        with Image.open(APPROVED_SYMBOL_PNG) as source:
+            source.load()
+            cleaned = generate_exe_icon._clean_symbol_source(source)
+        alpha = cleaned.getchannel("A")
+        core = alpha.point(
+            lambda value: 255 if value >= generate_exe_icon.ALPHA_CORE_THRESHOLD else 0
+        )
+        near = core.filter(ImageFilter.MaxFilter(2 * generate_exe_icon.EDGE_KEEP_RADIUS + 1))
+        alpha_pixels = alpha.load()
+        near_pixels = near.load()
+        outside = sum(
+            1
+            for y in range(cleaned.size[1])
+            for x in range(cleaned.size[0])
+            if alpha_pixels[x, y] > 0 and not near_pixels[x, y]
+        )
+        assert outside == 0, (
+            "the cleaned mark retains alpha outside the documented "
+            "core+radius neighbourhood; shadow/residue survived the clean"
+        )

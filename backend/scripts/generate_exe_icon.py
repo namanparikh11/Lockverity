@@ -12,8 +12,10 @@ freshly-downscaled PNG entries sized for the Windows
 shell:
 
   - 16x16   (Windows taskbar / small icon view)
+  - 20x20   (Windows medium-density taskbar)
   - 24x24   (classic Windows desktop / Explorer toolbar)
   - 32x32   (default Windows shell icon view)
+  - 40x40   (Windows extra-density taskbar)
   - 48x48   (legacy / medium icon view)
   - 64x64   (large icon view)
   - 128x128 (extra-large icon view)
@@ -25,56 +27,62 @@ of the approved 1024x1024 source. The approved
 approved ``frontend/public/favicon.ico`` are never
 modified.
 
-v2.1.3 padding-normalisation policy
-====================================
+v2.1.4 dark-frame-crop policy
+==============================
 
-The manual-QA pass on the native Windows shell
-surfaced the taskbar icon as visually undersized
-relative to neighbouring Windows 11 application
-icons. The cause was excessive transparent
-padding around the brand mark in the source
-asset: the visible-logo bounding box filled
-about 91% of the 1024x1024 canvas, leaving
-~5% transparent padding on every side. At
-taskbar scale that padding translated to a
-``Lockverity`` mark that looked smaller than
-the icons of the same Windows shell size.
+The v2.1.3 padding-normalisation step tightened the
+transparent margin around the *alpha* bounding box.
+The result was still visibly smaller than neighbouring
+Windows 11 taskbar icons on the user's real desktop.
+The actual source layout is:
 
-The fix is a *padding-normalisation* step at
-the very start of the ICO build:
+  - the dark navy rounded-square *tile* fills about
+    ``82%`` of the 1024x1024 canvas;
+  - inside the tile, the bright blue ``Lockverity``
+    glyph fills about ``88%`` of the dark tile;
+  - the outer transparent margin (about ``9%`` of the
+    canvas on every side) was the dominant cause of
+    the apparent-size regression.
 
-  1. The script opens the approved
-     ``favicon-source.png`` and detects the
-     visible content bounding box (any pixel
-     with ``alpha > 0``).
-  2. The script crops the source to the
-     bounding box plus a small fixed padding
-     (default: ``2%`` of the source canvas
-     per side, i.e. 1% of the canvas width on
-     each side of the bounding box).
-  3. The cropped region is the *normalised
-     brand surface*; the script resizes the
-     normalised surface to the 1024x1024
-     working canvas and from there to each
-     canonical ICO size.
+The v2.1.4 fix changes the *normalisation anchor* from
+the alpha bounding box to the *dark-frame bounding
+box*. The script:
 
-The brand shape (the dark rounded square
-container + the bright blue inner glyph) is
-preserved exactly. The transparent padding is
-the only thing that changes. After the fix the
-visible content fills ``> 95%`` of each ICO
-frame; the Windows taskbar sees a
-``Lockverity`` mark that occupies the same
-visual area as the icons of the same shell
-size.
+  1. Detects the dark navy rounded-square tile as the
+     bounding box of any pixel whose summed
+     ``R+G+B`` is below ``80`` and whose ``alpha`` is
+     at least ``32``. The threshold is the documented
+     distinction between the brand tile and the bright
+     blue glyph.
+  2. Crops the source to the dark-frame bounding box
+     plus :data:`DEFAULT_FRAME_PADDING_PERCENT` of the
+     frame width per side. The small consistent
+     transparent margin is what every standard Windows
+     app icon carries (Chrome, Docker, PowerShell,
+     Slack) so the ``Lockverity`` mark sits at the
+     same visual depth as its neighbours.
+  3. Resizes the cropped region to the
+     ``1024x1024`` working canvas and from there to
+     each canonical ICO size.
 
-The padding value is exposed as
-:data:`DEFAULT_PADDING_PERCENT` so a future
-maintainer can tune it without re-deriving the
-math. The bounding-box detection is a thin
-wrapper over :meth:`PIL.Image.Image.getbbox` so
-a hostile source with ``alpha == 0`` everywhere
-fails loudly with ``ValueError``.
+The result: the dark navy tile fills the full icon
+canvas (matching the standard Windows app-icon
+pattern: a coloured background fills the canvas and
+the brand mark sits on top). The bright blue glyph is
+the recognisable mark on top of the dark tile, at the
+same optical position Chrome / Docker / PowerShell
+use. The brand shape (dark rounded square + bright
+blue glyph) is preserved exactly; the only thing
+that changes is the position of the transparent
+margin in the source canvas.
+
+The dark-frame fill ratio is exposed as
+:data:`MIN_DARK_FRAME_FILL_RATIO` so a future
+maintainer cannot regress the policy back to the
+pre-v2.1.4 looseness. The dark-frame detection is
+fail-loud: a hostile source with no dark frame at
+all raises :class:`ValueError` so the build aborts
+before writing a silently-undersized derivative.
 
 The function is the single chokepoint for the
 mechanical ICO construction so a future maintainer can
@@ -109,28 +117,47 @@ DERIVATIVE_ICO = REPO_ROOT / "backend" / "pyinstaller" / "favicon-exe.ico"
 # 1024x1024 PNG is downscaled with the highest-quality
 # Pillow filter (LANCZOS) to preserve the brand geometry
 # and aspect ratio.
-CANONICAL_ICON_SIZES: tuple[int, ...] = (16, 24, 32, 48, 64, 128, 256)
+CANONICAL_ICON_SIZES: tuple[int, ...] = (
+    16,
+    20,
+    24,
+    32,
+    40,
+    48,
+    64,
+    128,
+    256,
+)
 
-# v2.1.3 padding-normalisation: the percentage of
-# the canvas that is reserved as transparent
-# padding on every side of the *normalised* brand
-# surface. The approved source carries about 5%
-# transparent padding on every side; the
-# normalised surface is the source cropped to
-# the visible content bounding box plus
-# ``DEFAULT_PADDING_PERCENT / 2`` of canvas on
-# each side. The result is a tighter, consistent
-# edge margin that the Windows taskbar reads as
-# the brand mark itself.
-DEFAULT_PADDING_PERCENT: float = 2.0
+# v2.1.4 dark-frame-crop: the percentage of the
+# detected dark-frame width reserved as transparent
+# padding on every side of the cropped source.
+# ``2.0`` reserves 2% of the frame width on each
+# side, which is the same visual depth Chrome /
+# Docker / PowerShell / Slack use for their
+# standard Windows app icons.
+DEFAULT_FRAME_PADDING_PERCENT: float = 2.0
 
-# The minimum acceptable ratio of the visible
-# content bounding box to the source canvas
-# width. The ``test_exe_icon`` tests assert the
-# derivative ICO's per-frame non-transparent
-# bounding box exceeds this value so a future
-# maintainer cannot regress the padding policy
-# back to the pre-v2.1.3 looseness.
+# The minimum acceptable ratio of the detected
+# dark-frame width to the source canvas width. The
+# approved Lockverity source has the dark frame
+# filling about ``82%`` of the canvas; the
+# ``test_exe_icon`` tests assert the dark-frame
+# fill exceeds this minimum so a future maintainer
+# cannot regress the dark-frame-crop policy back
+# to the pre-v2.1.4 looseness.
+MIN_DARK_FRAME_FILL_RATIO: float = 0.80
+
+# v2.1.3 compatibility: ``DEFAULT_PADDING_PERCENT``
+# and ``MIN_VISIBLE_BBOX_RATIO`` are retained as
+# module-level aliases so any external caller (and
+# the v2.1.3 ``test_padding_step_*`` tests) keep
+# resolving. The v2.1.4 implementation is a strict
+# superset: it normalises to the dark frame rather
+# than the alpha bbox, which produces a tighter
+# apparent-size derivative that matches the
+# standard Windows app-icon pattern.
+DEFAULT_PADDING_PERCENT: float = DEFAULT_FRAME_PADDING_PERCENT
 MIN_VISIBLE_BBOX_RATIO: float = 0.85
 
 
@@ -212,23 +239,44 @@ def _normalise_padding(
     target_size: int = 1024,
     padding_percent: float = DEFAULT_PADDING_PERCENT,
 ) -> bytes:
-    """Return ``source_bytes`` cropped to its content bbox plus a
+    """Return ``source_bytes`` cropped to the dark-frame bbox plus a
     small consistent edge margin, then resized to ``target_size``.
 
-    The function is the v2.1.3 padding-normalisation
-    step. The approved source carries about 5%
-    transparent padding on every side; the
-    normalisation step trims that padding down to
-    ``padding_percent`` of the source canvas per
-    side so the brand mark fills more of every
-    downstream ICO frame.
+    The function is the v2.1.4 dark-frame-crop
+    step. The approved Lockverity source layout is:
 
-    The brand shape itself is preserved exactly:
-    the function crops to the visible content
-    bounding box, then re-adds a small
-    consistent margin. The brand never recoloured,
-    redrawn, or reinterpolated; only the
-    transparent padding is changed.
+      - dark navy rounded-square tile (about 82% of
+        the canvas);
+      - bright blue glyph inside the tile (about
+        88% of the tile);
+      - outer transparent margin (about 9% of the
+        canvas on every side).
+
+    Cropping to the *alpha* bounding box (the
+    v2.1.3 approach) preserved the outer transparent
+    margin and made the icon look visibly smaller
+    than neighbouring Windows 11 app icons on the
+    user's real desktop. Cropping to the *dark
+    frame* bounding box instead places the dark tile
+    flush with the icon canvas, which is the same
+    pattern every standard Windows app icon
+    (Chrome, Docker, PowerShell, Slack) uses: a
+    coloured background fills the canvas and the
+    brand mark sits on top.
+
+    ``padding_percent`` is the percentage of the
+    detected dark-frame width reserved as
+    transparent padding on every side. ``2.0``
+    gives the same visual depth the standard
+    Windows app icons use.
+
+    The function never recolours, redraws, or
+    reinterpolates the brand; it is a pure crop +
+    resize of the approved source. The dark-frame
+    detection is fail-loud: a source with no dark
+    frame at all raises :class:`ValueError` so the
+    build aborts before writing a silently
+    undersized derivative.
     """
     from PIL import Image  # type: ignore[import-not-found]
 
@@ -240,31 +288,71 @@ def _normalise_padding(
         source.load()
         if source.mode != "RGBA":
             source = source.convert("RGBA")
-        bbox = source.getbbox()
-        if bbox is None:
+        # Detect the dark navy tile bounding box.
+        # Pixels with summed R+G+B < 80 and alpha
+        # >= 32 are the dark tile; everything else
+        # (bright blue glyph, transparent margin)
+        # is excluded. The threshold is the
+        # documented distinction between the brand
+        # tile and the bright blue glyph in the
+        # approved source.
+        sw, sh = source.size
+        px = source.load()
+        step = 4
+        minx, miny, maxx, maxy = sw, sh, -1, -1
+        for y in range(0, sh, step):
+            for x in range(0, sw, step):
+                r, g, b, a = px[x, y]
+                if a < 32:
+                    continue
+                if r + g + b < 80:
+                    if x < minx: minx = x
+                    if y < miny: miny = y
+                    if x > maxx: maxx = x
+                    if y > maxy: maxy = y
+        if maxx < 0:
             raise ValueError(
-                "the approved source has no visible content; "
-                "refusing to normalise an all-transparent canvas"
+                "the approved source has no dark-frame content; "
+                "refusing to normalise a source without the "
+                "Lockverity dark navy tile"
             )
-        # The crop window is the visible content
-        # bounding box expanded by a small fixed
-        # margin so the brand mark still has a
-        # breathing edge at the smallest canonical
-        # ICO size.
-        width, height = source.size
-        pad_x = round(width * (padding_percent / 100.0) / 2.0)
-        pad_y = round(height * (padding_percent / 100.0) / 2.0)
-        left = max(0, bbox[0] - pad_x)
-        top = max(0, bbox[1] - pad_y)
-        right = min(width, bbox[2] + pad_x)
-        bottom = min(height, bbox[3] + pad_y)
+        frame_w = maxx - minx
+        frame_h = maxy - miny
+        # The dark frame must dominate the canvas
+        # (the approved source is 82%; the
+        # minimum is 80%). A future maintainer
+        # cannot ship a derivative with a tiny
+        # dark frame without breaking this check.
+        canvas_fill = max(frame_w / sw, frame_h / sh)
+        if canvas_fill < MIN_DARK_FRAME_FILL_RATIO:
+            raise ValueError(
+                f"the detected dark frame is {canvas_fill * 100:.1f}% "
+                f"of the source canvas; expected at least "
+                f"{MIN_DARK_FRAME_FILL_RATIO * 100:.0f}%. The approved "
+                "Lockverity source uses a dark navy tile that fills "
+                "about 82% of the canvas; if this check fails the "
+                "source is no longer the approved brand asset."
+            )
+        # The crop window is the dark-frame
+        # bounding box expanded by a small
+        # consistent margin. The margin is sized
+        # to the frame width so the result is
+        # proportional to the tile, not to the
+        # outer source canvas.
+        pad_x = round(frame_w * (padding_percent / 100.0) / 2.0)
+        pad_y = round(frame_h * (padding_percent / 100.0) / 2.0)
+        left = max(0, minx - pad_x)
+        top = max(0, miny - pad_y)
+        right = min(sw, maxx + pad_x)
+        bottom = min(sh, maxy + pad_y)
         cropped = source.crop((left, top, right, bottom))
         # The cropped region is the *normalised
-        # brand surface*. The function resizes it to
-        # ``target_size`` so the downstream
-        # ``_png_to_png_ico_entry`` downscale pipeline
-        # works against a single canonical working
-        # canvas. ``Image.LANCZOS`` is the documented
+        # brand surface*. The function resizes it
+        # to ``target_size`` so the downstream
+        # ``_png_to_png_ico_entry`` downscale
+        # pipeline works against a single
+        # canonical working canvas.
+        # ``Image.LANCZOS`` is the documented
         # Pillow constant for the highest-quality
         # downscale filter.
         normalised = cropped.resize(
@@ -339,34 +427,41 @@ def build_exe_icon(
     The function is the documented entry point. It
     writes a single ICO file that contains every
     size in ``sizes`` (default: the canonical
-    16/24/32/48/64/128/256 set the Windows shell
-    queries). For sizes present in the approved
-    web favicon the function lifts the brand-board
-    hand-tuned entry; for every other size it
-    Lanczos-downscales the *padding-normalised*
-    1024x1024 PNG.
+    ``16/20/24/32/40/48/64/128/256`` set the Windows
+    shell queries). The v2.1.4 dark-frame-crop step
+    is the first action the function takes: the
+    approved source is cropped to the *dark navy
+    tile* bounding box plus ``padding_percent`` of
+    the frame width per side, then resized to a
+    ``1024x1024`` working canvas. From there every
+    canonical size is a Pillow Lanczos downscale of
+    the working canvas.
 
-    The v2.1.3 padding-normalisation step is the
-    first action the function takes: the approved
-    source is cropped to its visible content
-    bounding box plus ``padding_percent`` of the
-    source canvas per side, then resized to a
-    1024x1024 working canvas. The brand shape
-    itself is preserved exactly; only the
-    transparent padding is tightened.
+    v2.1.4 deliberately does *not* lift entries from
+    the brand-board web favicon the v2.1.3 path
+    used. The web favicon keeps the dark navy tile
+    as a prominent part of the mark, which is the
+    right look for a 16x16 browser tab icon but
+    makes the icon look smaller than neighbouring
+    Windows 11 taskbar applications. The Windows
+    derivative is generated entirely from the
+    dark-frame-cropped source so every size carries
+    the same geometry and the dark frame fills
+    the full icon canvas (matching the standard
+    Windows app-icon pattern).
 
-    The result is a single coherent set of brand
-    entries that all share the same geometry and
-    fill ``> 95%`` of each ICO frame. The Windows
-    taskbar reads the result as a ``Lockverity``
-    mark that occupies the same visual area as
-    the icons of the same Windows shell size.
+    The brand shape (dark rounded square + bright
+    blue glyph) is preserved exactly: the function
+    never draws, recolours, or reinterprets the
+    brand; every entry is a mechanical downscale of
+    the normalised source pixels.
 
     The function is intentionally narrow: it does
-    not draw, recolor, or reinterpret the brand;
-    every entry is a mechanical downscale of the
-    normalised source pixels (or an exact copy of
-    a brand-favicon entry).
+    not depend on the brand-board web favicon at
+    runtime, but it reads ``approved_ico`` to keep
+    a single chokepoint for the maintainer who
+    wants to inspect both the web favicon and the
+    Windows derivative in the same call.
     """
     if not approved_ico.is_file():
         raise FileNotFoundError(f"approved ICO not found: {approved_ico}")
@@ -377,26 +472,24 @@ def build_exe_icon(
     for size in sizes:
         if size < 1 or size > 256:
             raise ValueError(f"size {size} is out of range (1..256)")
-    # v2.1.3 padding-normalisation: tighten the
-    # transparent padding around the brand mark
-    # *before* any per-size resize runs. The
-    # resulting ``normalised_png_bytes`` is the
-    # single source the rest of the pipeline
-    # works from.
+    # v2.1.4 dark-frame-crop: the working canvas
+    # is the source cropped to the dark navy tile
+    # bounding box plus a small consistent edge
+    # margin. The resulting ``normalised_png_bytes``
+    # is the single source the rest of the pipeline
+    # works from. The dark-frame fill check is
+    # fail-loud so a hostile or accidental source
+    # cannot ship a silently-undersized derivative.
     normalised_png_bytes = _normalise_padding(
         approved_png.read_bytes(),
         target_size=1024,
         padding_percent=padding_percent,
     )
-    approved_entries = {w: (w, h, raw) for (w, h, raw) in _parse_ico(approved_ico.read_bytes())}
     entries: list[tuple[int, int, bytes]] = []
     for target_size in sizes:
-        if target_size in approved_entries:
-            entries.append(approved_entries[target_size])
-        else:
-            entries.append(
-                _png_to_png_ico_entry(normalised_png_bytes, target_size)
-            )
+        entries.append(
+            _png_to_png_ico_entry(normalised_png_bytes, target_size)
+        )
     ico_bytes = _build_ico(entries)
     derivative_ico.parent.mkdir(parents=True, exist_ok=True)
     derivative_ico.write_bytes(ico_bytes)

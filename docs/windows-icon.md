@@ -18,15 +18,30 @@ be modified by the build.
 
 The canonical Windows ICO at
 ``backend/pyinstaller/favicon-exe.ico`` is a
-**mechanical** packaging derivative:
+**mechanical** packaging derivative with ``16``, ``20``,
+``24``, ``32``, ``40``, ``48``, ``64``, ``128`` and
+``256`` pixel frames. Every frame is generated from the
+approved 1024x1024 PNG through the Windows-only pipeline;
+the web favicon geometry is not reused.
 
-- The ``16x16``, ``32x32`` and ``48x48`` entries
-  are lifted verbatim from the brand-board web
-  favicon so the Windows shell shows the exact same
-  glyph the browser does.
-- The ``24x24``, ``64x64``, ``128x128`` and
-  ``256x256`` entries are Pillow Lanczos downscales
-  of the approved 1024x1024 source PNG.
+The approved export includes a soft shadow and low-alpha
+cutout residue beyond the real 844x844 dark tile. Cropping
+that export alone magnifies the residue and makes the ICO
+border look worn. The Windows pipeline therefore:
+
+1. detects the exact dark-tile bbox and crops it with 0.25%
+   per-side composition padding;
+2. retains the opaque RGB artwork and replaces only hidden,
+   transparent-edge RGB with navy derived from the source;
+3. applies a symmetric eight-times-supersampled rounded
+   rectangle alpha mask using the measured 27.3% corner
+   radius and a 0.5% safe margin;
+4. clamps sub-alpha-8 resampling residue to true transparency;
+5. renders every canonical frame from the corrected source.
+
+The 848px crop is 0.94% tighter than the previous 856px
+crop. This is the controlled final size increase; it does
+not alter the glyph geometry or the approved web assets.
 
 The approved brand assets are never modified by the
 build. The build script
@@ -42,8 +57,10 @@ sizes when rendering the application icon:
 | Size | Where it shows |
 | ---- | -------------- |
 | 16x16 | Taskbar (small), classic toolbar |
+| 20x20 | Medium-density taskbar |
 | 24x24 | Classic Windows desktop / toolbar |
 | 32x32 | Default icon view, Start tile |
+| 40x40 | Extra-density taskbar |
 | 48x48 | Medium icon view, "Programs and Features" |
 | 64x64 | Large icon view |
 | 128x128 | Extra-large icon view, modern Start |

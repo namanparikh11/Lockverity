@@ -224,9 +224,7 @@ class TestDerivativeIcoStructure:
             "the 256x256 entry must be a PNG payload; the Windows shell decodes PNG-in-ICO directly"
         )
 
-    def test_derivative_uses_dark_frame_anchor(
-        self, regenerated_derivative: Path
-    ) -> None:
+    def test_derivative_uses_dark_frame_anchor(self, regenerated_derivative: Path) -> None:
         """v2.1.4 contract: every per-frame alpha bbox fills the canvas.
 
         The dark-frame-crop step places the dark
@@ -257,9 +255,7 @@ class TestDerivativeIcoStructure:
                     "least 90% (the v2.1.4 dark-frame-crop contract)."
                 )
 
-    def test_derivative_is_centered(
-        self, regenerated_derivative: Path
-    ) -> None:
+    def test_derivative_is_centered(self, regenerated_derivative: Path) -> None:
         """v2.1.4 contract: every per-frame alpha bbox is centered.
 
         The dark-frame-crop step is the geometric
@@ -290,6 +286,117 @@ class TestDerivativeIcoStructure:
                     f"dx={dx * 100:.1f}% dy={dy * 100:.1f}%; "
                     "the v2.1.4 dark-frame-crop contract requires "
                     "the alpha bbox to be centred within 10%."
+                )
+
+    def test_frames_have_one_clean_contiguous_alpha_shape(
+        self, regenerated_derivative: Path
+    ) -> None:
+        """No isolated fringe component or cutout hole survives the clean mask."""
+        from PIL import Image  # type: ignore[import-not-found]
+
+        data = regenerated_derivative.read_bytes()
+        for width, height, _size, body in _parse_ico_sizes(data):
+            with Image.open(io.BytesIO(body)) as image:
+                alpha = image.convert("RGBA").getchannel("A")
+                pixels = alpha.load()
+                active = {
+                    (x, y)
+                    for y in range(height)
+                    for x in range(width)
+                    if pixels[x, y] >= generate_exe_icon.ALPHA_FRINGE_FLOOR
+                }
+                components: list[int] = []
+                unseen = set(active)
+                while unseen:
+                    seed = unseen.pop()
+                    stack = [seed]
+                    count = 0
+                    while stack:
+                        x, y = stack.pop()
+                        count += 1
+                        for neighbour in (
+                            (x - 1, y),
+                            (x + 1, y),
+                            (x, y - 1),
+                            (x, y + 1),
+                        ):
+                            if neighbour in unseen:
+                                unseen.remove(neighbour)
+                                stack.append(neighbour)
+                    components.append(count)
+                assert len(components) == 1, (
+                    f"ICO frame {width}x{height} has {len(components)} alpha "
+                    "components; isolated corner/fringe pixels are forbidden"
+                )
+                # A mathematical rounded rectangle has at most one run in
+                # every scanline. This catches notches and leftover cutouts
+                # while allowing the exact antialias values to vary.
+                for y in range(height):
+                    xs = [x for x in range(width) if (x, y) in active]
+                    if xs:
+                        assert len(xs) == max(xs) - min(xs) + 1
+                for x in range(width):
+                    ys = [y for y in range(height) if (x, y) in active]
+                    if ys:
+                        assert len(ys) == max(ys) - min(ys) + 1
+
+    def test_clean_edge_is_symmetric_and_not_clipped(self, regenerated_derivative: Path) -> None:
+        """The replacement edge is symmetric and never opaque at the bounds."""
+        from PIL import Image  # type: ignore[import-not-found]
+
+        data = regenerated_derivative.read_bytes()
+        for width, height, _size, body in _parse_ico_sizes(data):
+            with Image.open(io.BytesIO(body)) as image:
+                alpha = image.convert("RGBA").getchannel("A")
+                pixels = alpha.load()
+                symmetry_error = 0
+                for y in range(height):
+                    for x in range(width):
+                        symmetry_error = max(
+                            symmetry_error,
+                            abs(pixels[x, y] - pixels[width - 1 - x, y]),
+                            abs(pixels[x, y] - pixels[x, height - 1 - y]),
+                        )
+                assert symmetry_error <= 4, (
+                    f"ICO frame {width}x{height} alpha edge is asymmetric by "
+                    f"{symmetry_error}; expected no more than 4 alpha levels"
+                )
+                border = (
+                    [pixels[x, 0] for x in range(width)]
+                    + [pixels[x, height - 1] for x in range(width)]
+                    + [pixels[0, y] for y in range(1, height - 1)]
+                    + [pixels[width - 1, y] for y in range(1, height - 1)]
+                )
+                assert max(border) <= 160, (
+                    f"ICO frame {width}x{height} reaches alpha {max(border)} "
+                    "at its border; the rounded tile may be clipped"
+                )
+                assert all(
+                    pixels[x, y] == 0
+                    for x, y in (
+                        (0, 0),
+                        (width - 1, 0),
+                        (0, height - 1),
+                        (width - 1, height - 1),
+                    )
+                )
+
+    def test_tile_occupancy_stays_in_visual_comfort_band(
+        self, regenerated_derivative: Path
+    ) -> None:
+        """Guard against both accidental shrinkage and accidental overscaling."""
+        from PIL import Image  # type: ignore[import-not-found]
+
+        data = regenerated_derivative.read_bytes()
+        for width, height, _size, body in _parse_ico_sizes(data):
+            with Image.open(io.BytesIO(body)) as image:
+                alpha = image.convert("RGBA").getchannel("A")
+                pixels = alpha.load()
+                occupied = sum(pixels[x, y] >= 32 for y in range(height) for x in range(width))
+                ratio = occupied / (width * height)
+                assert 0.88 <= ratio <= 0.95, (
+                    f"ICO frame {width}x{height} rounded-tile occupancy is "
+                    f"{ratio * 100:.1f}%; expected 88-95%"
                 )
 
 
@@ -378,9 +485,10 @@ class TestDarkFrameCrop:
 
         source_bytes = APPROVED_PNG.read_bytes()
         normalised_bytes = generate_exe_icon._normalise_padding(source_bytes)
-        with Image.open(io.BytesIO(source_bytes)) as source, Image.open(
-            io.BytesIO(normalised_bytes)
-        ) as normalised:
+        with (
+            Image.open(io.BytesIO(source_bytes)) as source,
+            Image.open(io.BytesIO(normalised_bytes)) as normalised,
+        ):
             source.load()
             normalised.load()
             # Detect the dark frame in the source
@@ -396,10 +504,14 @@ class TestDarkFrameCrop:
                     if a < 32:
                         continue
                     if r + g + b < 80:
-                        if x < minx: minx = x
-                        if y < miny: miny = y
-                        if x > maxx: maxx = x
-                        if y > maxy: maxy = y
+                        if x < minx:
+                            minx = x
+                        if y < miny:
+                            miny = y
+                        if x > maxx:
+                            maxx = x
+                        if y > maxy:
+                            maxy = y
             assert maxx > 0, "no dark frame detected in the source"
             frame_w = maxx - minx
             frame_h = maxy - miny
@@ -453,9 +565,10 @@ class TestDarkFrameCrop:
 
         source_bytes = APPROVED_PNG.read_bytes()
         normalised_bytes = generate_exe_icon._normalise_padding(source_bytes)
-        with Image.open(io.BytesIO(source_bytes)) as source, Image.open(
-            io.BytesIO(normalised_bytes)
-        ) as normalised:
+        with (
+            Image.open(io.BytesIO(source_bytes)) as source,
+            Image.open(io.BytesIO(normalised_bytes)) as normalised,
+        ):
             source.load()
             normalised.load()
             assert source.mode == "RGBA"

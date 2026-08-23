@@ -117,18 +117,25 @@ CANONICAL_ICON_SIZES: tuple[int, ...] = (
 )
 
 # Alpha level at which a source pixel belongs to the
-# strong mark core. The approved export's genuine
-# antialiasing ramp lives within ~2px of this core;
-# everything fainter and further out is the documented
-# shadow/cutout residue.
+# strong mark core. The approved export's L's edge
+# antialiasing ramp lives within ~30 source pixels of
+# this core; the shadow/cutout residue is a separate
+# low-alpha feature with extreme RGB and is filtered
+# out by :data:`L_COLOR_FILTER` (see below).
 ALPHA_CORE_THRESHOLD = 128
 
 # Radius (in source pixels) around the strong core
-# within which source alpha is retained. 3px keeps the
-# whole antialiasing ramp (measured: all real content
-# is within 2px of the core) while deleting every
-# distant residue pixel (measured max alpha 84).
-EDGE_KEEP_RADIUS = 3
+# within which source alpha is retained. 30 source
+# pixels keeps the entire L's edge antialiasing ramp
+# (the approved export's tapered ends span up to
+# 30px of smooth gradient from core to transparent)
+# while leaving the drop shadow + low-alpha cutout
+# residue far outside the dilated region. The
+# subsequent L-colour filter (see
+# :func:`_apply_l_color_filter`) zeroes the remaining
+# residue (gray/cyan/black RGB) so the final master
+# carries the genuine L's edge AA only.
+EDGE_KEEP_RADIUS = 30
 
 # Post-resample fringe control: alpha strictly below
 # this is Lanczos ringing/residue and is clamped to
@@ -136,6 +143,20 @@ EDGE_KEEP_RADIUS = 3
 # is clamped to full opacity.
 ALPHA_FRINGE_FLOOR = 8
 ALPHA_OPAQUE_CEILING = 255 - ALPHA_FRINGE_FLOOR
+
+# Maximum alpha a residue speck can have. Any
+# 4-connected component whose largest alpha is below
+# this threshold is residue (cutout shadow, low-alpha
+# cyan/gray RGB) and is removed by the speck pass.
+# The L's genuine edge AA is connected (via 4-neighbour)
+# to the L's strong core (alpha >= 128), so the L's
+# edge-AA component always has max alpha >= 128. Residue
+# specks are not connected to the core and never reach
+# this threshold. 64 is comfortably below the L's
+# antialiasing floor (the L's 50% contour is still
+# well above 64) and comfortably above the highest
+# measured residue alpha (about 31).
+SPECK_MAX_ALPHA = 64
 
 # Visible-mark occupancy (max bbox dimension / frame
 # dimension) per frame size. 32/40/48 target the
@@ -232,19 +253,101 @@ FRAME_EDGE_EXTENSION_RADIUS: dict[int, int] = {
 MASTER_EDGE_EXTENSION_RADIUS = 8
 
 
+def _apply_l_color_filter(cleaned_rgba: object) -> object:
+    """Zero every non-transparent edge-AA pixel whose RGB is not the L's
+    blue gradient. The strong core (alpha >=
+    :data:`ALPHA_CORE_THRESHOLD`) is never touched.
+
+    The approved export's drop shadow + low-alpha cutout residue has
+    distinctive RGB signatures: pure cyan (``B == G``), pure gray
+    (``R == G == B``), pure black, and pure white. The L itself is
+    always a blue gradient.
+
+    The filter has two rules applied only to edge-AA pixels
+    (alpha < :data:`ALPHA_CORE_THRESHOLD`):
+
+      - **Loose** (``b > r + 20`` and ``b > g`` and ``b > 20``):
+        the L's colour is always blue-dominant, never pure cyan
+        (``B == G``), gray (``B == R``), or dark. The loose rule
+        keeps every L edge AA pixel including the L's tapered
+        end where the colour is closest to the L's edge gradient.
+
+      - **Strict** for any pixel whose alpha is below
+        :data:`ALPHA_FRINGE_FLOOR * 4` (32): the residue is always
+        a very-low-alpha feature with extreme RGB, so any low-alpha
+        pixel that does not pass the strict L-colour rule
+        (``B > R + 30``, ``B > G + 5``, ``B > 30``) is residue and is
+        zeroed. The L's genuine mid-alpha edge AA never sits in
+        the strict-failed band (the L's alpha goes from 0 to 255
+        smoothly; mid-alpha pixels always have the L's blue
+        gradient colour).
+
+    The strong core is the L's identity-defining geometry and is
+    never zeroed: a future maintainer who swaps the brand asset
+    for a same-shape source whose core is a slightly different
+    blue would not see the cleaned mark shrink because the
+    L-colour check disagreed about the core RGB. The L-colour check
+    is a residue filter for the AA ramp only; the core is sacred.
+
+    The function operates on the alpha channel: an edge-AA pixel
+    whose RGB is not L-color becomes transparent. The RGB bytes of
+    that pixel are not touched; downstream code (the nearest-colour
+    RGB edge extension) replaces them with the nearest mark colour
+    anyway.
+    """
+    from PIL import Image  # type: ignore[import-not-found]
+
+    if not isinstance(cleaned_rgba, Image.Image):
+        raise TypeError("cleaned_rgba must be a Pillow Image")
+    rgba = cleaned_rgba if cleaned_rgba.mode == "RGBA" else cleaned_rgba.convert("RGBA")
+    rgba.load()
+    px = rgba.load()
+    w, h = rgba.size
+    alpha = rgba.getchannel("A")
+    alpha_px = alpha.load()
+    for y in range(h):
+        for x in range(w):
+            a = alpha_px[x, y]
+            if a == 0 or a >= ALPHA_CORE_THRESHOLD:
+                continue
+            r, g, b, _a = px[x, y]
+            if a < ALPHA_FRINGE_FLOOR * 4:
+                if not (b > r + 30 and b > g + 5 and b > 30):
+                    alpha_px[x, y] = 0
+            else:
+                if not (b > r + 20 and b > g and b > 20):
+                    alpha_px[x, y] = 0
+    rgba.putalpha(alpha)
+    return rgba
+
+
 def _clean_symbol_source(source: object) -> object:
     """Return the tight-cropped, residue-free RGBA mark.
 
-    The approved symbol export contains a soft shadow
-    and low-alpha cutout residue beyond the real mark.
-    The function keeps the source alpha only within
-    :data:`EDGE_KEEP_RADIUS` of the strong core (the
-    genuine antialiasing ramp) and zeroes everything
-    else. The RGB under near-edge transparent pixels is
-    replaced with the nearest dominant mark colour so
-    later resampling cannot blend black or navy halo
-    into the antialiased edge; fully transparent pixels
-    far from the mark keep zeroed RGB.
+    The approved symbol export contains a soft drop
+    shadow and a low-alpha cutout residue beyond the
+    real mark. The function:
+
+      1. keeps the source alpha within
+         :data:`EDGE_KEEP_RADIUS` (30 source pixels) of
+         the strong core so the L's full edge
+         antialiasing ramp is preserved (the L's
+         tapered ends span up to 30 source pixels of
+         smooth gradient from the core to transparent);
+      2. applies :func:`_apply_l_color_filter` so any
+         non-L pixel (drop shadow, cutout residue,
+         gray/cyan/black/white RGB) that survived the
+         dilation is zeroed;
+      3. replaces the RGB under near-edge transparent
+         pixels with the nearest dominant mark colour
+         so later resampling cannot blend black or
+         navy halo into the antialiased edge;
+         transparent pixels far from the mark keep
+         zeroed RGB.
+
+    The cleaned mark therefore carries the genuine
+    L contour (full AA ramp, no missing sections)
+    and nothing else.
 
     Raises :class:`ValueError` when the source has no
     usable mark (a hostile or accidental replacement),
@@ -261,7 +364,15 @@ def _clean_symbol_source(source: object) -> object:
     core = alpha.point(lambda value: 255 if value >= ALPHA_CORE_THRESHOLD else 0)
     keep = core.filter(ImageFilter.MaxFilter(2 * EDGE_KEEP_RADIUS + 1))
     cleaned_alpha = ImageChops.multiply(alpha, keep)
-    bbox = cleaned_alpha.getbbox()
+    # The dilated alpha now covers the L's full edge AA
+    # plus the documented shadow + residue. The L-color
+    # filter removes every non-L pixel so only the
+    # genuine L contour remains.
+    rgba.load()
+    cleaned = rgba.copy()
+    cleaned.putalpha(cleaned_alpha)
+    cleaned = _apply_l_color_filter(cleaned)
+    bbox = cleaned.getbbox()
     if bbox is None:
         raise ValueError(
             "the approved source has no symbol content; refusing to "
@@ -281,22 +392,25 @@ def _clean_symbol_source(source: object) -> object:
     # raw black). Every downstream resample blends this skirt into the
     # antialiased edge, so a clean skirt is what keeps the edge halo-free.
     # Distant transparent pixels stay zeroed (the flood fill is bounded).
-    rgba.load()
-    cleaned = rgba.copy()
-    cleaned.putalpha(cleaned_alpha)
     cleaned = _nearest_color_rgb(cleaned, RGB_EDGE_EXTENSION_RADIUS)
     return cleaned.crop(bbox)
 
 
 def _remove_specks(alpha: object, min_pixels: int) -> object:
-    """Remove isolated alpha components smaller than ``min_pixels``.
+    """Remove isolated alpha components smaller than ``min_pixels``
+    AND any component whose maximum alpha is below
+    :data:`SPECK_MAX_ALPHA`.
 
-    The real mark is two large interlocked components;
-    anything tiny is resampling residue. The function
-    keeps every component with at least ``min_pixels``
-    pixels and zeroes the rest. Connectivity is
-    4-neighbour; the pass is a plain flood fill over
-    the frame (at most 256x256 for ICO frames).
+    The real mark is two large interlocked components with
+    strong core (alpha >= 128) and a smooth edge antialiasing
+    ramp (alpha 0 to 128). Anything tiny is resampling
+    residue; anything with a low maximum alpha is cyan /
+    gray / cutout residue that survived the source-level
+    L-colour filter. The function keeps every component
+    with at least ``min_pixels`` pixels AND a maximum alpha
+    of at least :data:`SPECK_MAX_ALPHA`, and zeroes the rest.
+    Connectivity is 4-neighbour; the pass is a plain flood
+    fill over the frame (at most 256x256 for ICO frames).
     """
     from PIL import Image, ImageChops  # type: ignore[import-not-found]
 
@@ -310,28 +424,35 @@ def _remove_specks(alpha: object, min_pixels: int) -> object:
     keep_pixels = keep.load()
     visited = bytearray(width * height)
 
-    def flood(start_x: int, start_y: int) -> list[tuple[int, int]] | None:
+    def flood(start_x: int, start_y: int) -> tuple[list[tuple[int, int]], int] | None:
         stack = [(start_x, start_y)]
         visited[start_y * width + start_x] = 1
         component: list[tuple[int, int]] = []
+        max_alpha = 0
         while stack:
             x, y = stack.pop()
             component.append((x, y))
+            a = pixels[x, y]
+            if a > max_alpha:
+                max_alpha = a
             for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
                 if 0 <= nx < width and 0 <= ny < height:
                     index = ny * width + nx
                     if not visited[index] and pixels[nx, ny] > 0:
                         visited[index] = 1
                         stack.append((nx, ny))
-        return component
+        return component, max_alpha
 
     for y in range(height):
         for x in range(width):
             index = y * width + x
             if visited[index] or pixels[x, y] == 0:
                 continue
-            component = flood(x, y)
-            if component is not None and len(component) >= min_pixels:
+            flood_result = flood(x, y)
+            if flood_result is None:
+                continue
+            component, max_alpha = flood_result
+            if len(component) >= min_pixels and max_alpha >= SPECK_MAX_ALPHA:
                 for cx, cy in component:
                     keep_pixels[cx, cy] = 255
     return ImageChops.multiply(alpha, keep)

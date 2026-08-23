@@ -454,7 +454,34 @@ def _copy_tree_excluding_pycache(src: Path, dst: Path) -> None:
 
 
 def _merge_dir(src: Path, dst: Path) -> None:
-    """Recursively merge ``src`` into ``dst`` without overwriting.
+    """Recursively copy ``src`` into ``dst``, overwriting existing files.
+
+    The function is the documented fix for the 2026-08
+    packaging regression where a previous build's
+    ``_internal/psutil/_psutil_windows.pyd`` survived
+    into a new portable because an earlier revision
+    of this helper used ``shutil.copy2`` wrapped in a
+    skip-when-target-already-exists guard. The new
+    semantics always overwrite, so a stale native
+    extension can never again shadow the fresh
+    PyInstaller emission.
+
+    The function is a **union-friendly overwrite**:
+    it copies every file from ``src`` into ``dst``
+    and overwrites any existing file at the
+    destination, but it does **not** prune entries
+    under ``dst`` that are absent from ``src``.
+    Pruning is intentionally left out because the
+    portable assembly merges two PyInstaller
+    onedirs (the launcher and the CLI) into the
+    same ``_internal/`` tree: a subdirectory that
+    the launcher onedir has but the CLI onedir
+    does not (e.g. ``webview/lib``) must be
+    preserved across the CLI merge. The obsolete
+    file case is handled by the ``portable_root``
+    wipe in :func:`main` (which is the primary
+    invariant of the v2.1.6 deterministic-staging
+    fix), not by per-call pruning.
 
     ``__pycache__`` directories are skipped so the
     portable bundle does not carry build-host
@@ -470,8 +497,12 @@ def _merge_dir(src: Path, dst: Path) -> None:
         if item.is_dir():
             _merge_dir(item, target)
         else:
-            if not target.exists():
-                shutil.copy2(item, target)
+            # Overwrite so a previous build's bytes cannot
+            # survive into the new portable. ``copy2``
+            # preserves the source's metadata, which is
+            # exactly what we want for a deterministic
+            # build artefact.
+            shutil.copy2(item, target)
 
 
 # Build-environment-only packages that must NOT appear in the
@@ -1175,6 +1206,29 @@ def main(argv: list[str] | None = None) -> int:
         pyinstaller_out = args.output_dir / "pyinstaller_out"
         portable_root = args.output_dir / DEFAULT_PORTABLE_NAME
         logs_dir = args.output_dir / "logs"
+        # Wipe the previous portable staging root and the
+        # PyInstaller ``distpath`` directory before the
+        # new build emits anything into them. Both are
+        # pure build outputs (re-generated on every
+        # build); preserving either one between builds
+        # would risk mixing old and new files -- the
+        # exact failure mode that produced the 2026-08
+        # stale-psutil-pyd regression. The ``work/`` and
+        # ``logs/`` directories are kept: the first is
+        # opt-in via ``--keep-work``, the second is a
+        # build log the operator may want to inspect.
+        # This is the primary invariant of the v2.1.6
+        # deterministic-staging fix; the secondary
+        # defence is :func:`_merge_dir` mirroring the
+        # destination tree, which catches any caller
+        # that still invokes the merge on a populated
+        # destination.
+        if portable_root.exists():
+            _log("staging", f"wiping previous portable root: {portable_root}")
+            shutil.rmtree(portable_root)
+        if pyinstaller_out.exists():
+            _log("staging", f"wiping previous PyInstaller dist: {pyinstaller_out}")
+            shutil.rmtree(pyinstaller_out)
         if not args.skip_frontend_build:
             _build_frontend()
         _verify_frontend_dist()

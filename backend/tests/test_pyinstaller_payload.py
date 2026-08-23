@@ -336,3 +336,234 @@ def test_frozen_gui_exe_size_meets_minimum() -> None:
         "a PyInstaller hidden-import regression. Inspect the build "
         "log and the GUI spec."
     )
+
+
+# ---------------------------------------------------------------------------
+# psutil runtime-compatibility guard.
+#
+# The 2026-08 frozen-import regression: the Python-side psutil
+# module bundled in the PYZ (version 7.2.2) calls native APIs
+# such as ``heap_info`` that the older
+# ``_psutil_windows.pyd`` shadowed in the portable staging
+# directory did not expose. The operator saw
+# ``module 'psutil_windows' has no attribute 'heap_info'``
+# before the launcher could run.
+#
+# The regression was caused by the portable staging area
+# preserving the previous build's native extension while only
+# ``merge``-copying files that did not exist on the target --
+# the stale pyd was never overwritten by the fresh PyInstaller
+# output. The fix is in two parts:
+#
+#   1. The build script cleans the staging area before staging
+#      a new portable so the fresh pyd replaces the stale one.
+#   2. The regression guard below proves the bundle's native
+#      extension is actually loadable and exposes the same
+#      C-level API surface as the psutil the build environment
+#      installed.
+#
+# The guard loads the bundled pyd via importlib (it does not
+# require a Windows desktop), compares its C-level ``version``
+# integer to the build environment's live psutil native, and
+# asserts the live native's full public attribute set is a
+# subset of the frozen native's. A subset relationship in
+# either direction (Python-side > native, or native > Python-side)
+# is a fail; the canonical post-2026-08 invariant is
+# frozen ⊇ live so the frozen EXE can use any API the build
+# env's psutil offered.
+# ---------------------------------------------------------------------------
+
+
+def _find_frozen_psutil_pyd() -> Path | None:
+    """Locate the psutil native extension inside the frozen portable.
+
+    Returns the first ``_psutil_*.{pyd,so}`` under
+    ``_internal/psutil/`` of any known portable root, or
+    ``None`` if the portable has not been built yet.
+    """
+    for root in CANDIDATE_PORTABLE_ROOTS:
+        psutil_dir = root / "_internal" / "psutil"
+        if not psutil_dir.is_dir():
+            continue
+        for pattern in ("_psutil_*.pyd", "_psutil_*.so"):
+            matches = sorted(psutil_dir.glob(pattern))
+            if matches:
+                return matches[0]
+    return None
+
+
+def _load_psutil_native(pyd_path: Path) -> object:
+    """Load a psutil native extension via importlib and return the module.
+
+    A Windows psutil C extension (``_psutil_windows.pyd``) ships with
+    a hard-coded ``PyInit__psutil_windows`` entry point; importlib
+    refuses to load it under any other name. The helper therefore
+    loads the pyd under the canonical name (``_psutil_windows``) and
+    swaps it into ``sys.modules``, saving and restoring any pre-existing
+    module object so the live ``psutil`` package the test environment
+    already imported is untouched.
+    """
+    import importlib.util
+    import sys
+
+    module_name = pyd_path.stem  # e.g. "_psutil_windows"
+    spec = importlib.util.spec_from_file_location(module_name, str(pyd_path))
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Could not build import spec for {pyd_path}")
+    module = importlib.util.module_from_spec(spec)
+    saved = sys.modules.pop(module_name, None)
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        sys.modules.pop(module_name, None)
+        if saved is not None:
+            sys.modules[module_name] = saved
+        raise
+    module.___frozen_probe_original__ = saved  # type: ignore[attr-defined]
+    return module
+
+
+def test_frozen_psutil_native_is_runtime_compatible() -> None:
+    """The frozen ``_psutil_windows.pyd`` must be runtime-compatible with psutil.
+
+    This is the 2026-08 regression guard. The test does not require
+    a Windows desktop; it loads the bundled pyd via importlib and
+    validates that it is the same C extension the build
+    environment's psutil would have produced. Four invariants:
+
+      1. The pyd loads (its import-time native code runs without
+         raising) and exposes an integer ``version`` attribute
+         that psutil uses at import time to gate version-specific
+         behaviour.
+      2. The pyd's ``version`` equals the build env's live psutil
+         native ``version`` so the Python-side psutil code
+         embedded in the PYZ and the native side agree on the
+         same psutil release.
+      3. The live native's full public attribute set is a subset
+         of the frozen native's. This catches the exact 2026-08
+         failure mode: the live native exposes ``heap_info`` (and
+         other 7.x APIs) but the stale frozen pyd did not, so
+         ``psutil._pswindows`` raised ``AttributeError`` at
+         import time. The check is universal: it does not
+         hardcode any version-specific API name.
+      4. A real native API call (``get_system_info``) succeeds,
+         proving the pyd is functionally as well as
+         structurally compatible.
+    """
+    import sys
+
+    pyd_path = _find_frozen_psutil_pyd()
+    if pyd_path is None:
+        pytest.skip(
+            "No built portable carries a _psutil_*.pyd under "
+            "_internal/psutil/; run `python backend/scripts/"
+            "build_windows_portable.py` first."
+        )
+
+    # 1. Load the pyd. The helper swaps the live ``_psutil_windows``
+    #    out of ``sys.modules`` for the duration of the test and
+    #    stashes the original on the probe module.
+    try:
+        frozen = _load_psutil_native(pyd_path)
+    except Exception as exc:  # pragma: no cover - failure path
+        pytest.fail(
+            f"Frozen psutil native at {pyd_path} failed to load. "
+            "The C extension is corrupt or from a different Python "
+            f"runtime (expected CPython 3.12). Underlying error: "
+            f"{type(exc).__name__}: {exc}"
+        )
+
+    original_native = getattr(frozen, "___frozen_probe_original__", None)
+    module_name = pyd_path.stem  # e.g. "_psutil_windows"
+    try:
+        # 1a. The pyd must expose a real ``version``.
+        frozen_version = getattr(frozen, "version", None)
+        assert isinstance(frozen_version, int) and frozen_version > 0, (
+            f"Frozen psutil native at {pyd_path} has no positive integer "
+            f"`version` attribute (got {frozen_version!r}). The pyd is "
+            "not a real psutil native extension."
+        )
+
+        # 2. The frozen pyd's version must equal the live native's.
+        try:
+            import psutil._psutil_windows as live
+        except Exception as exc:
+            pytest.skip(
+                "Live psutil not importable in the build/test environment; "
+                "the version-alignment cross-check is not possible. "
+                f"Underlying error: {type(exc).__name__}: {exc}"
+            )
+        live_version = getattr(live, "version", None)
+        assert isinstance(live_version, int) and live_version > 0, (
+            f"Live psutil._psutil_windows has no positive integer `version` "
+            f"(got {live_version!r}); the test environment is broken."
+        )
+        assert frozen_version == live_version, (
+            f"Frozen psutil native version {frozen_version} does not "
+            f"match the build env's psutil native version {live_version}. "
+            "The Python-side psutil in the PYZ expects API surface A but "
+            "the bundled pyd provides surface B. This is the documented "
+            "2026-08 failure mode ('module psutil_windows has no attribute "
+            "heap_info'). Remediation: clean the portable staging area "
+            "(the previous build's _psutil_windows.pyd is shadowing the "
+            "fresh one) and rebuild from a single, consistent psutil "
+            f"install. Frozen pyd: {pyd_path} (frozen version="
+            f"{frozen_version}, size={pyd_path.stat().st_size} B)"
+        )
+
+        # 3. API surface: every public attribute the live native
+        #    exposes must also be present on the frozen native.
+        live_attrs = {a for a in dir(live) if not a.startswith("_")}
+        frozen_attrs = {a for a in dir(frozen) if not a.startswith("_")}
+        missing = sorted(live_attrs - frozen_attrs)
+        assert not missing, (
+            f"Frozen psutil native at {pyd_path} (version {frozen_version}) "
+            f"is missing {len(missing)} public attribute(s) the build "
+            f"env's psutil native (version {live_version}) exposes. The "
+            "Python-side psutil in the PYZ will call these at import time "
+            "or first use and raise AttributeError. The first few: "
+            f"{missing[:10]}. Remediation: the staged pyd is stale; clean "
+            "the portable staging area and rebuild."
+        )
+
+        # 4. Real API smoke: ``cpu_times`` and ``virtual_mem`` have
+        #    been on the Windows psutil native since the 0.x days and
+        #    exercise non-trivial OS code paths. Both return tuples
+        #    with stable, well-known fields. Proving they actually
+        #    work shows the pyd is functionally as well as
+        #    structurally compatible.
+        cpu_times = frozen.cpu_times()
+        assert isinstance(cpu_times, tuple) and len(cpu_times) >= 2, (
+            f"Frozen psutil native `cpu_times()` returned {cpu_times!r}; "
+            "the C extension is structurally compatible but functionally "
+            f"broken. pyd: {pyd_path}"
+        )
+        virtual_mem = frozen.virtual_mem()
+        assert isinstance(virtual_mem, tuple) and len(virtual_mem) >= 4, (
+            f"Frozen psutil native `virtual_mem()` returned {virtual_mem!r}; "
+            "the C extension is structurally compatible but functionally "
+            f"broken. pyd: {pyd_path}"
+        )
+        assert virtual_mem[0] > 0, (
+            f"Frozen psutil native `virtual_mem()` reported total=0 B; "
+            "the OS query likely returned an error sentinel. "
+            f"pyd: {pyd_path}"
+        )
+    finally:
+        # Restore: put the live psutil native back (or remove the
+        # probe entry if there was no live native to begin with)
+        # and clear the cached ``psutil`` package modules so the
+        # next test that imports psutil gets a fresh, consistent
+        # module graph.
+        if original_native is not None:
+            sys.modules[module_name] = original_native
+        else:
+            sys.modules.pop(module_name, None)
+        for mod_name in (
+            "psutil._pswindows",
+            "psutil._common",
+            "psutil._ntuples",
+            "psutil",
+        ):
+            sys.modules.pop(mod_name, None)

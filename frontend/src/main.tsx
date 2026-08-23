@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router";
 
+import { AppearanceProvider } from "@/appearance";
 import { router } from "@/routes/router";
 import "@/index.css";
 
@@ -12,6 +13,8 @@ if (!root) {
 
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <AppearanceProvider>
+      <RouterProvider router={router} />
+    </AppearanceProvider>
   </React.StrictMode>
 );

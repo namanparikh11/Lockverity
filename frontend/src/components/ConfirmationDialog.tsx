@@ -96,11 +96,11 @@ export function ConfirmationDialog({
         aria-describedby={description ? "confirm-description" : undefined}
         className="card max-w-md space-y-3 shadow-lg"
       >
-        <h2 id="confirm-title" className="text-base font-semibold text-ink-900">
+        <h2 id="confirm-title" className="text-base font-semibold text-ink-900 dark:text-surface-dark-text">
           {title}
         </h2>
         {description ? (
-          <p id="confirm-description" className="text-sm text-ink-600">
+          <p id="confirm-description" className="text-sm text-ink-600 dark:text-surface-dark-text-muted">
             {description}
           </p>
         ) : null}

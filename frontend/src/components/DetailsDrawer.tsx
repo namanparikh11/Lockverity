@@ -60,14 +60,14 @@ export function DetailsDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel ?? title}
-        className={`flex h-full w-full ${widthClass} flex-col border-l border-ink-200 bg-white shadow-xl`}
+        className={`flex h-full w-full ${widthClass} flex-col border-l border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface shadow-xl`}
       >
-        <header className="flex items-center justify-between border-b border-ink-200 px-4 py-3">
-          <h2 className="text-base font-semibold text-ink-900">{title}</h2>
+        <header className="flex items-center justify-between border-b border-ink-200 dark:border-surface-dark-border px-4 py-3">
+          <h2 className="text-base font-semibold text-ink-900 dark:text-surface-dark-text">{title}</h2>
           <button
             ref={closeRef}
             type="button"
-            className="rounded p-1 text-ink-500 hover:bg-ink-100"
+            className="rounded p-1 text-ink-500 dark:text-surface-dark-text-muted hover:bg-ink-100 dark:bg-surface-dark-raised"
             onClick={onClose}
             aria-label="Close details"
           >

@@ -20,7 +20,7 @@ export function ResponsiveTable({
     <div className="card overflow-x-auto">
       <table className="min-w-full divide-y divide-ink-100">
         {caption ? <caption className="sr-only">{caption}</caption> : null}
-        <thead className="bg-ink-50">
+        <thead className="bg-ink-50 dark:bg-surface-dark-app">
           <tr>
             {headers.map((header, idx) => (
               <th key={idx} scope="col" className="table-head">
@@ -34,7 +34,7 @@ export function ResponsiveTable({
             <tr>
               <td
                 colSpan={headers.length}
-                className="table-cell text-center text-ink-500"
+                className="table-cell text-center text-ink-500 dark:text-surface-dark-text-muted"
               >
                 {empty}
               </td>

@@ -118,7 +118,7 @@ export function ScansIndexPage() {
               <td className="table-cell">
                 <Link
                   to={`/scans/${scan.id}`}
-                  className="text-ink-900 hover:text-accent-700"
+                  className="text-ink-900 dark:text-surface-dark-text hover:text-accent-700 dark:text-accent-dark-300"
                 >
                   #{scan.id}
                 </Link>
@@ -126,15 +126,15 @@ export function ScansIndexPage() {
               <td className="table-cell">
                 <StatusBadge status={scan.status} />
               </td>
-              <td className="table-cell text-ink-500">
+              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
                 <Link
                   to={`/repositories/${scan.repository_id}`}
-                  className="hover:text-accent-700"
+                  className="hover:text-accent-700 dark:text-accent-dark-300"
                 >
                   repo #{scan.repository_id}
                 </Link>
               </td>
-              <td className="table-cell text-ink-500">
+              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
                 {formatRelative(scan.created_at)}
               </td>
             </tr>

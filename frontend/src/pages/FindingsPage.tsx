@@ -307,35 +307,35 @@ export function FindingsPage() {
           separate denormalised count. */}
       {scan ? (
         <section
-          className="mb-4 rounded-md border border-ink-200 bg-white p-4 shadow-sm"
+          className="mb-4 rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface p-4 shadow-sm"
           aria-label="Scan context"
           data-testid="findings-context-header"
         >
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-            <h2 className="text-sm font-semibold text-ink-800" data-testid="findings-context-title">
+            <h2 className="text-sm font-semibold text-ink-800 dark:text-surface-dark-text" data-testid="findings-context-title">
               Scan #{scan.id}
             </h2>
             {repository ? (
               <Link
                 to={`/repositories/${repository.id}`}
-                className="text-sm text-accent-700 hover:text-accent-800"
+                className="text-sm text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200"
                 data-testid="findings-context-repository"
               >
                 {repository.owner}/{repository.name}
               </Link>
             ) : (
-              <span className="text-sm text-ink-500">Repository #{scan.repository_id}</span>
+              <span className="text-sm text-ink-500 dark:text-surface-dark-text-muted">Repository #{scan.repository_id}</span>
             )}
-            <span className="text-xs text-ink-500" data-testid="findings-context-status">
-              Status: <span className="font-medium text-ink-700">{scanStatusLabel[scan.status]}</span>
+            <span className="text-xs text-ink-500 dark:text-surface-dark-text-muted" data-testid="findings-context-status">
+              Status: <span className="font-medium text-ink-700 dark:text-surface-dark-text">{scanStatusLabel[scan.status]}</span>
             </span>
             {repository ? (
-              <span className="text-xs text-ink-500" data-testid="findings-context-source">
-                Source: <span className="font-medium text-ink-700">{repositorySourceLabel[repository.source_type]}</span>
+              <span className="text-xs text-ink-500 dark:text-surface-dark-text-muted" data-testid="findings-context-source">
+                Source: <span className="font-medium text-ink-700 dark:text-surface-dark-text">{repositorySourceLabel[repository.source_type]}</span>
               </span>
             ) : null}
             {meta ? (
-              <span className="text-xs text-ink-500" data-testid="findings-context-count">
+              <span className="text-xs text-ink-500 dark:text-surface-dark-text-muted" data-testid="findings-context-count">
                 {meta.total} finding{meta.total === 1 ? "" : "s"} match the current filters
               </span>
             ) : null}
@@ -347,19 +347,19 @@ export function FindingsPage() {
           >
             <Link
               to={`/scans/${scan.id}`}
-              className="rounded border border-ink-200 bg-white px-2 py-1 text-ink-700 hover:border-accent-300"
+              className="rounded border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface px-2 py-1 text-ink-700 dark:text-surface-dark-text hover:border-accent-300"
             >
               Workbench
             </Link>
             <Link
               to={`/scans/${scan.id}/dependencies`}
-              className="rounded border border-ink-200 bg-white px-2 py-1 text-ink-700 hover:border-accent-300"
+              className="rounded border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface px-2 py-1 text-ink-700 dark:text-surface-dark-text hover:border-accent-300"
             >
               Dependencies
             </Link>
             <Link
               to={`/scans/${scan.id}/exports`}
-              className="rounded border border-ink-200 bg-white px-2 py-1 text-ink-700 hover:border-accent-300"
+              className="rounded border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface px-2 py-1 text-ink-700 dark:text-surface-dark-text hover:border-accent-300"
             >
               Exports
             </Link>
@@ -466,8 +466,8 @@ export function FindingsPage() {
             stacked
           />
         </FilterBar>
-        <details className="rounded-md border border-ink-200 bg-white p-3 text-sm">
-          <summary className="cursor-pointer text-ink-700">Advanced filters</summary>
+        <details className="rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface p-3 text-sm">
+          <summary className="cursor-pointer text-ink-700 dark:text-surface-dark-text">Advanced filters</summary>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div>
               <label htmlFor="rule-id" className="label">Rule id</label>
@@ -536,24 +536,24 @@ export function FindingsPage() {
             {findings.map((finding) => (
               <tr
                 key={finding.id}
-                className="table-row cursor-pointer focus-within:bg-ink-50 hover:bg-ink-50"
+                className="table-row cursor-pointer focus-within:bg-ink-50 dark:bg-surface-dark-app hover:bg-ink-50 dark:bg-surface-dark-app"
                 onClick={() => setSelected(finding)}
                 data-testid={`finding-row-${finding.id}`}
               >
-                <td className="table-cell font-mono text-xs text-ink-500">
+                <td className="table-cell font-mono text-xs text-ink-500 dark:text-surface-dark-text-muted">
                   <Link
                     to={`/scans/${finding.scan_run_id}/findings#finding-${finding.id}`}
                     onClick={(e) => e.stopPropagation()}
-                    className="hover:text-accent-700"
+                    className="hover:text-accent-700 dark:text-accent-dark-300"
                   >
                     {finding.rule_id}
                   </Link>
                 </td>
                 <td className="table-cell">
-                  <p className="font-medium text-ink-900">{finding.title}</p>
-                  <p className="line-clamp-2 text-xs text-ink-500">{finding.summary}</p>
+                  <p className="font-medium text-ink-900 dark:text-surface-dark-text">{finding.title}</p>
+                  <p className="line-clamp-2 text-xs text-ink-500 dark:text-surface-dark-text-muted">{finding.summary}</p>
                 </td>
-                <td className="table-cell text-ink-500">
+                <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
                   {findingCategoryLabel[finding.category]}
                 </td>
                 <td className="table-cell">
@@ -565,14 +565,14 @@ export function FindingsPage() {
                 <td className="table-cell">
                   <StatusBadge status={finding.status} />
                 </td>
-                <td className="table-cell text-ink-500">
+                <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
                   <CodeLocation
                     path={finding.location_path}
                     startLine={finding.location_start_line}
                     endLine={finding.location_end_line}
                   />
                 </td>
-                <td className="table-cell text-ink-500">
+                <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
                   <Timestamp value={finding.updated_at} mode="relative" />
                 </td>
               </tr>
@@ -675,11 +675,11 @@ function FindingDrawer({
     >
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-xs text-ink-500" data-testid="drawer-rule-id">{f.rule_id}</span>
+          <span className="font-mono text-xs text-ink-500 dark:text-surface-dark-text-muted" data-testid="drawer-rule-id">{f.rule_id}</span>
           <SeverityBadge severity={f.severity} />
           <ConfidenceBadge confidence={f.confidence} />
           <StatusBadge status={f.status} />
-          <span className="text-xs text-ink-500">
+          <span className="text-xs text-ink-500 dark:text-surface-dark-text-muted">
             {findingCategoryLabel[f.category]}
           </span>
         </div>
@@ -692,7 +692,7 @@ function FindingDrawer({
         ) : null}
         <section>
           <h3 className="label">Summary</h3>
-          <p className="mt-1 text-sm text-ink-800">{f.summary}</p>
+          <p className="mt-1 text-sm text-ink-800 dark:text-surface-dark-text">{f.summary}</p>
         </section>
         <section>
           <h3 className="label">Location</h3>
@@ -709,28 +709,28 @@ function FindingDrawer({
           <section data-testid="drawer-advisory">
             <h3 className="label">Advisory identity</h3>
             <dl className="mt-1 grid grid-cols-3 gap-x-3 gap-y-1 text-xs">
-              <dt className="text-ink-500">Primary id</dt>
-              <dd className="col-span-2 font-mono text-ink-800">
+              <dt className="text-ink-500 dark:text-surface-dark-text-muted">Primary id</dt>
+              <dd className="col-span-2 font-mono text-ink-800 dark:text-surface-dark-text">
                 {evidence.advisory_id ?? "—"}
               </dd>
-              <dt className="text-ink-500">Aliases</dt>
-              <dd className="col-span-2 text-ink-700" data-testid="drawer-aliases">
+              <dt className="text-ink-500 dark:text-surface-dark-text-muted">Aliases</dt>
+              <dd className="col-span-2 text-ink-700 dark:text-surface-dark-text" data-testid="drawer-aliases">
                 {evidence.aliases && evidence.aliases.length > 0
                   ? evidence.aliases.join(", ")
                   : "—"}
               </dd>
-              <dt className="text-ink-500">Provider</dt>
-              <dd className="col-span-2 text-ink-700" data-testid="drawer-provider">
+              <dt className="text-ink-500 dark:text-surface-dark-text-muted">Provider</dt>
+              <dd className="col-span-2 text-ink-700 dark:text-surface-dark-text" data-testid="drawer-provider">
                 {evidence.provider ?? "—"}
               </dd>
-              <dt className="text-ink-500">Source URL</dt>
-              <dd className="col-span-2 text-ink-700">
+              <dt className="text-ink-500 dark:text-surface-dark-text-muted">Source URL</dt>
+              <dd className="col-span-2 text-ink-700 dark:text-surface-dark-text">
                 {evidence.source_url ? (
                   <a
                     href={evidence.source_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-accent-700 hover:text-accent-800"
+                    className="text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200"
                   >
                     {evidence.source_url}
                   </a>
@@ -740,8 +740,8 @@ function FindingDrawer({
               </dd>
               {evidence.purl ? (
                 <>
-                  <dt className="text-ink-500">Package</dt>
-                  <dd className="col-span-2 font-mono text-ink-700">
+                  <dt className="text-ink-500 dark:text-surface-dark-text-muted">Package</dt>
+                  <dd className="col-span-2 font-mono text-ink-700 dark:text-surface-dark-text">
                     {evidence.purl}
                   </dd>
                 </>
@@ -753,19 +753,19 @@ function FindingDrawer({
         {f.evidence_json ? (
           <section data-testid="drawer-evidence">
             <h3 className="label">Evidence</h3>
-            <p className="mt-1 text-xs text-ink-500">
+            <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
               Raw evidence as persisted. Lockverity does not parse this as
               HTML; it is rendered as text so a malicious payload cannot
               change the page.
             </p>
-            <pre className="mt-2 max-h-64 overflow-auto rounded-md border border-ink-200 bg-ink-50 p-2 font-mono text-xs text-ink-800">
+            <pre className="mt-2 max-h-64 overflow-auto rounded-md border border-ink-200 dark:border-surface-dark-border bg-ink-50 dark:bg-surface-dark-app p-2 font-mono text-xs text-ink-800 dark:text-surface-dark-text">
               {safePrettyJson(f.evidence_json)}
             </pre>
           </section>
         ) : (
           <section data-testid="drawer-evidence-empty">
             <h3 className="label">Evidence</h3>
-            <p className="mt-1 text-xs text-ink-500">
+            <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
               No evidence record is attached to this finding. Missing
               evidence is not a clean result.
             </p>
@@ -775,17 +775,17 @@ function FindingDrawer({
         {f.remediation ? (
           <section>
             <h3 className="label">Remediation</h3>
-            <p className="mt-1 text-sm text-ink-800">{f.remediation}</p>
+            <p className="mt-1 text-sm text-ink-800 dark:text-surface-dark-text">{f.remediation}</p>
           </section>
         ) : null}
 
         <section>
           <h3 className="label">Severity &amp; confidence</h3>
-          <p className="mt-1 text-sm text-ink-700">
+          <p className="mt-1 text-sm text-ink-700 dark:text-surface-dark-text">
             Severity: <strong>{findingSeverityLabel[f.severity]}</strong> ·
             Confidence: <strong>{findingConfidenceLabel[f.confidence]}</strong>
           </p>
-          <p className="mt-1 text-xs text-ink-500">
+          <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
             Severity and confidence are independent dimensions. A critical
             finding with low confidence is not a confirmed vulnerability; a
             medium finding with confirmed confidence is. Severity is
@@ -796,11 +796,11 @@ function FindingDrawer({
 
         <section>
           <h3 className="label">Cross-links</h3>
-          <ul className="mt-1 list-disc pl-5 text-xs text-ink-700">
+          <ul className="mt-1 list-disc pl-5 text-xs text-ink-700 dark:text-surface-dark-text">
             <li>
               <Link
                 to={`/scans/${f.scan_run_id}`}
-                className="text-accent-700 hover:text-accent-800"
+                className="text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200"
               >
                 Scan workbench
               </Link>
@@ -808,7 +808,7 @@ function FindingDrawer({
             <li>
               <Link
                 to={`/scans/${f.scan_run_id}/dependencies`}
-                className="text-accent-700 hover:text-accent-800"
+                className="text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200"
               >
                 Dependencies (component inventory)
               </Link>
@@ -816,7 +816,7 @@ function FindingDrawer({
             <li>
               <Link
                 to={`/scans/${f.scan_run_id}/vulnerabilities`}
-                className="text-accent-700 hover:text-accent-800"
+                className="text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200"
               >
                 Vulnerabilities (advisory matches)
               </Link>
@@ -824,7 +824,7 @@ function FindingDrawer({
             <li>
               <Link
                 to={`/scans/${f.scan_run_id}/exports`}
-                className="text-accent-700 hover:text-accent-800"
+                className="text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200"
               >
                 Exports (CycloneDX, findings JSON/CSV, SARIF)
               </Link>
@@ -834,11 +834,11 @@ function FindingDrawer({
 
         <section>
           <h3 className="label">Scan context</h3>
-          <p className="mt-1 text-sm text-ink-700">
-            Scan <Link to={`/scans/${f.scan_run_id}`} className="text-accent-700 hover:text-accent-800">#{f.scan_run_id}</Link>{" "}
+          <p className="mt-1 text-sm text-ink-700 dark:text-surface-dark-text">
+            Scan <Link to={`/scans/${f.scan_run_id}`} className="text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200">#{f.scan_run_id}</Link>{" "}
             on repository #{f.repository_id}.
           </p>
-          <p className="mt-1 text-xs text-ink-500 font-mono">
+          <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted font-mono">
             stable key: {f.stable_key}
           </p>
           <Timestamp prefix="Recorded" value={f.created_at} mode="both" />
@@ -846,7 +846,7 @@ function FindingDrawer({
 
         <section data-testid="drawer-boundary">
           <h3 className="label">Boundary</h3>
-          <p className="mt-1 text-xs text-ink-500">
+          <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
             This finding is an evidence record, not a security verdict.
             Applicability may remain partial or unknown when source or
             provider evidence is incomplete. Severity is provider-attributed;

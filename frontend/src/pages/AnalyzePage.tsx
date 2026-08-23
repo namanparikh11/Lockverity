@@ -168,12 +168,12 @@ function GitHubIntakeCard() {
       noValidate
     >
       <header className="flex items-start gap-3">
-        <Github aria-hidden="true" className="mt-0.5 h-5 w-5 text-ink-700" />
+        <Github aria-hidden="true" className="mt-0.5 h-5 w-5 text-ink-700 dark:text-surface-dark-text" />
         <div>
-          <h2 className="text-base font-semibold text-ink-900">
+          <h2 className="text-base font-semibold text-ink-900 dark:text-surface-dark-text">
             Public GitHub repository
           </h2>
-          <p className="mt-1 text-sm text-ink-600">
+          <p className="mt-1 text-sm text-ink-600 dark:text-surface-dark-text-muted">
             Lockverity resolves the commit SHA, downloads the
             repository tarball through a defensive quarantine,
             and starts a scan.
@@ -199,7 +199,7 @@ function GitHubIntakeCard() {
           aria-invalid={urlError ? "true" : undefined}
           disabled={submitting || scanId !== null}
         />
-        <p id="analyze-url-help" className="mt-1 text-xs text-ink-500">
+        <p id="analyze-url-help" className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
           Only <code>https://github.com/owner/name</code> and the
           <code> .git</code> variant are accepted. Credentials, extra
           path segments, fragments, and query strings are rejected.
@@ -227,7 +227,7 @@ function GitHubIntakeCard() {
           aria-invalid={refError ? "true" : undefined}
           disabled={submitting || scanId !== null}
         />
-        <p id="analyze-ref-help" className="mt-1 text-xs text-ink-500">
+        <p id="analyze-ref-help" className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
           Defaults to the repository&apos;s default branch. When set,
           the scan pins to this ref.
         </p>
@@ -266,7 +266,7 @@ function GitHubIntakeCard() {
       ) : null}
       {scanId !== null && starting ? (
         <div
-          className="rounded-md border border-accent-200 bg-accent-50 p-3 text-sm text-accent-900"
+          className="rounded-md border border-accent-200 bg-accent-50 dark:bg-surface-dark-raised p-3 text-sm text-accent-900"
           role="status"
           aria-live="polite"
         >
@@ -454,12 +454,12 @@ function UploadIntakeCard() {
       aria-label="Analyze uploaded source archive form"
     >
       <header className="flex items-start gap-3">
-        <Upload aria-hidden="true" className="mt-0.5 h-5 w-5 text-ink-700" />
+        <Upload aria-hidden="true" className="mt-0.5 h-5 w-5 text-ink-700 dark:text-surface-dark-text" />
         <div>
-          <h2 className="text-base font-semibold text-ink-900">
+          <h2 className="text-base font-semibold text-ink-900 dark:text-surface-dark-text">
             Source archive upload
           </h2>
-          <p className="mt-1 text-sm text-ink-600">
+          <p className="mt-1 text-sm text-ink-600 dark:text-surface-dark-text-muted">
             Upload a <code>.zip</code> archive of repository
             source. Entries are validated before extraction; the
             bytes are never executed.
@@ -468,7 +468,7 @@ function UploadIntakeCard() {
       </header>
       <div
         className={`flex flex-col items-center justify-center gap-3 rounded-md border-2 border-dashed p-6 text-center ${
-          dragOver ? "border-accent-400 bg-accent-50" : "border-ink-200"
+          dragOver ? "border-accent-400 bg-accent-50 dark:bg-surface-dark-raised" : "border-ink-200 dark:border-surface-dark-border"
         }`}
         onDragOver={(e) => {
           e.preventDefault();
@@ -482,7 +482,7 @@ function UploadIntakeCard() {
           if (dropped) onSelect(dropped);
         }}
       >
-        <p className="text-sm text-ink-700">
+        <p className="text-sm text-ink-700 dark:text-surface-dark-text">
           Drag a <code>.zip</code> archive here, or
         </p>
         <button
@@ -501,9 +501,9 @@ function UploadIntakeCard() {
           onChange={(e) => onSelect(e.target.files?.[0] ?? null)}
         />
         {file ? (
-          <p className="mt-2 text-sm text-ink-700">
+          <p className="mt-2 text-sm text-ink-700 dark:text-surface-dark-text">
             Selected: <span className="font-mono">{file.name}</span>{" "}
-            <span className="text-ink-500">
+            <span className="text-ink-500 dark:text-surface-dark-text-muted">
               ({(file.size / 1024 / 1024).toFixed(1)} MB)
             </span>
           </p>
@@ -534,7 +534,7 @@ function UploadIntakeCard() {
       ) : null}
       {scanId !== null && starting ? (
         <div
-          className="rounded-md border border-accent-200 bg-accent-50 p-3 text-sm text-accent-900"
+          className="rounded-md border border-accent-200 bg-accent-50 dark:bg-surface-dark-raised p-3 text-sm text-accent-900"
           role="status"
           aria-live="polite"
         >

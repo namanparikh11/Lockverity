@@ -129,17 +129,17 @@ export function OpenSSFPosturePage() {
           >
             {items.map((check) => (
               <tr key={check.id} className="table-row">
-                <td className="table-cell font-mono text-xs text-ink-500">
+                <td className="table-cell font-mono text-xs text-ink-500 dark:text-surface-dark-text-muted">
                   {check.check_id}
                 </td>
-                <td className="table-cell text-ink-800">{check.name}</td>
-                <td className="table-cell text-ink-700">
+                <td className="table-cell text-ink-800 dark:text-surface-dark-text">{check.name}</td>
+                <td className="table-cell text-ink-700 dark:text-surface-dark-text">
                   {check.score == null ? "—" : check.score.toFixed(1)}
                 </td>
-                <td className="table-cell text-xs text-ink-500">
+                <td className="table-cell text-xs text-ink-500 dark:text-surface-dark-text-muted">
                   {check.source}
                 </td>
-                <td className="table-cell text-xs text-ink-500">
+                <td className="table-cell text-xs text-ink-500 dark:text-surface-dark-text-muted">
                   {check.reason ?? "—"}
                 </td>
               </tr>

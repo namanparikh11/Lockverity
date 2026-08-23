@@ -17,13 +17,13 @@ export function StageProgressSummary({ stages }: { stages: ReadonlyArray<{ statu
   ).length;
   if (total === 0) {
     return (
-      <p className="text-xs text-ink-500" data-testid="stage-progress-empty">
+      <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted" data-testid="stage-progress-empty">
         No stages recorded.
       </p>
     );
   }
   return (
-    <p className="text-xs text-ink-700" data-testid="stage-progress-summary">
+    <p className="text-xs text-ink-700 dark:text-surface-dark-text" data-testid="stage-progress-summary">
       {terminal} of {total} stages reached a terminal state
       (completed, partial, failed, or skipped). Terminal does not imply
       successful; the per-stage rows below carry the truthful state.
@@ -43,11 +43,11 @@ export function ScanStatusExplanation({ scan }: { scan: Scan }) {
   const message = explanationFor(scan);
   const tone = toneFor(scan.status);
   const toneClass = {
-    info: "border-accent-200 bg-accent-50 text-accent-900",
+    info: "border-accent-200 bg-accent-50 dark:bg-surface-dark-raised text-accent-900",
     warn: "border-amber-200 bg-amber-50 text-amber-900",
     danger: "border-rose-200 bg-rose-50 text-rose-900",
     ok: "border-emerald-200 bg-emerald-50 text-emerald-900",
-    muted: "border-ink-200 bg-ink-50 text-ink-700",
+    muted: "border-ink-200 dark:border-surface-dark-border bg-ink-50 dark:bg-surface-dark-app text-ink-700 dark:text-surface-dark-text",
   }[tone];
   return (
     <div

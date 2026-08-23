@@ -25,7 +25,7 @@ export function Skeleton({
       {Array.from({ length: rows }).map((_, idx) => (
         <div
           key={idx}
-          className={`h-3 ${width} rounded bg-ink-100 motion-safe:animate-pulse`}
+          className={`h-3 ${width} rounded bg-ink-100 dark:bg-surface-dark-raised motion-safe:animate-pulse`}
           aria-hidden="true"
         />
       ))}
@@ -44,7 +44,7 @@ export function SkeletonRows({ rows = 3 }: { rows?: number }) {
       {Array.from({ length: rows }).map((_, idx) => (
         <div
           key={idx}
-          className="h-3 w-full rounded bg-ink-100 motion-safe:animate-pulse"
+          className="h-3 w-full rounded bg-ink-100 dark:bg-surface-dark-raised motion-safe:animate-pulse"
           aria-hidden="true"
         />
       ))}
@@ -66,11 +66,11 @@ export function SkeletonTable({
       aria-busy="true"
       aria-label="Loading table"
     >
-      <div className="grid gap-px bg-ink-100" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+      <div className="grid gap-px bg-ink-100 dark:bg-surface-dark-raised" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
         {Array.from({ length: columns * rows }).map((_, idx) => (
           <div
             key={idx}
-            className="h-4 bg-white"
+            className="h-4 bg-white dark:bg-surface-dark-surface"
             aria-hidden="true"
           />
         ))}

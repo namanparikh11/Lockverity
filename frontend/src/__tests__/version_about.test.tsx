@@ -15,6 +15,7 @@ import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 
 import { AppShell } from "@/layouts/AppShell";
+import { AppearanceProvider } from "@/appearance";
 import { AboutPage } from "@/pages/AboutPage";
 
 const SYSTEM_INFO_BODY = {
@@ -63,11 +64,13 @@ describe("version consistency", () => {
     mockSystemInfo();
     render(
       <MemoryRouter initialEntries={["/"]}>
+        <AppearanceProvider>
         <Routes>
           <Route element={<AppShell />}>
             <Route path="/" element={<div>placeholder</div>} />
           </Route>
         </Routes>
+        </AppearanceProvider>
       </MemoryRouter>
     );
     await waitFor(() => {
@@ -79,11 +82,13 @@ describe("version consistency", () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("network down"));
     render(
       <MemoryRouter initialEntries={["/"]}>
+        <AppearanceProvider>
         <Routes>
           <Route element={<AppShell />}>
             <Route path="/" element={<div>placeholder</div>} />
           </Route>
         </Routes>
+        </AppearanceProvider>
       </MemoryRouter>
     );
     // The footer must not show a hardcoded "vX.Y.Z" string and
@@ -102,11 +107,13 @@ describe("About page current product copy", () => {
     mockSystemInfo();
     render(
       <MemoryRouter initialEntries={["/about"]}>
+        <AppearanceProvider>
         <Routes>
           <Route element={<AppShell />}>
             <Route path="/about" element={<AboutPage />} />
           </Route>
         </Routes>
+        </AppearanceProvider>
       </MemoryRouter>
     );
     await waitFor(() => {
@@ -121,11 +128,13 @@ describe("About page current product copy", () => {
     mockSystemInfo();
     render(
       <MemoryRouter initialEntries={["/about"]}>
+        <AppearanceProvider>
         <Routes>
           <Route element={<AppShell />}>
             <Route path="/about" element={<AboutPage />} />
           </Route>
         </Routes>
+        </AppearanceProvider>
       </MemoryRouter>
     );
     // The "What v2.1.1 implements today" section header
@@ -172,11 +181,13 @@ describe("About page current product copy", () => {
     mockSystemInfo();
     render(
       <MemoryRouter initialEntries={["/about"]}>
+        <AppearanceProvider>
         <Routes>
           <Route element={<AppShell />}>
             <Route path="/about" element={<AboutPage />} />
           </Route>
         </Routes>
+        </AppearanceProvider>
       </MemoryRouter>
     );
     // The legacy "What v0.1 includes" / "What v0.1 does not include"

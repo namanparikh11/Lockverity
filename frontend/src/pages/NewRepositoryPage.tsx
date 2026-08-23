@@ -112,7 +112,7 @@ export function NewRepositoryPage() {
               aria-describedby="url-help"
               aria-invalid={urlError ? "true" : undefined}
             />
-            <p id="url-help" className="mt-1 text-xs text-ink-500">
+            <p id="url-help" className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
               Only <code>https://github.com/owner/name</code> and the
               <code> .git</code> variant are accepted. Credentials, extra path
               segments, fragments, and query strings are rejected.
@@ -139,7 +139,7 @@ export function NewRepositoryPage() {
               aria-describedby="ref-help"
               aria-invalid={refError ? "true" : undefined}
             />
-            <p id="ref-help" className="mt-1 text-xs text-ink-500">
+            <p id="ref-help" className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
               Defaults to the repository&apos;s default branch. If set, the
               scan will pin to this ref. Tags, branch names, and full 40-char
               SHAs are accepted.
@@ -190,10 +190,10 @@ export function NewRepositoryPage() {
         </form>
         <aside className="space-y-3">
           <div className="card flex items-start gap-3">
-            <Github aria-hidden="true" className="mt-0.5 h-5 w-5 text-ink-500" />
+            <Github aria-hidden="true" className="mt-0.5 h-5 w-5 text-ink-500 dark:text-surface-dark-text-muted" />
             <div>
-              <p className="text-sm font-semibold text-ink-900">No GitHub token required</p>
-              <p className="mt-1 text-xs text-ink-500">
+              <p className="text-sm font-semibold text-ink-900 dark:text-surface-dark-text">No GitHub token required</p>
+              <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
                 Public repositories are analysed using unauthenticated requests.
                 Lockverity never asks for, stores, or sends a personal access
                 token from the browser. Private repositories are not supported.
@@ -201,10 +201,10 @@ export function NewRepositoryPage() {
             </div>
           </div>
           <div className="card flex items-start gap-3">
-            <ShieldCheck aria-hidden="true" className="mt-0.5 h-5 w-5 text-ink-500" />
+            <ShieldCheck aria-hidden="true" className="mt-0.5 h-5 w-5 text-ink-500 dark:text-surface-dark-text-muted" />
             <div>
-              <p className="text-sm font-semibold text-ink-900">Repository code is never executed</p>
-              <p className="mt-1 text-xs text-ink-500">
+              <p className="text-sm font-semibold text-ink-900 dark:text-surface-dark-text">Repository code is never executed</p>
+              <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
                 Manifests, lockfiles, and workflow files are treated as
                 untrusted text. Lockverity does not run <code>npm install</code>,
                 <code> pip install</code>, Makefile targets, or repository
@@ -217,7 +217,7 @@ export function NewRepositoryPage() {
             description="Submitting this form immediately contacts GitHub to resolve repository metadata and download the requested repository tarball, then creates a queued scan. External evidence providers are not contacted until the queued scan is started, when the operator can select OSV, deps.dev, and OpenSSF Scorecard independently."
             tone="muted"
           />
-          <p className="px-1 text-xs text-ink-500">
+          <p className="px-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
             See the <Link to="/privacy" className="link">Privacy policy</Link> for the
             coordinates sent to GitHub and optional evidence providers.
           </p>

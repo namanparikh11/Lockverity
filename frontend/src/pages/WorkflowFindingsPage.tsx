@@ -144,18 +144,18 @@ export function WorkflowFindingsPage() {
             {items.map((wf) => (
               <tr
                 key={wf.id}
-                className="table-row cursor-pointer hover:bg-ink-50"
+                className="table-row cursor-pointer hover:bg-ink-50 dark:bg-surface-dark-app"
                 onClick={() => setSelected(wf)}
               >
-                <td className="table-cell font-mono text-xs text-ink-500">
+                <td className="table-cell font-mono text-xs text-ink-500 dark:text-surface-dark-text-muted">
                   {wf.rule_id}
                 </td>
-                <td className="table-cell font-mono text-xs text-ink-700">
+                <td className="table-cell font-mono text-xs text-ink-700 dark:text-surface-dark-text">
                   {wf.workflow_path}
                 </td>
-                <td className="table-cell text-ink-800">
+                <td className="table-cell text-ink-800 dark:text-surface-dark-text">
                   <p className="font-medium">{wf.title}</p>
-                  <p className="line-clamp-2 text-xs text-ink-500">{wf.summary}</p>
+                  <p className="line-clamp-2 text-xs text-ink-500 dark:text-surface-dark-text-muted">{wf.summary}</p>
                 </td>
                 <td className="table-cell">
                   <SeverityBadge severity={wf.severity} />
@@ -163,7 +163,7 @@ export function WorkflowFindingsPage() {
                 <td className="table-cell">
                   <ConfidenceBadge confidence={wf.confidence} />
                 </td>
-                <td className="table-cell text-ink-500">
+                <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
                   {wf.yaml_path ?? "—"}
                 </td>
               </tr>
@@ -183,13 +183,13 @@ export function WorkflowFindingsPage() {
         {selected ? (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-xs text-ink-500">{selected.rule_id}</span>
+              <span className="font-mono text-xs text-ink-500 dark:text-surface-dark-text-muted">{selected.rule_id}</span>
               <SeverityBadge severity={selected.severity} />
               <ConfidenceBadge confidence={selected.confidence} />
             </div>
             <section>
               <h3 className="label">Summary</h3>
-              <p className="mt-1 text-sm text-ink-800">{selected.summary}</p>
+              <p className="mt-1 text-sm text-ink-800 dark:text-surface-dark-text">{selected.summary}</p>
             </section>
             <section>
               <h3 className="label">Location</h3>
@@ -200,7 +200,7 @@ export function WorkflowFindingsPage() {
                   endLine={selected.end_line}
                 />
                 {selected.yaml_path ? (
-                  <p className="mt-1 text-xs text-ink-500">
+                  <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
                     YAML path: <span className="font-mono">{selected.yaml_path}</span>
                   </p>
                 ) : null}
@@ -213,14 +213,14 @@ export function WorkflowFindingsPage() {
                   {selected.permissions.map((p) => (
                     <li
                       key={p}
-                      className="rounded bg-ink-100 px-1.5 py-0.5 font-mono text-[11px] text-ink-700"
+                      className="rounded bg-ink-100 dark:bg-surface-dark-raised px-1.5 py-0.5 font-mono text-[11px] text-ink-700 dark:text-surface-dark-text"
                     >
                       {p}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="mt-1 text-xs text-ink-500">No permissions recorded.</p>
+                <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">No permissions recorded.</p>
               )}
             </section>
             <section>
@@ -230,20 +230,20 @@ export function WorkflowFindingsPage() {
                   {selected.triggers.map((t) => (
                     <li
                       key={t}
-                      className="rounded bg-ink-100 px-1.5 py-0.5 font-mono text-[11px] text-ink-700"
+                      className="rounded bg-ink-100 dark:bg-surface-dark-raised px-1.5 py-0.5 font-mono text-[11px] text-ink-700 dark:text-surface-dark-text"
                     >
                       {t}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="mt-1 text-xs text-ink-500">No triggers recorded.</p>
+                <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">No triggers recorded.</p>
               )}
             </section>
             <section>
               <h3 className="label">Unpinned actions</h3>
               {selected.unpinned_actions.length > 0 ? (
-                <ul className="mt-1 list-disc pl-5 text-sm text-ink-800">
+                <ul className="mt-1 list-disc pl-5 text-sm text-ink-800 dark:text-surface-dark-text">
                   {selected.unpinned_actions.map((a) => (
                     <li key={a} className="font-mono text-xs">
                       {a}
@@ -251,7 +251,7 @@ export function WorkflowFindingsPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="mt-1 text-xs text-ink-500">
+                <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
                   No unpinned actions recorded for this finding.
                 </p>
               )}
@@ -259,13 +259,13 @@ export function WorkflowFindingsPage() {
             {selected.remediation ? (
               <section>
                 <h3 className="label">Remediation</h3>
-                <p className="mt-1 text-sm text-ink-800">{selected.remediation}</p>
+                <p className="mt-1 text-sm text-ink-800 dark:text-surface-dark-text">{selected.remediation}</p>
               </section>
             ) : null}
             {selected.limitations.length > 0 ? (
               <section>
                 <h3 className="label">Limitations</h3>
-                <ul className="mt-1 list-disc pl-5 text-xs text-ink-500">
+                <ul className="mt-1 list-disc pl-5 text-xs text-ink-500 dark:text-surface-dark-text-muted">
                   {selected.limitations.map((l) => (
                     <li key={l}>{l}</li>
                   ))}

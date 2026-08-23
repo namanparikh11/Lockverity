@@ -133,7 +133,7 @@ export function LicenceInventoryPage() {
           resultLabel="assertions"
         >
           <div className="flex items-center gap-2">
-            <label htmlFor="provider" className="text-xs text-ink-500">
+            <label htmlFor="provider" className="text-xs text-ink-500 dark:text-surface-dark-text-muted">
               Provider
             </label>
             <input
@@ -188,16 +188,16 @@ export function LicenceInventoryPage() {
           >
             {items.map((assertion) => (
               <tr key={assertion.id} className="table-row">
-                <td className="table-cell font-mono text-xs text-ink-700">
+                <td className="table-cell font-mono text-xs text-ink-700 dark:text-surface-dark-text">
                   {assertion.package_name}
                 </td>
-                <td className="table-cell text-ink-500">
+                <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
                   {assertion.version ?? "—"}
                 </td>
-                <td className="table-cell text-ink-700">
+                <td className="table-cell text-ink-700 dark:text-surface-dark-text">
                   {assertion.licence}
                 </td>
-                <td className="table-cell text-ink-500">
+                <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
                   {assertion.provider}
                 </td>
                 <td className="table-cell">
@@ -288,27 +288,27 @@ function EnrichmentSummary({
     (i) => i.provider_status === "unavailable" || i.provider_status === "partial"
   );
   return (
-    <div className="rounded-md border border-ink-200 bg-ink-50 p-3 text-sm text-ink-700">
+    <div className="rounded-md border border-ink-200 dark:border-surface-dark-border bg-ink-50 dark:bg-surface-dark-app p-3 text-sm text-ink-700 dark:text-surface-dark-text">
       <p className="font-semibold">deps.dev enrichment summary</p>
-      <p className="mt-1 text-xs text-ink-500">
+      <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
         {items.length} components observed · {fresh.length} fresh · {cached.length} cached ·{" "}
         {unavailable.length} unavailable
       </p>
       <ul className="mt-2 space-y-1 text-xs">
         {items.slice(0, 5).map((i) => (
           <li key={i.component_id} className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-ink-800">{i.package_name}</span>
-            <span className="text-ink-500">@ {i.version ?? "—"}</span>
+            <span className="font-mono text-ink-800 dark:text-surface-dark-text">{i.package_name}</span>
+            <span className="text-ink-500 dark:text-surface-dark-text-muted">@ {i.version ?? "—"}</span>
             {i.provider_status ? (
               <ProviderStatusBadge status={i.provider_status as ProviderStatus} />
             ) : null}
             {i.cache_status && i.cache_status !== "miss" ? (
-              <span className="rounded bg-ink-100 px-1.5 py-0.5 text-[10px] text-ink-600">
+              <span className="rounded bg-ink-100 dark:bg-surface-dark-raised px-1.5 py-0.5 text-[10px] text-ink-600 dark:text-surface-dark-text-muted">
                 cache: {i.cache_status}
               </span>
             ) : null}
             {i.fetched_at ? (
-              <span className="text-ink-500">{formatTimestamp(i.fetched_at)}</span>
+              <span className="text-ink-500 dark:text-surface-dark-text-muted">{formatTimestamp(i.fetched_at)}</span>
             ) : null}
           </li>
         ))}

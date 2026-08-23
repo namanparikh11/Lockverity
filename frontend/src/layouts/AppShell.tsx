@@ -58,18 +58,18 @@ export function AppShell() {
     return () => controller.abort();
   }, []);
   return (
-    <div className="min-h-screen bg-ink-50">
+    <div className="min-h-screen bg-ink-50 dark:bg-surface-dark-app">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-accent-600 focus:px-3 focus:py-1.5 focus:text-white"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-accent-600 dark:bg-accent-dark-500 focus:px-3 focus:py-1.5 focus:text-white"
       >
         Skip to main content
       </a>
-      <header className="sticky top-0 z-30 border-b border-ink-200 bg-white">
+      <header className="sticky top-0 z-30 border-b border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface">
         <div className="mx-auto flex h-14 max-w-screen-2xl items-center gap-3 px-4">
           <button
             type="button"
-            className="rounded p-2 text-ink-700 hover:bg-ink-100 lg:hidden"
+            className="rounded p-2 text-ink-700 dark:text-surface-dark-text hover:bg-ink-100 dark:bg-surface-dark-raised lg:hidden"
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Close navigation" : "Open navigation"}
             aria-expanded={open}
@@ -82,14 +82,14 @@ export function AppShell() {
           </button>
           <a
             href="/"
-            className="flex items-center gap-2 font-semibold text-ink-900"
+            className="flex items-center gap-2 font-semibold text-ink-900 dark:text-surface-dark-text"
             data-testid="brand-header-link"
           >
             <LockveritySymbol size={28} decorative className="rounded-md" />
             <span>Lockverity</span>
           </a>
           <span
-            className="hidden text-xs text-ink-500 sm:inline"
+            className="hidden text-xs text-ink-500 dark:text-surface-dark-text-muted sm:inline"
             aria-hidden="true"
           >
             Evidence-first software supply-chain assurance
@@ -101,7 +101,7 @@ export function AppShell() {
           aria-label="Primary"
           className={`${
             open ? "block" : "hidden"
-          } w-full shrink-0 border-b border-ink-200 bg-white lg:block lg:w-60 lg:border-b-0 lg:border-r`}
+          } w-full shrink-0 border-b border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface lg:block lg:w-60 lg:border-b-0 lg:border-r`}
         >
           <ul className="space-y-1 p-3 text-sm">
             {PRIMARY_NAV.map((item) => (
@@ -113,8 +113,8 @@ export function AppShell() {
                   className={({ isActive }) =>
                     `flex items-center gap-2 rounded-md px-3 py-2 ${
                       isActive
-                        ? "bg-accent-50 text-accent-800"
-                        : "text-ink-700 hover:bg-ink-100"
+                        ? "bg-accent-50 dark:bg-surface-dark-raised text-accent-800 dark:text-accent-dark-200"
+                        : "text-ink-700 dark:text-surface-dark-text hover:bg-ink-100 dark:bg-surface-dark-raised"
                     }`
                   }
                 >
@@ -124,7 +124,7 @@ export function AppShell() {
               </li>
             ))}
           </ul>
-          <div className="border-t border-ink-100 p-3 text-xs text-ink-500">
+          <div className="border-t border-ink-100 dark:border-surface-dark-border p-3 text-xs text-ink-500 dark:text-surface-dark-text-muted">
             <p
               className="flex items-center gap-2 px-3"
               data-testid="brand-footer-version"
@@ -133,7 +133,7 @@ export function AppShell() {
               <ClipboardList aria-hidden="true" className="h-4 w-4" />
               {version ? `v${version}` : "Lockverity"}
             </p>
-            <p className="mt-1 px-3 text-ink-400">
+            <p className="mt-1 px-3 text-ink-400 dark:text-surface-dark-text-subtle">
               Defensive only. Source archives are hostile.
             </p>
             <p className="mt-2 px-3">

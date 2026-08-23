@@ -256,7 +256,7 @@ export function ScanActions({
         </div>
       ) : null}
       {lastRescan ? (
-        <p className="text-xs text-ink-500" role="status">
+        <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted" role="status">
           Latest rescan: scan #{lastRescan.scan_id}
         </p>
       ) : null}

@@ -27,8 +27,8 @@ export function DataCompletenessNotice({
       : tone === "danger"
       ? "border-rose-200 bg-rose-50 text-rose-800"
       : tone === "muted"
-      ? "border-ink-200 bg-ink-50 text-ink-700"
-      : "border-accent-200 bg-accent-50 text-accent-800";
+      ? "border-ink-200 dark:border-surface-dark-border bg-ink-50 dark:bg-surface-dark-app text-ink-700 dark:text-surface-dark-text"
+      : "border-accent-200 bg-accent-50 dark:bg-surface-dark-raised text-accent-800 dark:text-accent-dark-200";
   return (
     <div
       className={`flex items-start gap-3 rounded-md border p-3 text-sm ${toneClass}`}

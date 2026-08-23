@@ -12,6 +12,7 @@ import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 
+import { AppearanceProvider } from "@/appearance";
 import { AppShell } from "@/layouts/AppShell";
 import { AboutPage } from "@/pages/AboutPage";
 import { DashboardPage } from "@/pages/DashboardPage";
@@ -48,11 +49,13 @@ describe("router", () => {
       expect(() =>
         render(
           <MemoryRouter initialEntries={[route.path]}>
+            <AppearanceProvider>
             <Routes>
               <Route element={<AppShell />}>
                 <Route path={route.path} element={<Page />} />
               </Route>
             </Routes>
+            </AppearanceProvider>
           </MemoryRouter>
         )
       ).not.toThrow();
@@ -62,6 +65,7 @@ describe("router", () => {
   it("renders the 404 page for unknown routes", () => {
     render(
       <MemoryRouter initialEntries={["/this-route-does-not-exist"]}>
+        <AppearanceProvider>
         <Routes>
           <Route element={<AppShell />}>
             <Route path="/" element={<DashboardPage />} />
@@ -69,6 +73,7 @@ describe("router", () => {
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
+        </AppearanceProvider>
       </MemoryRouter>
     );
     expect(screen.getByRole("heading", { name: /page not found/i })).toBeInTheDocument();
@@ -84,11 +89,13 @@ describe("router", () => {
     expect(() =>
       render(
         <MemoryRouter initialEntries={["/scans/123/findings"]}>
+          <AppearanceProvider>
           <Routes>
             <Route element={<AppShell />}>
               <Route path="/scans/:scanId/findings" element={<div>findings-ok</div>} />
             </Route>
           </Routes>
+          </AppearanceProvider>
         </MemoryRouter>
       )
     ).not.toThrow();

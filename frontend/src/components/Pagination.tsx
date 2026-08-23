@@ -16,7 +16,7 @@ export function Pagination({
   const canNext = meta.page < meta.total_pages;
   return (
     <nav
-      className="flex items-center justify-between gap-4 border-t border-ink-200 pt-3 text-sm text-ink-600"
+      className="flex items-center justify-between gap-4 border-t border-ink-200 dark:border-surface-dark-border pt-3 text-sm text-ink-600 dark:text-surface-dark-text-muted"
       aria-label="Pagination"
     >
       <span>

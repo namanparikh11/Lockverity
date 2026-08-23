@@ -19,8 +19,8 @@ export function Timestamp({
 }) {
   if (!value) {
     return (
-      <span className="text-xs text-ink-400">
-        {prefix ? <span className="text-ink-500">{prefix} </span> : null}
+      <span className="text-xs text-ink-400 dark:text-surface-dark-text-subtle">
+        {prefix ? <span className="text-ink-500 dark:text-surface-dark-text-muted">{prefix} </span> : null}
         {fallback}
       </span>
     );
@@ -29,8 +29,8 @@ export function Timestamp({
   const relative = formatRelative(value);
   const label = mode === "absolute" ? absolute : mode === "both" ? `${relative} (${absolute})` : relative;
   return (
-    <span className="text-xs text-ink-700" title={absolute}>
-      {prefix ? <span className="text-ink-500">{prefix} </span> : null}
+    <span className="text-xs text-ink-700 dark:text-surface-dark-text" title={absolute}>
+      {prefix ? <span className="text-ink-500 dark:text-surface-dark-text-muted">{prefix} </span> : null}
       <time dateTime={value}>{label}</time>
     </span>
   );

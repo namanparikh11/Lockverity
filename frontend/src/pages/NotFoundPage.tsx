@@ -10,15 +10,15 @@ export function NotFoundPage() {
         description="The URL you followed does not match any Lockverity route."
       />
       <div className="card max-w-xl">
-        <p className="text-sm text-ink-700">
+        <p className="text-sm text-ink-700 dark:text-surface-dark-text">
           Try the{" "}
-          <Link to="/" className="text-accent-700 hover:text-accent-800">
+          <Link to="/" className="text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200">
             dashboard
           </Link>{" "}
           or the{" "}
           <Link
             to="/repositories"
-            className="text-accent-700 hover:text-accent-800"
+            className="text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200"
           >
             repositories list
           </Link>

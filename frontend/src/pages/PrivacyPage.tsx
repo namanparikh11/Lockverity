@@ -8,7 +8,7 @@ export function PrivacyPage() {
         description="What Lockverity processes locally and what it sends to external services."
         breadcrumbs={[{ label: "Privacy" }]}
       />
-      <article className="card max-w-4xl space-y-5 text-sm text-ink-700">
+      <article className="card max-w-4xl space-y-5 text-sm text-ink-700 dark:text-surface-dark-text">
         <PolicySection title="Local runtime and storage">
           Lockverity runs locally. Repository workspaces, scan results, provider observations,
           and bounded provider caches are stored on the operator&apos;s machine according to the
@@ -63,7 +63,7 @@ function PolicySection({
 }) {
   return (
     <section>
-      <h2 className="text-base font-semibold text-ink-900">{title}</h2>
+      <h2 className="text-base font-semibold text-ink-900 dark:text-surface-dark-text">{title}</h2>
       <p className="mt-1 leading-6">{children}</p>
     </section>
   );

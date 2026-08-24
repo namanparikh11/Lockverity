@@ -143,22 +143,22 @@ export function AboutPage() {
       {/* Hero. The mark sits in a calm container so it
           reads as a brand spot rather than as decoration. */}
       <section
-        className="mb-8 flex flex-col items-start gap-4 rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface p-6 shadow-sm sm:flex-row sm:items-center sm:gap-6"
+        className="mb-8 flex flex-col items-start gap-4 rounded-md border border-ink-200 bg-surface p-6 shadow-sm sm:flex-row sm:items-center sm:gap-6"
         aria-label="Lockverity brand"
         data-testid="about-hero"
       >
         <LockveritySymbol size={64} ariaLabel="Lockverity product symbol" />
         <div>
-          <h2 className="text-lg font-semibold text-ink-900 dark:text-surface-dark-text">
+          <h2 className="text-lg font-semibold text-ink-900">
             Lockverity{" "}
             <span
-              className="ml-1 font-mono text-sm text-ink-500 dark:text-surface-dark-text-muted"
+              className="ml-1 font-mono text-sm text-ink-500"
               data-testid="about-version"
             >
               {versionLabel}
             </span>
           </h2>
-          <p className="mt-1 max-w-2xl text-sm text-ink-700 dark:text-surface-dark-text">
+          <p className="mt-1 max-w-2xl text-sm text-ink-700">
             Lockverity inspects the software supply chain of public GitHub
             repositories and uploaded source archives. It is
             defensive-only, source-honest, and provider-honest. The
@@ -192,19 +192,19 @@ export function AboutPage() {
         aria-label="Trust principles"
         data-testid="about-trust-principles"
       >
-        <h2 className="mb-3 text-base font-semibold text-ink-900 dark:text-surface-dark-text">
+        <h2 className="mb-3 text-base font-semibold text-ink-900">
           Three principles
         </h2>
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {TRUST_PRINCIPLES.map((p) => (
             <li
               key={p.title}
-              className="rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface p-4 shadow-sm"
+              className="rounded-md border border-ink-200 bg-surface p-4 shadow-sm"
             >
-              <h3 className="text-sm font-semibold text-ink-900 dark:text-surface-dark-text">
+              <h3 className="text-sm font-semibold text-ink-900">
                 {p.title}
               </h3>
-              <p className="mt-1 text-sm text-ink-700 dark:text-surface-dark-text">{p.body}</p>
+              <p className="mt-1 text-sm text-ink-700">{p.body}</p>
             </li>
           ))}
         </ul>
@@ -217,10 +217,10 @@ export function AboutPage() {
         aria-label="Feature cards"
         data-testid="about-feature-cards"
       >
-        <h2 className="mb-3 text-base font-semibold text-ink-900 dark:text-surface-dark-text">
+        <h2 className="mb-3 text-base font-semibold text-ink-900">
           What v{version ?? "—"} implements today
         </h2>
-        <p className="mb-3 text-xs uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mb-3 text-xs uppercase tracking-wide text-ink-500">
           All items below have direct, exercised code paths in this
           repository. None are aspirational.
         </p>
@@ -228,14 +228,14 @@ export function AboutPage() {
           {FEATURE_CARDS.map((f) => (
             <li
               key={f.title}
-              className="flex h-full flex-col rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface p-4 shadow-sm"
+              className="flex h-full flex-col rounded-md border border-ink-200 bg-surface p-4 shadow-sm"
             >
-              <h3 className="text-sm font-semibold text-ink-900 dark:text-surface-dark-text">
+              <h3 className="text-sm font-semibold text-ink-900">
                 {f.title}
               </h3>
-              <p className="mt-1 flex-1 text-sm text-ink-700 dark:text-surface-dark-text">{f.body}</p>
+              <p className="mt-1 flex-1 text-sm text-ink-700">{f.body}</p>
               {f.detail ? (
-                <p className="mt-2 font-mono text-xs text-ink-500 dark:text-surface-dark-text-muted">
+                <p className="mt-2 font-mono text-xs text-ink-500">
                   {f.detail}
                 </p>
               ) : null}
@@ -253,20 +253,20 @@ export function AboutPage() {
         aria-label="Limitations"
         data-testid="about-limitations"
       >
-        <details className="rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface p-4 shadow-sm">
-          <summary className="cursor-pointer text-sm font-semibold text-ink-900 dark:text-surface-dark-text">
+        <details className="rounded-md border border-ink-200 bg-surface p-4 shadow-sm">
+          <summary className="cursor-pointer text-sm font-semibold text-ink-900">
             What v{version ?? "—"} does <em>not</em> include
           </summary>
-          <p className="mt-2 text-xs uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+          <p className="mt-2 text-xs uppercase tracking-wide text-ink-500">
             Planned for later milestones, not implemented today.
           </p>
           <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {LIMITATIONS.map((l) => (
               <li key={l.title}>
-                <h3 className="text-sm font-medium text-ink-900 dark:text-surface-dark-text">
+                <h3 className="text-sm font-medium text-ink-900">
                   {l.title}
                 </h3>
-                <p className="mt-1 text-sm text-ink-700 dark:text-surface-dark-text">{l.body}</p>
+                <p className="mt-1 text-sm text-ink-700">{l.body}</p>
               </li>
             ))}
           </ul>
@@ -278,75 +278,75 @@ export function AboutPage() {
           repo link is canonical (the same GitHub URL the
           release references). */}
       <section
-        className="mb-8 rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface p-4 shadow-sm"
+        className="mb-8 rounded-md border border-ink-200 bg-surface p-4 shadow-sm"
         aria-label="Resources"
         data-testid="about-resources"
       >
-        <h2 className="text-base font-semibold text-ink-900 dark:text-surface-dark-text">Resources</h2>
+        <h2 className="text-base font-semibold text-ink-900">Resources</h2>
         <ul className="mt-2 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
           <li>
-            <Link to="/about" className="text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200">
+            <Link to="/about" className="text-accent-700 hover:text-accent-800">
               About this build
             </Link>{" "}
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">— you are here.</span>
+            <span className="text-ink-500">— you are here.</span>
           </li>
           <li>
             <a
               href="https://github.com/namanparikh11/lockverity/blob/main/docs/architecture.md"
               target="_blank"
               rel="noreferrer"
-              className="text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200"
+              className="text-accent-700 hover:text-accent-800"
             >
               Architecture
             </a>{" "}
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">— modules, stages, and data flow.</span>
+            <span className="text-ink-500">— modules, stages, and data flow.</span>
           </li>
           <li>
             <a
               href="https://github.com/namanparikh11/lockverity/blob/main/docs/threat-model.md"
               target="_blank"
               rel="noreferrer"
-              className="text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200"
+              className="text-accent-700 hover:text-accent-800"
             >
               Threat model
             </a>{" "}
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">— defensive boundaries.</span>
+            <span className="text-ink-500">— defensive boundaries.</span>
           </li>
           <li>
             <a
               href="https://github.com/namanparikh11/lockverity/blob/main/SECURITY.md"
               target="_blank"
               rel="noreferrer"
-              className="text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200"
+              className="text-accent-700 hover:text-accent-800"
             >
               Security policy
             </a>{" "}
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">— non-execution guarantee and disclosure.</span>
+            <span className="text-ink-500">— non-execution guarantee and disclosure.</span>
           </li>
           <li>
             <a
               href="https://github.com/namanparikh11/lockverity/blob/main/LICENSE"
               target="_blank"
               rel="noreferrer"
-              className="text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200"
+              className="text-accent-700 hover:text-accent-800"
             >
               License
             </a>{" "}
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">— MIT for the source code.</span>
+            <span className="text-ink-500">— MIT for the source code.</span>
           </li>
           <li>
             <a
               href="https://github.com/namanparikh11/lockverity"
               target="_blank"
               rel="noreferrer"
-              className="text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200"
+              className="text-accent-700 hover:text-accent-800"
             >
               GitHub repository
             </a>{" "}
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">— releases, issues, and changelog.</span>
+            <span className="text-ink-500">— releases, issues, and changelog.</span>
           </li>
         </ul>
-        <p className="mt-3 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-3 text-xs text-ink-500">
           Current build:{" "}
           <span className="font-mono" data-testid="about-version-footer">
             {versionLabel}

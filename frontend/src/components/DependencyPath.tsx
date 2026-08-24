@@ -19,14 +19,14 @@ export function DependencyPathView({
   if (!path || (path.components.length === 0 && path.edges.length === 0)) {
     if (fallbackToSingle) {
       return (
-        <span className="text-xs text-ink-500 dark:text-surface-dark-text-muted">No dependency path recorded.</span>
+        <span className="text-xs text-ink-500">No dependency path recorded.</span>
       );
     }
     return null;
   }
   if (path.components.length === 0) {
     return (
-      <span className="text-xs text-ink-500 dark:text-surface-dark-text-muted">Path not recorded.</span>
+      <span className="text-xs text-ink-500">Path not recorded.</span>
     );
   }
   return (
@@ -43,24 +43,24 @@ export function DependencyPathView({
           {idx > 0 ? (
             <CornerDownRight
               aria-hidden="true"
-              className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-ink-400 dark:text-surface-dark-text-subtle"
+              className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-ink-400"
             />
           ) : (
             <GitBranch
               aria-hidden="true"
-              className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-ink-400 dark:text-surface-dark-text-subtle"
+              className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-ink-400"
             />
           )}
           <span className="flex flex-wrap items-center gap-1">
-            <span className="font-mono text-ink-700 dark:text-surface-dark-text">
+            <span className="font-mono text-ink-700">
               {component.ecosystem ? `${component.ecosystem}:` : ""}
               {component.package_name}
             </span>
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">
+            <span className="text-ink-500">
               {component.version ? `@${component.version}` : "(version unknown)"}
             </span>
             {component.direct ? (
-              <span className="rounded bg-accent-50 dark:bg-surface-dark-raised px-1 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-700 dark:text-accent-dark-300">
+              <span className="rounded bg-accent-50 px-1 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-700">
                 direct
               </span>
             ) : null}
@@ -83,11 +83,11 @@ export function DependencyPathView({
 export function ComponentIdentity({ component }: { component: Component }) {
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
-      <span className="font-mono text-ink-800 dark:text-surface-dark-text">
+      <span className="font-mono text-ink-800">
         {component.ecosystem ? `${component.ecosystem}:` : ""}
         {component.package_name}
       </span>
-      <span className="text-ink-500 dark:text-surface-dark-text-muted">
+      <span className="text-ink-500">
         {component.version ? `@${component.version}` : "(version unknown)"}
       </span>
     </span>

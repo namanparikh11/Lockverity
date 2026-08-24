@@ -2,41 +2,358 @@
 @tailwind components;
 @tailwind utilities;
 
+/* --------------------------------------------------------------
+   Lockverity theme tokens.
+
+   ``:root`` is the Light theme. Every value here is the exact
+   pre-theme Lockverity colour, so Light output is unchanged by
+   the Dark remediation.
+
+   ``[data-theme="dark"]`` is the Dark theme, applied to <html>
+   by the early-paint bootstrap in index.html and by
+   AppearanceProvider. Values are space-separated sRGB channels
+   so the Tailwind ``/<alpha-value>`` opacity modifiers keep
+   working (``bg-scrim/40``, ``bg-ink-100/50``, ...).
+
+   The Dark surface hierarchy, darkest to lightest:
+
+     canvas   #0d1117  application background
+     sidebar  #11161d  chrome (header + primary nav)
+     control  #111820  inputs, selects, textareas
+     surface  #161b22  cards, tables, drawers, panels
+     raised   #1c222b  table headers, row hover, chips
+
+   Neutral text, strongest to quietest:
+
+     ink-900  #e6edf3  page + section titles
+     ink-700  #c9d1db  body copy             11.2:1 on surface
+     ink-600  #b8c1cd  secondary copy
+     ink-500  #a3adbb  metadata / captions    7.6:1 on surface
+     ink-400  #8b96a5  subtle / placeholder   5.8:1 on surface
+
+   Every foreground listed above clears WCAG AA (4.5:1) against
+   both ``surface`` and ``canvas``.
+   -------------------------------------------------------------- */
+
+:root {
+  /* Neutral ramp - Light (unchanged Lockverity ink scale). */
+  --lv-ink-50: 245 247 250;
+  --lv-ink-100: 228 233 240;
+  --lv-ink-200: 200 209 222;
+  --lv-ink-300: 155 168 187;
+  --lv-ink-400: 108 122 145;
+  --lv-ink-500: 74 86 112;
+  --lv-ink-600: 56 65 88;
+  --lv-ink-700: 43 50 69;
+  --lv-ink-800: 28 34 51;
+  --lv-ink-900: 15 19 34;
+
+  /* Brand ramp - Light (unchanged Lockverity accent scale). */
+  --lv-accent-50: 238 244 255;
+  --lv-accent-100: 219 230 255;
+  --lv-accent-200: 182 204 255;
+  --lv-accent-300: 131 168 255;
+  --lv-accent-400: 86 132 245;
+  --lv-accent-500: 52 96 219;
+  --lv-accent-600: 39 72 177;
+  --lv-accent-700: 31 56 138;
+  --lv-accent-800: 23 42 104;
+  --lv-accent-900: 15 28 69;
+
+  /* Status ramps - Light (the Tailwind defaults the pre-theme
+     UI already rendered, pinned here so the theme swap cannot
+     drift them). */
+  --lv-emerald-50: 236 253 245;
+  --lv-emerald-100: 209 250 229;
+  --lv-emerald-200: 167 243 208;
+  --lv-emerald-300: 110 231 183;
+  --lv-emerald-400: 52 211 153;
+  --lv-emerald-500: 16 185 129;
+  --lv-emerald-600: 5 150 105;
+  --lv-emerald-700: 4 120 87;
+  --lv-emerald-800: 6 95 70;
+  --lv-emerald-900: 6 78 59;
+
+  --lv-amber-50: 255 251 235;
+  --lv-amber-100: 254 243 199;
+  --lv-amber-200: 253 230 138;
+  --lv-amber-300: 252 211 77;
+  --lv-amber-400: 251 191 36;
+  --lv-amber-500: 245 158 11;
+  --lv-amber-600: 217 119 6;
+  --lv-amber-700: 180 83 9;
+  --lv-amber-800: 146 64 14;
+  --lv-amber-900: 120 53 15;
+
+  --lv-rose-50: 255 241 242;
+  --lv-rose-100: 255 228 230;
+  --lv-rose-200: 254 205 211;
+  --lv-rose-300: 253 164 175;
+  --lv-rose-400: 251 113 133;
+  --lv-rose-500: 244 63 94;
+  --lv-rose-600: 225 29 72;
+  --lv-rose-700: 190 18 60;
+  --lv-rose-800: 159 18 57;
+  --lv-rose-900: 136 19 55;
+
+  /* Semantic surfaces - Light. */
+  --lv-canvas: 245 247 250;
+  --lv-surface: 255 255 255;
+  /* ``raised`` is the step above the card: the table header, a row
+     hover, a chip. In Light that is the ink-50 wash the pre-theme
+     table header already used, so ``bg-surface-raised`` renders the
+     exact previous colour; in Dark it is the #1c222b step. */
+  --lv-raised: 245 247 250;
+  --lv-sunken: 245 247 250;
+  --lv-control: 255 255 255;
+  --lv-sidebar: 255 255 255;
+
+  /* Form-control chrome - Light. */
+  --lv-control-border: 200 209 222;
+  --lv-control-placeholder: 108 122 145;
+
+  /* Solid action surfaces. Always paired with white label
+     text, so they stay dark in both themes. */
+  --lv-brand-solid: 39 72 177;
+  --lv-brand-solid-hover: 31 56 138;
+  --lv-danger-solid: 225 29 72;
+  --lv-danger-solid-hover: 190 18 60;
+
+  /* Disabled controls. Light keeps the historical 50%-opacity
+     treatment (see ``.btn:disabled``). */
+  --lv-disabled-surface: 245 247 250;
+  --lv-disabled-text: 108 122 145;
+  --lv-disabled-border: 200 209 222;
+
+  /* Overlay + focus. */
+  --lv-scrim: 15 19 34;
+  --lv-focus: 52 96 219;
+}
+
+[data-theme="dark"] {
+  /* Neutral ramp - Dark. 50/100 are quiet surfaces, 200/300
+     are borders, 400-900 are foregrounds. */
+  --lv-ink-50: 28 34 43;
+  --lv-ink-100: 38 45 56;
+  --lv-ink-200: 48 56 66;
+  --lv-ink-300: 60 70 83;
+  --lv-ink-400: 139 150 165;
+  --lv-ink-500: 163 173 187;
+  --lv-ink-600: 184 193 205;
+  --lv-ink-700: 201 209 219;
+  --lv-ink-800: 219 226 234;
+  --lv-ink-900: 230 237 243;
+
+  /* Brand ramp - Dark. 50/100 tints, 200-400 borders,
+     500-900 foregrounds. ``accent-700`` is the link colour
+     and measures 8.3:1 on the card surface. */
+  --lv-accent-50: 18 32 54;
+  --lv-accent-100: 22 41 74;
+  --lv-accent-200: 38 70 115;
+  --lv-accent-300: 47 92 153;
+  --lv-accent-400: 74 134 232;
+  --lv-accent-500: 74 134 232;
+  --lv-accent-600: 88 166 255;
+  --lv-accent-700: 121 184 255;
+  --lv-accent-800: 165 205 255;
+  --lv-accent-900: 207 227 255;
+
+  /* Status ramps - Dark. Muted tints rather than fluorescent
+     pills; foregrounds clear AA against both their own tint
+     and the card surface. */
+  --lv-emerald-50: 18 43 33;
+  --lv-emerald-100: 22 53 38;
+  --lv-emerald-200: 31 81 64;
+  --lv-emerald-300: 43 107 82;
+  --lv-emerald-400: 53 147 95;
+  --lv-emerald-500: 46 160 67;
+  --lv-emerald-600: 63 185 80;
+  --lv-emerald-700: 86 211 100;
+  --lv-emerald-800: 126 231 135;
+  --lv-emerald-900: 159 240 168;
+
+  --lv-amber-50: 43 33 19;
+  --lv-amber-100: 58 43 23;
+  --lv-amber-200: 92 69 32;
+  --lv-amber-300: 122 92 38;
+  --lv-amber-400: 187 128 9;
+  --lv-amber-500: 198 144 38;
+  --lv-amber-600: 210 153 34;
+  --lv-amber-700: 227 179 65;
+  --lv-amber-800: 240 198 116;
+  --lv-amber-900: 247 214 143;
+
+  --lv-rose-50: 45 20 24;
+  --lv-rose-100: 58 25 30;
+  --lv-rose-200: 95 42 51;
+  --lv-rose-300: 125 53 64;
+  --lv-rose-400: 218 54 51;
+  --lv-rose-500: 229 83 75;
+  --lv-rose-600: 248 81 73;
+  --lv-rose-700: 255 123 114;
+  --lv-rose-800: 255 161 152;
+  --lv-rose-900: 255 189 182;
+
+  /* Semantic surfaces - Dark. */
+  --lv-canvas: 13 17 23;
+  --lv-surface: 22 27 34;
+  --lv-raised: 28 34 43;
+  --lv-sunken: 13 17 23;
+  --lv-control: 17 24 32;
+  --lv-sidebar: 17 22 29;
+
+  /* Form-control chrome - Dark. The control border is
+     deliberately lighter than the decorative ``ink-200``
+     separator: an input boundary is a WCAG 1.4.11 "user
+     interface component" and needs 3:1 against the surface
+     behind it (this measures 3.1:1), whereas a table rule is
+     decorative and stays subtle. */
+  --lv-control-border: 95 105 118;
+  --lv-control-placeholder: 139 150 165;
+
+  --lv-brand-solid: 47 111 235;
+  --lv-brand-solid-hover: 31 95 216;
+  --lv-danger-solid: 218 54 51;
+  --lv-danger-solid-hover: 182 35 36;
+
+  /* Disabled controls - Dark. Opacity is dropped in favour of
+     an explicit muted surface: a 50%-alpha control over a
+     charcoal canvas reads as broken rendering rather than as
+     a disabled affordance, and its label falls under AA. */
+  --lv-disabled-surface: 28 34 43;
+  --lv-disabled-text: 139 150 165;
+  --lv-disabled-border: 48 56 66;
+
+  --lv-scrim: 1 4 9;
+  --lv-focus: 74 134 232;
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
+    /* Tells the WebView to paint native form controls,
+       scrollbars and the canvas behind the app in the resolved
+       theme. Without this, Dark mode shows a white scrollbar
+       gutter and white native select popups. */
+    color-scheme: light;
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
   }
   body {
     font-family: theme("fontFamily.sans");
   }
+  /* Dark needs an explicit body ground and default ink.
+     ``AppShell`` paints ``bg-canvas`` over a ``min-h-screen`` box,
+     but the overscroll gutter sits behind it, and any element that
+     never declared a text colour would otherwise fall back to the
+     UA default. Scoped to Dark so the Light rendering is left
+     exactly as it was. */
+  [data-theme="dark"] body {
+    background-color: rgb(var(--lv-canvas));
+    color: rgb(var(--lv-ink-700));
+  }
   /* Visible focus state for keyboard users. */
   :focus-visible {
-    outline: 2px solid theme("colors.accent.500");
+    outline: 2px solid rgb(var(--lv-focus));
     outline-offset: 2px;
     border-radius: theme("borderRadius.sm");
   }
 }
 
 @layer components {
+  /* ---------------------------------------------------------
+     Surfaces
+     --------------------------------------------------------- */
+
+  /* The primary content surface. Every panel, metric card,
+     table container, drawer body and instructional block in
+     the application resolves to this class, so it is the one
+     place that decides whether Dark mode shows a dark panel or
+     the white slab the QA screenshots rejected. */
   .card {
-    @apply rounded-lg border border-ink-200 bg-white p-4 shadow-sm;
+    @apply rounded-lg border border-ink-200 bg-surface p-4 shadow-sm;
   }
+
+  /* ---------------------------------------------------------
+     Buttons
+     --------------------------------------------------------- */
+
   .btn {
-    @apply inline-flex items-center gap-2 rounded-md border border-transparent px-3 py-1.5 text-sm font-medium focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center gap-2 rounded-md border border-transparent px-3 py-1.5 text-sm font-medium focus:outline-none disabled:cursor-not-allowed;
   }
   .btn-primary {
-    @apply btn bg-accent-600 text-white hover:bg-accent-700;
+    @apply btn bg-brand-solid text-white hover:bg-brand-solid-hover;
   }
   .btn-secondary {
-    @apply btn border-ink-200 bg-white text-ink-700 hover:bg-ink-50;
+    @apply btn border-ink-200 bg-surface text-ink-700 hover:bg-ink-50;
   }
+  /* Destructive action. Split out of the two call sites that
+     had inlined it so the solid rose surface is declared once
+     and stays legible under white label text in both themes. */
+  .btn-danger {
+    @apply btn bg-danger-solid text-white hover:bg-danger-solid-hover;
+  }
+
+  /* Light keeps the historical 50%-opacity disabled look. */
+  .btn:disabled {
+    @apply opacity-50;
+  }
+  /* Dark replaces it with an explicit muted surface so the
+     label stays readable (5.3:1) while still reading as
+     unavailable. */
+  [data-theme="dark"] .btn:disabled {
+    opacity: 1;
+    background-color: rgb(var(--lv-disabled-surface));
+    border-color: rgb(var(--lv-disabled-border));
+    color: rgb(var(--lv-disabled-text));
+  }
+
+  /* ---------------------------------------------------------
+     Forms
+     --------------------------------------------------------- */
+
   .label {
     @apply block text-xs font-semibold uppercase tracking-wide text-ink-500;
   }
   .input {
-    @apply block w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm shadow-sm placeholder-ink-400 focus:border-accent-500 focus:ring-1 focus:ring-accent-500;
+    @apply block w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:ring-1;
+    background-color: rgb(var(--lv-control));
+    border-color: rgb(var(--lv-control-border));
+    color: rgb(var(--lv-ink-700));
   }
+  .input::placeholder {
+    color: rgb(var(--lv-control-placeholder));
+  }
+  .input:focus {
+    border-color: rgb(var(--lv-focus));
+    --tw-ring-color: rgb(var(--lv-focus));
+  }
+  /* The shared select treatment: identical chrome to
+     ``.input`` but sized for the compact filter rows. The
+     popup itself follows ``color-scheme``. */
+  .select {
+    @apply rounded-md border px-2 py-1 text-sm shadow-sm focus:outline-none focus:ring-1;
+    background-color: rgb(var(--lv-control));
+    border-color: rgb(var(--lv-control-border));
+    color: rgb(var(--lv-ink-700));
+  }
+  .select:focus {
+    border-color: rgb(var(--lv-focus));
+    --tw-ring-color: rgb(var(--lv-focus));
+  }
+
+  /* ---------------------------------------------------------
+     Tables
+
+     Every table in the application renders through
+     ``ResponsiveTable``, so these three helpers plus the
+     ``.card`` container define the whole table treatment:
+     dark container, slightly raised header, dark rows, subtle
+     rules, high-contrast primary cells.
+     --------------------------------------------------------- */
+
   .table-row {
     @apply border-b border-ink-100 last:border-b-0;
   }
@@ -45,6 +362,51 @@
   }
   .table-head {
     @apply px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ink-500;
+  }
+
+  /* ---------------------------------------------------------
+     Primary navigation
+
+     Light is untouched: the selected item keeps the accent-50
+     wash and accent-800 label it has always had.
+
+     Dark needs more. On a charcoal sidebar the accent-50 tint and
+     the neutral inactive rows sit close enough in luminance that
+     the selection reads as weak - and in the rejected build every
+     row also carried a permanent raised background (an unscoped
+     ``dark:bg-*`` paired with ``hover:bg-*``), so every item
+     looked selected. The inset rule plus the heavier label make
+     the current page unmistakable without moving any geometry:
+     ``box-shadow`` does not participate in layout, so the item
+     box, padding and icon alignment are identical in both themes.
+
+     ``aria-current="page"`` is set by React Router on the active
+     NavLink, so the selector needs no extra class plumbing and
+     cannot drift from the accessible state.
+     --------------------------------------------------------- */
+
+  [data-theme="dark"] .nav-item[aria-current="page"] {
+    background-color: rgb(var(--lv-accent-50));
+    box-shadow: inset 2px 0 0 0 rgb(var(--lv-accent-600));
+    font-weight: 600;
+  }
+  [data-theme="dark"] .nav-item:not([aria-current="page"]):hover {
+    background-color: rgb(var(--lv-ink-100));
+    color: rgb(var(--lv-ink-900));
+  }
+
+  /* ---------------------------------------------------------
+     Links
+
+     ``.link`` was referenced by the privacy links in AppShell,
+     NewRepositoryPage and ExternalEvidenceProviderSelector but
+     was never defined, so those links rendered as plain body
+     text - indistinguishable from the surrounding sentence in
+     both themes. This is the standard Lockverity link idiom.
+     --------------------------------------------------------- */
+
+  .link {
+    @apply rounded-sm font-medium text-accent-700 underline underline-offset-2 hover:text-accent-800;
   }
 }
 

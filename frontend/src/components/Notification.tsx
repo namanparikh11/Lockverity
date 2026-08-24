@@ -12,14 +12,14 @@ import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react";
 type Tone = "info" | "ok" | "warn" | "danger";
 
 const TONE_CLASSES: Record<Tone, string> = {
-  info: "border-accent-200 bg-accent-50 dark:bg-surface-dark-raised text-accent-800 dark:text-accent-dark-200",
+  info: "border-accent-200 bg-accent-50 text-accent-800",
   ok: "border-emerald-200 bg-emerald-50 text-emerald-800",
   warn: "border-amber-200 bg-amber-50 text-amber-800",
   danger: "border-rose-200 bg-rose-50 text-rose-800",
 };
 
 const ICON_CLASSES: Record<Tone, string> = {
-  info: "text-accent-600 dark:text-accent-dark-400",
+  info: "text-accent-600",
   ok: "text-emerald-600",
   warn: "text-amber-600",
   danger: "text-rose-600",
@@ -62,7 +62,7 @@ export function Notification({
       {dismissible ? (
         <button
           type="button"
-          className="rounded p-1 hover:bg-white dark:bg-surface-dark-surface/40"
+          className="rounded p-1 hover:bg-surface"
           onClick={onDismiss}
           aria-label="Dismiss notification"
         >

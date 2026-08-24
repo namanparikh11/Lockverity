@@ -150,12 +150,12 @@ function ComparisonError({
         description="The comparator could not return a diff for the two selected scans. See the error below for the precise reason."
       />
       <ErrorState error={error} title="Could not compare scans" />
-      <div className="text-sm text-ink-500 dark:text-surface-dark-text-muted">
-        <Link to={`/scans/${headId}`} className="hover:text-accent-700 dark:text-accent-dark-300">
+      <div className="text-sm text-ink-500">
+        <Link to={`/scans/${headId}`} className="hover:text-accent-700">
           Open scan #{headId}
         </Link>
         {" · "}
-        <Link to={`/scans/${baseId}`} className="hover:text-accent-700 dark:text-accent-dark-300">
+        <Link to={`/scans/${baseId}`} className="hover:text-accent-700">
           Open scan #{baseId}
         </Link>
       </div>
@@ -180,7 +180,7 @@ function ComparisonBody({ data }: { data: ScanComparison }) {
       <LicencesSection rows={data.licences} />
       <OpenSSFSection rows={data.openssf} />
       <ProvidersSection rows={data.providers} />
-      <p className="mt-6 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="mt-6 text-xs text-ink-500">
         Comparison generated at {formatTimestamp(data.generated_at)}.{" "}
         <Timestamp value={data.generated_at} mode="relative" />
       </p>
@@ -192,56 +192,56 @@ function ScanIdentity({ data }: { data: ScanComparison }) {
   return (
     <section className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
       <SummaryCard label="Base scan" tone="muted">
-        <p className="text-sm font-semibold text-ink-900 dark:text-surface-dark-text">
-          <Link to={`/scans/${data.base_scan_id}`} className="hover:text-accent-700 dark:text-accent-dark-300">
+        <p className="text-sm font-semibold text-ink-900">
+          <Link to={`/scans/${data.base_scan_id}`} className="hover:text-accent-700">
             #{data.base_scan_id}
           </Link>{" "}
-          <span className="text-xs font-normal text-ink-500 dark:text-surface-dark-text-muted">
+          <span className="text-xs font-normal text-ink-500">
             (repository #{data.repository_id})
           </span>
         </p>
-        <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-1 text-xs text-ink-500">
           Status: <StatusBadge status={data.coverage.base_scan_status} />
         </p>
-        <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-1 text-xs text-ink-500">
           Completed: {formatTimestamp(data.base_completed_at)}
         </p>
-        <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-1 text-xs text-ink-500">
           Trigger: {data.base_trigger_type ?? "—"}
         </p>
-        <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-1 text-xs text-ink-500">
           Analyzer: {data.base_analyzer_version ?? "—"}
         </p>
         {data.base_resolved_commit_sha ? (
-          <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+          <p className="mt-1 text-xs text-ink-500">
             Resolved commit:{" "}
             <span className="font-mono">{data.base_resolved_commit_sha}</span>
           </p>
         ) : null}
       </SummaryCard>
       <SummaryCard label="Head scan" tone="muted">
-        <p className="text-sm font-semibold text-ink-900 dark:text-surface-dark-text">
-          <Link to={`/scans/${data.head_scan_id}`} className="hover:text-accent-700 dark:text-accent-dark-300">
+        <p className="text-sm font-semibold text-ink-900">
+          <Link to={`/scans/${data.head_scan_id}`} className="hover:text-accent-700">
             #{data.head_scan_id}
           </Link>{" "}
-          <span className="text-xs font-normal text-ink-500 dark:text-surface-dark-text-muted">
+          <span className="text-xs font-normal text-ink-500">
             (repository #{data.repository_id})
           </span>
         </p>
-        <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-1 text-xs text-ink-500">
           Status: <StatusBadge status={data.coverage.head_scan_status} />
         </p>
-        <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-1 text-xs text-ink-500">
           Completed: {formatTimestamp(data.head_completed_at)}
         </p>
-        <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-1 text-xs text-ink-500">
           Trigger: {data.head_trigger_type ?? "—"}
         </p>
-        <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-1 text-xs text-ink-500">
           Analyzer: {data.head_analyzer_version ?? "—"}
         </p>
         {data.head_resolved_commit_sha ? (
-          <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+          <p className="mt-1 text-xs text-ink-500">
             Resolved commit:{" "}
             <span className="font-mono">{data.head_resolved_commit_sha}</span>
           </p>
@@ -273,25 +273,25 @@ function CoverageNotice({ data }: { data: ScanComparison }) {
   ];
   return (
     <section className="mb-6">
-      <h2 className="mb-2 text-sm font-semibold text-ink-700 dark:text-surface-dark-text">
+      <h2 className="mb-2 text-sm font-semibold text-ink-700">
         Evidence coverage
       </h2>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div className="card">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">
             Base scan #{data.base_scan_id} observed
           </p>
-          <ul className="mt-2 list-disc pl-5 text-sm text-ink-700 dark:text-surface-dark-text">
+          <ul className="mt-2 list-disc pl-5 text-sm text-ink-700">
             {baseCounts.map((line) => (
               <li key={line}>{line}</li>
             ))}
           </ul>
         </div>
         <div className="card">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">
             Head scan #{data.head_scan_id} observed
           </p>
-          <ul className="mt-2 list-disc pl-5 text-sm text-ink-700 dark:text-surface-dark-text">
+          <ul className="mt-2 list-disc pl-5 text-sm text-ink-700">
             {headCounts.map((line) => (
               <li key={line}>{line}</li>
             ))}
@@ -359,7 +359,7 @@ function countDifferences(data: ScanComparison): number {
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-3 mt-6 text-sm font-semibold uppercase tracking-wide text-ink-700 dark:text-surface-dark-text">
+    <h2 className="mb-3 mt-6 text-sm font-semibold uppercase tracking-wide text-ink-700">
       {children}
     </h2>
   );
@@ -376,17 +376,17 @@ function ComponentsSection({
 }) {
   return (
     <section className="mb-6">
-      <h3 className="mb-2 text-sm font-semibold text-ink-700 dark:text-surface-dark-text">
+      <h3 className="mb-2 text-sm font-semibold text-ink-700">
         Components and versions
       </h3>
-      <p className="mb-2 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="mb-2 text-xs text-ink-500">
         The concrete version is part of each component&apos;s
         identity, so the same package at different versions
         appears as separate rows. No row is ever labelled
         &ldquo;fixed&rdquo; or &ldquo;resolved&rdquo;.
       </p>
       {rows.length === 0 ? (
-        <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">No components in either scan.</p>
+        <p className="text-xs text-ink-500">No components in either scan.</p>
       ) : (
         <ResponsiveTable
           headers={[
@@ -402,17 +402,17 @@ function ComponentsSection({
               key={`${row.ecosystem ?? "?"}/${row.package_name}/${row.version ?? "?"}`}
               className="table-row"
             >
-              <td className="table-cell font-mono text-xs text-ink-700 dark:text-surface-dark-text">
+              <td className="table-cell font-mono text-xs text-ink-700">
                 {row.package_name}
               </td>
-              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">{row.ecosystem ?? "—"}</td>
-              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted font-mono text-xs">
+              <td className="table-cell text-ink-500">{row.ecosystem ?? "—"}</td>
+              <td className="table-cell text-ink-500 font-mono text-xs">
                 {row.version ?? "(unresolved)"}
               </td>
               <td className="table-cell">
                 <ObservationStateBadge state={row.state} />
               </td>
-              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell text-ink-500">
                 {row.direct_base === null
                   ? "—"
                   : row.direct_base
@@ -440,26 +440,26 @@ function ManifestsSection({
 }) {
   return (
     <section className="mb-6">
-      <h3 className="mb-2 text-sm font-semibold text-ink-700 dark:text-surface-dark-text">Manifests</h3>
+      <h3 className="mb-2 text-sm font-semibold text-ink-700">Manifests</h3>
       {rows.length === 0 ? (
-        <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">No manifests observed.</p>
+        <p className="text-xs text-ink-500">No manifests observed.</p>
       ) : (
         <ResponsiveTable
           headers={["Manifest", "Ecosystem", "State", "Base SHA", "Head SHA"]}
         >
           {rows.map((row) => (
             <tr key={row.manifest_path} className="table-row">
-              <td className="table-cell font-mono text-xs text-ink-700 dark:text-surface-dark-text">
+              <td className="table-cell font-mono text-xs text-ink-700">
                 {row.manifest_path}
               </td>
-              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">{row.ecosystem ?? "—"}</td>
+              <td className="table-cell text-ink-500">{row.ecosystem ?? "—"}</td>
               <td className="table-cell">
                 <ObservationStateBadge state={row.state} />
               </td>
-              <td className="table-cell font-mono text-[10px] text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell font-mono text-[10px] text-ink-500">
                 {row.content_sha256_base ? row.content_sha256_base.slice(0, 12) : "—"}
               </td>
-              <td className="table-cell font-mono text-[10px] text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell font-mono text-[10px] text-ink-500">
                 {row.content_sha256_head ? row.content_sha256_head.slice(0, 12) : "—"}
               </td>
             </tr>
@@ -477,11 +477,11 @@ function DependencyPathsSection({
 }) {
   return (
     <section className="mb-6">
-      <h3 className="mb-2 text-sm font-semibold text-ink-700 dark:text-surface-dark-text">
+      <h3 className="mb-2 text-sm font-semibold text-ink-700">
         Dependency path changes
       </h3>
       {rows.length === 0 ? (
-        <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="text-xs text-ink-500">
           No parent-chain changes detected for components present in both scans.
         </p>
       ) : (
@@ -493,19 +493,19 @@ function DependencyPathsSection({
               key={`${row.ecosystem ?? "?"}/${row.package_name}@${row.version ?? "?"}`}
               className="table-row"
             >
-              <td className="table-cell font-mono text-xs text-ink-700 dark:text-surface-dark-text">
+              <td className="table-cell font-mono text-xs text-ink-700">
                 {row.package_name}
               </td>
-              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">{row.version ?? "—"}</td>
+              <td className="table-cell text-ink-500">{row.version ?? "—"}</td>
               <td className="table-cell">
                 <ObservationStateBadge state={row.state} />
               </td>
-              <td className="table-cell text-xs text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell text-xs text-ink-500">
                 {row.parent_chain_base.length === 0
                   ? "—"
                   : row.parent_chain_base.join(", ")}
               </td>
-              <td className="table-cell text-xs text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell text-xs text-ink-500">
                 {row.parent_chain_head.length === 0
                   ? "—"
                   : row.parent_chain_head.join(", ")}
@@ -525,30 +525,30 @@ function WorkflowsSection({
 }) {
   return (
     <section className="mb-6">
-      <h3 className="mb-2 text-sm font-semibold text-ink-700 dark:text-surface-dark-text">
+      <h3 className="mb-2 text-sm font-semibold text-ink-700">
         Workflow findings
       </h3>
       {rows.length === 0 ? (
-        <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">No workflow findings observed.</p>
+        <p className="text-xs text-ink-500">No workflow findings observed.</p>
       ) : (
         <ResponsiveTable
           headers={["Rule", "Workflow", "State", "Severity (base → head)", "Confidence (base → head)"]}
         >
           {rows.map((row) => (
             <tr key={row.stable_key} className="table-row">
-              <td className="table-cell font-mono text-xs text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell font-mono text-xs text-ink-500">
                 {row.rule_id}
               </td>
-              <td className="table-cell font-mono text-xs text-ink-700 dark:text-surface-dark-text">
+              <td className="table-cell font-mono text-xs text-ink-700">
                 {row.workflow_path}
               </td>
               <td className="table-cell">
                 <ObservationStateBadge state={row.state} />
               </td>
-              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell text-ink-500">
                 {row.severity_base ?? "—"} → {row.severity_head ?? "—"}
               </td>
-              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell text-ink-500">
                 {row.confidence_base ?? "—"} → {row.confidence_head ?? "—"}
               </td>
             </tr>
@@ -570,10 +570,10 @@ function VulnerabilitiesSection({
 }) {
   return (
     <section className="mb-6">
-      <h3 className="mb-2 text-sm font-semibold text-ink-700 dark:text-surface-dark-text">
+      <h3 className="mb-2 text-sm font-semibold text-ink-700">
         Vulnerabilities
       </h3>
-      <p className="mb-2 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="mb-2 text-xs text-ink-500">
         A row that disappeared from the head scan is shown as
         &quot;no longer observed&quot;; it is not described as fixed
         or resolved. When head provider coverage for the affected
@@ -581,7 +581,7 @@ function VulnerabilitiesSection({
         shown as &quot;comparison indeterminate&quot; instead.
       </p>
       {rows.length === 0 ? (
-        <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">No vulnerability rows observed.</p>
+        <p className="text-xs text-ink-500">No vulnerability rows observed.</p>
       ) : (
         <ResponsiveTable
           headers={[
@@ -604,28 +604,28 @@ function VulnerabilitiesSection({
               ].join("|")}
               className="table-row"
             >
-              <td className="table-cell font-mono text-xs text-ink-700 dark:text-surface-dark-text">
+              <td className="table-cell font-mono text-xs text-ink-700">
                 {row.advisory_canonical_id ?? row.advisory_external_id ?? "—"}
               </td>
-              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell text-ink-500">
                 <span className="font-mono text-xs">
                   {row.package_name ?? "—"}
                 </span>{" "}
-                <span className="text-[10px] text-ink-400 dark:text-surface-dark-text-subtle">
+                <span className="text-[10px] text-ink-400">
                   ({row.ecosystem ?? "—"})
                 </span>
               </td>
               <td className="table-cell">
                 <ObservationStateBadge state={row.state} />
               </td>
-              <td className="table-cell text-xs text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell text-xs text-ink-500">
                 {row.provider_provenance_base ?? "—"} →{" "}
                 {row.provider_provenance_head ?? "—"}
               </td>
-              <td className="table-cell text-xs text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell text-xs text-ink-500">
                 {row.fetched_at_base ?? "—"} → {row.fetched_at_head ?? "—"}
               </td>
-              <td className="table-cell text-xs text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell text-xs text-ink-500">
                 {row.ambiguity_reason ?? "—"}
               </td>
             </tr>
@@ -643,11 +643,11 @@ function LicencesSection({
 }) {
   return (
     <section className="mb-6">
-      <h3 className="mb-2 text-sm font-semibold text-ink-700 dark:text-surface-dark-text">
+      <h3 className="mb-2 text-sm font-semibold text-ink-700">
         Licence and package observations
       </h3>
       {rows.length === 0 ? (
-        <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">No licence assertions observed.</p>
+        <p className="text-xs text-ink-500">No licence assertions observed.</p>
       ) : (
         <ResponsiveTable
           headers={[
@@ -668,22 +668,22 @@ function LicencesSection({
               ].join("|")}
               className="table-row"
             >
-              <td className="table-cell font-mono text-xs text-ink-700 dark:text-surface-dark-text">
+              <td className="table-cell font-mono text-xs text-ink-700">
                 {row.package_name ?? "—"}
               </td>
-              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell text-ink-500">
                 {row.package_version_base ?? row.package_version_head ?? "—"}
               </td>
               <td className="table-cell">
                 <ObservationStateBadge state={row.state} />
               </td>
-              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell text-ink-500">
                 {row.licence_base ?? "—"} → {row.licence_head ?? "—"}
               </td>
-              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell text-ink-500">
                 {row.provider_base ?? "—"} → {row.provider_head ?? "—"}
               </td>
-              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell text-ink-500">
                 {row.review_status_base ?? "—"} →{" "}
                 {row.review_status_head ?? "—"}
               </td>
@@ -702,11 +702,11 @@ function OpenSSFSection({
 }) {
   return (
     <section className="mb-6">
-      <h3 className="mb-2 text-sm font-semibold text-ink-700 dark:text-surface-dark-text">
+      <h3 className="mb-2 text-sm font-semibold text-ink-700">
         OpenSSF observations
       </h3>
       {rows.length === 0 ? (
-        <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">No OpenSSF observations recorded.</p>
+        <p className="text-xs text-ink-500">No OpenSSF observations recorded.</p>
       ) : (
         <ResponsiveTable
           headers={["Check", "State", "Score (base → head)", "Source"]}
@@ -714,18 +714,18 @@ function OpenSSFSection({
           {rows.map((row) => (
             <tr key={row.check_id} className="table-row">
               <td className="table-cell">
-                <p className="text-sm font-semibold text-ink-900 dark:text-surface-dark-text">{row.name}</p>
-                <p className="font-mono text-[10px] text-ink-500 dark:text-surface-dark-text-muted">
+                <p className="text-sm font-semibold text-ink-900">{row.name}</p>
+                <p className="font-mono text-[10px] text-ink-500">
                   {row.check_id}
                 </p>
               </td>
               <td className="table-cell">
                 <ObservationStateBadge state={row.state} />
               </td>
-              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell text-ink-500">
                 {row.score_base ?? "—"} → {row.score_head ?? "—"}
               </td>
-              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">{row.source}</td>
+              <td className="table-cell text-ink-500">{row.source}</td>
             </tr>
           ))}
         </ResponsiveTable>
@@ -741,10 +741,10 @@ function ProvidersSection({
 }) {
   return (
     <section className="mb-6">
-      <h3 className="mb-2 text-sm font-semibold text-ink-700 dark:text-surface-dark-text">
+      <h3 className="mb-2 text-sm font-semibold text-ink-700">
         Provider coverage
       </h3>
-      <p className="mb-2 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="mb-2 text-xs text-ink-500">
         A &quot;successful&quot; provider returned a structured
         evidence envelope. &quot;Cached&quot;, &quot;stale&quot;,
         &quot;partial&quot;, &quot;unavailable&quot;,
@@ -755,7 +755,7 @@ function ProvidersSection({
         &quot;error_summary&quot; field.
       </p>
       {rows.length === 0 ? (
-        <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">No providers recorded for either scan.</p>
+        <p className="text-xs text-ink-500">No providers recorded for either scan.</p>
       ) : (
         <ResponsiveTable
           headers={[
@@ -769,7 +769,7 @@ function ProvidersSection({
         >
           {rows.map((row) => (
             <tr key={row.provider} className="table-row">
-              <td className="table-cell font-mono text-xs text-ink-700 dark:text-surface-dark-text">
+              <td className="table-cell font-mono text-xs text-ink-700">
                 {row.provider}
               </td>
               <td className="table-cell">
@@ -781,11 +781,11 @@ function ProvidersSection({
               <td className="table-cell">
                 <ProviderStateBadge state={row.state_head} />
               </td>
-              <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell text-ink-500">
                 {row.records_returned_base ?? "—"} →{" "}
                 {row.records_returned_head ?? "—"}
               </td>
-              <td className="table-cell text-xs text-ink-500 dark:text-surface-dark-text-muted">
+              <td className="table-cell text-xs text-ink-500">
                 {row.error_summary_base ?? "—"} →{" "}
                 {row.error_summary_head ?? "—"}
               </td>
@@ -841,9 +841,9 @@ function toneClass(tone: "ok" | "warn" | "danger" | "muted" | "info"): string {
     case "danger":
       return "bg-rose-50 text-rose-700 border-rose-200";
     case "muted":
-      return "bg-ink-50 dark:bg-surface-dark-app text-ink-500 dark:text-surface-dark-text-muted border-ink-200 dark:border-surface-dark-border";
+      return "bg-ink-50 text-ink-500 border-ink-200";
     case "info":
-      return "bg-accent-50 dark:bg-surface-dark-raised text-accent-700 dark:text-accent-dark-300 border-accent-200";
+      return "bg-accent-50 text-accent-700 border-accent-200";
   }
 }
 
@@ -851,7 +851,7 @@ function ProviderStateBadge({ state }: { state: ProviderStateName }) {
   return (
     <div className="flex flex-col items-start gap-1">
       <span
-        className="inline-flex items-center rounded-full border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface px-2 py-0.5 text-xs font-medium text-ink-700 dark:text-surface-dark-text"
+        className="inline-flex items-center rounded-full border border-ink-200 bg-surface px-2 py-0.5 text-xs font-medium text-ink-700"
         aria-label={`Provider state: ${state}`}
       >
         {state}

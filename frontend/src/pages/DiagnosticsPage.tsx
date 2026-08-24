@@ -199,10 +199,10 @@ export function DiagnosticsPage() {
             <ExecutorCard executor={data.executor} />
           </section>
           <section className="mt-6" aria-label="Provider diagnostics">
-            <h2 className="mb-2 text-sm font-semibold text-ink-700 dark:text-surface-dark-text">
+            <h2 className="mb-2 text-sm font-semibold text-ink-700">
               Provider diagnostics
             </h2>
-            <p className="mb-2 text-xs text-ink-500 dark:text-surface-dark-text-muted" data-testid="provider-boundary">
+            <p className="mb-2 text-xs text-ink-500" data-testid="provider-boundary">
               Provider diagnostics describe persisted collection state.
               They do not establish that a repository has or does not
               have vulnerabilities. Cache state, evidence presence,
@@ -248,7 +248,7 @@ export function DiagnosticsPage() {
                     className="table-row"
                     data-testid={`diagnostics-provider-row-${p.provider}`}
                   >
-                    <td className="table-cell font-medium text-ink-900 dark:text-surface-dark-text">
+                    <td className="table-cell font-medium text-ink-900">
                       {providerNameLabel[
                         p.provider as keyof typeof providerNameLabel
                       ] ?? p.provider}
@@ -258,17 +258,17 @@ export function DiagnosticsPage() {
                         status={p.last_observed_state as never}
                       />
                     </td>
-                    <td className="table-cell text-ink-600 dark:text-surface-dark-text-muted">
+                    <td className="table-cell text-ink-600">
                       {p.cache_status ?? "Unknown"}
                     </td>
-                    <td className="table-cell text-ink-600 dark:text-surface-dark-text-muted">
+                    <td className="table-cell text-ink-600">
                       {p.last_attempt_at ? (
                         <Timestamp value={p.last_attempt_at} mode="relative" />
                       ) : (
                         "Unknown"
                       )}
                     </td>
-                    <td className="table-cell font-mono text-xs text-ink-600 dark:text-surface-dark-text-muted">
+                    <td className="table-cell font-mono text-xs text-ink-600">
                       {p.last_error_code === "disabled_by_operator"
                         ? "Disabled by operator"
                         : p.last_error_code ?? "—"}
@@ -279,10 +279,10 @@ export function DiagnosticsPage() {
             )}
           </section>
           <section className="mt-6" aria-label="Recent scan issues">
-            <h2 className="mb-2 text-sm font-semibold text-ink-700 dark:text-surface-dark-text">
+            <h2 className="mb-2 text-sm font-semibold text-ink-700">
               Recent scan issues
             </h2>
-            <p className="mb-2 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+            <p className="mb-2 text-xs text-ink-500">
               Bounded recent partial, failed, and cancelled scans.
               Completed scans are intentionally excluded.
             </p>
@@ -324,22 +324,22 @@ export function DiagnosticsPage() {
                     className="table-row"
                     data-testid={`diagnostics-issue-row-${issue.scan_id}`}
                   >
-                    <td className="table-cell font-mono text-xs text-ink-500 dark:text-surface-dark-text-muted">
+                    <td className="table-cell font-mono text-xs text-ink-500">
                       #{issue.scan_id} (repo #{issue.repository_id})
                     </td>
                     <td className="table-cell">
                       <StatusBadge status={issue.status} />
                     </td>
-                    <td className="table-cell font-mono text-xs text-ink-700 dark:text-surface-dark-text">
+                    <td className="table-cell font-mono text-xs text-ink-700">
                       {issue.failure_code ?? "—"}
                     </td>
-                    <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+                    <td className="table-cell text-ink-500">
                       {formatTimestamp(issue.updated_at)}
                     </td>
                     <td className="table-cell">
                       <Link
                         to={`/scans/${issue.scan_id}`}
-                        className="text-xs text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200"
+                        className="text-xs text-accent-700 hover:text-accent-800"
                         data-testid={`diagnostics-issue-link-${issue.scan_id}`}
                       >
                         Open workbench →
@@ -351,10 +351,10 @@ export function DiagnosticsPage() {
             )}
           </section>
           <section className="mt-6" aria-label="Stage diagnostics">
-            <h2 className="mb-2 text-sm font-semibold text-ink-700 dark:text-surface-dark-text">
+            <h2 className="mb-2 text-sm font-semibold text-ink-700">
               Stage diagnostics
             </h2>
-            <p className="mb-2 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+            <p className="mb-2 text-xs text-ink-500">
               Aggregated persisted stage-state counts across all
               scans. A zero count is rendered as &ldquo;No matching
               persisted stage failures were found in the selected
@@ -399,23 +399,23 @@ export function DiagnosticsPage() {
                     className="table-row"
                     data-testid={`diagnostics-stage-row-${row.stage}`}
                   >
-                    <td className="table-cell font-mono text-xs text-ink-700 dark:text-surface-dark-text">
+                    <td className="table-cell font-mono text-xs text-ink-700">
                       {row.stage}
                     </td>
-                    <td className="table-cell text-ink-600 dark:text-surface-dark-text-muted">
+                    <td className="table-cell text-ink-600">
                       {row.completed}
                     </td>
-                    <td className="table-cell text-ink-600 dark:text-surface-dark-text-muted">{row.partial}</td>
-                    <td className="table-cell text-ink-600 dark:text-surface-dark-text-muted">{row.failed}</td>
-                    <td className="table-cell text-ink-600 dark:text-surface-dark-text-muted">{row.skipped}</td>
-                    <td className="table-cell text-ink-600 dark:text-surface-dark-text-muted">{row.running}</td>
-                    <td className="table-cell text-ink-600 dark:text-surface-dark-text-muted">{row.pending}</td>
+                    <td className="table-cell text-ink-600">{row.partial}</td>
+                    <td className="table-cell text-ink-600">{row.failed}</td>
+                    <td className="table-cell text-ink-600">{row.skipped}</td>
+                    <td className="table-cell text-ink-600">{row.running}</td>
+                    <td className="table-cell text-ink-600">{row.pending}</td>
                   </tr>
                 ))}
               </ResponsiveTable>
             )}
           </section>
-          <p className="mt-6 text-xs text-ink-500 dark:text-surface-dark-text-muted" data-testid="diagnostics-generated-at">
+          <p className="mt-6 text-xs text-ink-500" data-testid="diagnostics-generated-at">
             Generated at {formatTimestamp(data.generated_at)}.
           </p>
         </>
@@ -434,20 +434,20 @@ function ApplicationCard({
       label="Application"
       tone={application.database === "available" ? "ok" : "warn"}
     >
-      <p className="text-sm font-semibold text-ink-900 dark:text-surface-dark-text" data-testid="diagnostics-application-version">
+      <p className="text-sm font-semibold text-ink-900" data-testid="diagnostics-application-version">
         Lockverity {application.version}
       </p>
-      <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="mt-1 text-xs text-ink-500">
         Environment: <span className="font-mono">{application.environment}</span>
       </p>
-      <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="mt-1 text-xs text-ink-500">
         Runtime: <span className="font-mono">{application.status}</span>
       </p>
-      <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted" data-testid="diagnostics-database-state">
+      <p className="mt-1 text-xs text-ink-500" data-testid="diagnostics-database-state">
         Database:{" "}
         <span className="font-mono">{application.database}</span>
       </p>
-      <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="mt-1 text-xs text-ink-500">
         Generated: {formatTimestamp(application.generated_at)}
       </p>
     </SummaryCard>
@@ -464,20 +464,20 @@ function ExecutorCard({
       label="Executor"
       tone={executor.state === "available" ? "ok" : "warn"}
     >
-      <p className="text-sm font-semibold text-ink-900 dark:text-surface-dark-text" data-testid="diagnostics-executor-state">
+      <p className="text-sm font-semibold text-ink-900" data-testid="diagnostics-executor-state">
         {executor.state}
       </p>
-      <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="mt-1 text-xs text-ink-500">
         Implementation:{" "}
         <span className="font-mono">{executor.implementation}</span>
       </p>
-      <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted" data-testid="diagnostics-executor-queued">
+      <p className="mt-1 text-xs text-ink-500" data-testid="diagnostics-executor-queued">
         Queued scans: <span className="font-mono">{executor.queued_scans}</span>
       </p>
-      <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted" data-testid="diagnostics-executor-running">
+      <p className="mt-1 text-xs text-ink-500" data-testid="diagnostics-executor-running">
         Running scans: <span className="font-mono">{executor.running_scans}</span>
       </p>
-      <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted" data-testid="diagnostics-executor-heartbeat">
+      <p className="mt-1 text-xs text-ink-500" data-testid="diagnostics-executor-heartbeat">
         {executor.heartbeat_supported
           ? executor.last_heartbeat_at
             ? `Last heartbeat: ${formatTimestamp(executor.last_heartbeat_at)}`
@@ -485,7 +485,7 @@ function ExecutorCard({
           : "Heartbeat not exposed by the current executor."}
       </p>
       {executor.notes.length > 0 ? (
-        <ul className="mt-2 list-disc pl-5 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+        <ul className="mt-2 list-disc pl-5 text-xs text-ink-500">
           {executor.notes.map((n) => (
             <li key={n}>{n}</li>
           ))}

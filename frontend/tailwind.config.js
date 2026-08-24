@@ -1,4 +1,54 @@
 /** @type {import('tailwindcss').Config} */
+
+/*
+ * Lockverity colour system.
+ *
+ * Every palette step below resolves to a CSS custom
+ * property rather than a literal hex value. The
+ * properties are declared twice in ``src/index.css``:
+ * once on ``:root`` (the Light theme, whose values are
+ * byte-for-byte the pre-theme Lockverity palette) and
+ * once on ``[data-theme="dark"]`` (the Dark theme).
+ *
+ * This is the single structural fix for the Dark-mode
+ * QA failure. The previous implementation kept the
+ * ramps Light-only and tried to repair Dark with
+ * ~800 per-element ``dark:`` utilities. Because those
+ * utilities almost exclusively overrode *text* colour
+ * and almost never the *surface* underneath, Dark mode
+ * ended up rendering near-white text on the untouched
+ * white ``bg-white`` / ``.card`` / ``.input`` /
+ * ``<tbody>`` surfaces. Making the ramp itself
+ * theme-aware means a single declaration block fixes
+ * every one of the 130 source files at once, and no
+ * page can drift out of the system again.
+ *
+ * Rules for anyone editing this file:
+ *
+ *  - A step used as a *solid action surface* (a filled
+ *    button) must NOT be remapped, because a step that
+ *    is dark-on-light must stay dark to keep white
+ *    label text legible. Those surfaces use the
+ *    dedicated ``brand``/``danger`` solid tokens below
+ *    and are pinned per theme in ``index.css``.
+ *  - Everything else (tints, borders, foregrounds)
+ *    inverts: a step that reads "quiet" on white must
+ *    read "quiet" on charcoal, and a step that reads
+ *    "loud" must stay loud.
+ */
+
+/** Expand a CSS custom property into a Tailwind colour value. */
+const v = (name) => `rgb(var(--lv-${name}) / <alpha-value>)`;
+
+/** Build a 50..900 ramp bound to ``--lv-<prefix>-<step>``. */
+const ramp = (prefix) =>
+  Object.fromEntries(
+    [50, 100, 200, 300, 400, 500, 600, 700, 800, 900].map((step) => [
+      step,
+      v(`${prefix}-${step}`),
+    ]),
+  );
+
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   // Custom dark-mode selector. The resolved theme is
@@ -15,86 +65,52 @@ export default {
   theme: {
     extend: {
       colors: {
-        // The ``ink`` and ``accent`` scales are kept
-        // exactly as in the Light theme so the
-        // canvas/typography math is unchanged. Dark
-        // mode remaps ``bg-*`` / ``text-*`` / ``border-*``
-        // at the component layer via the semantic
-        // utilities in ``index.css``. Existing Light-mode
-        // screenshots therefore remain byte-identical.
-        ink: {
-          50: "#f5f7fa",
-          100: "#e4e9f0",
-          200: "#c8d1de",
-          300: "#9ba8bb",
-          400: "#6c7a91",
-          500: "#4a5670",
-          600: "#384158",
-          700: "#2b3245",
-          800: "#1c2233",
-          900: "#0f1322",
-        },
-        accent: {
-          50: "#eef4ff",
-          100: "#dbe6ff",
-          200: "#b6ccff",
-          300: "#83a8ff",
-          400: "#5684f5",
-          500: "#3460db",
-          600: "#2748b1",
-          700: "#1f388a",
-          800: "#172a68",
-          900: "#0f1c45",
-        },
-        // Dark-mode accent ramp. Brighter than the
-        // Light ramp because the dark canvas needs more
-        // luminance to read at the same perceived weight.
-        // The 500 step matches the Light ``accent-500``
-        // (the Lockverity brand blue) so logo and
-        // brand-mark recognition is identical across
-        // themes.
-        "accent-dark": {
-          50: "#0f1c45",
-          100: "#172a68",
-          200: "#1f388a",
-          300: "#2748b1",
-          400: "#3460db",
-          500: "#3460db",
-          600: "#5684f5",
-          700: "#83a8ff",
-          800: "#b6ccff",
-          900: "#dbe6ff",
-        },
-        // Dark-mode neutrals. Cool dark charcoal
-        // background, slightly raised surface, very
-        // subtle borders. Sits between slate-900 and
-        // zinc-900 to keep a slight blue undertone that
-        // does not fight the accent.
+        // Neutral ramp. Light values are the original
+        // Lockverity ``ink`` scale; Dark values invert
+        // the *role* of each step (50/100 become quiet
+        // surfaces, 200/300 become borders, 400-900
+        // become progressively stronger foregrounds).
+        ink: ramp("ink"),
+        // Brand ramp. ``accent-500`` is the Lockverity
+        // blue in both themes so the brand mark reads
+        // identically.
+        accent: ramp("accent"),
+        // Status ramps. Light values are the Tailwind
+        // defaults the pre-theme UI already used, so
+        // Light output is unchanged; Dark values are
+        // muted tints (50/100), quiet borders (200/300)
+        // and legible foregrounds (600-900).
+        emerald: ramp("emerald"),
+        amber: ramp("amber"),
+        rose: ramp("rose"),
+
+        // Semantic surfaces. ``bg-surface`` replaces the
+        // hard-coded ``bg-white`` that made every card,
+        // drawer, filter bar and table body render as a
+        // white slab in Dark mode.
         surface: {
-          // Light mode (default): kept identical to the
-          // previous Light theme so the existing visual
-          // design is unchanged.
-          light: {
-            app: "#f5f7fa", // ink-50
-            surface: "#ffffff",
-            raised: "#ffffff",
-            sidebar: "#ffffff",
-            border: "#e4e9f0", // ink-100/200 boundary
-            text: "#0f1322", // ink-900
-            "text-muted": "#4a5670", // ink-500
-            "text-subtle": "#6c7a91", // ink-400
-          },
-          dark: {
-            app: "#0d1117", // app canvas
-            surface: "#161b22", // cards
-            raised: "#1c2128", // raised surfaces (modals, drawers)
-            sidebar: "#0d1117", // matches app, distinct from cards
-            border: "#30363d", // subtle separator
-            "border-strong": "#484f58",
-            text: "#e6edf3", // primary text on dark
-            "text-muted": "#8b949e",
-            "text-subtle": "#6e7681",
-          },
+          DEFAULT: v("surface"),
+          raised: v("raised"),
+          sunken: v("sunken"),
+          control: v("control"),
+          sidebar: v("sidebar"),
+        },
+        canvas: v("canvas"),
+        // Modal / drawer scrim. Kept off the ``ink``
+        // ramp: ``bg-ink-900/40`` used to be the scrim,
+        // and an inverted ``ink-900`` would have turned
+        // it into a white wash in Dark mode.
+        scrim: v("scrim"),
+        // Solid action surfaces. Deliberately NOT part
+        // of a ramp: these always carry white label
+        // text, so they must stay dark in both themes.
+        brand: {
+          solid: v("brand-solid"),
+          "solid-hover": v("brand-solid-hover"),
+        },
+        danger: {
+          solid: v("danger-solid"),
+          "solid-hover": v("danger-solid-hover"),
         },
       },
       fontFamily: {

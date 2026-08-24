@@ -202,10 +202,10 @@ export function ExportCenterPage() {
           {items.map((item) => (
             <tr key={item.format} className="table-row">
               <td className="table-cell">
-                <p className="font-medium text-ink-900 dark:text-surface-dark-text">{item.label}</p>
-                <p className="font-mono text-[11px] text-ink-500 dark:text-surface-dark-text-muted">{item.format}</p>
+                <p className="font-medium text-ink-900">{item.label}</p>
+                <p className="font-mono text-[11px] text-ink-500">{item.format}</p>
               </td>
-              <td className="table-cell text-ink-700 dark:text-surface-dark-text">
+              <td className="table-cell text-ink-700">
                 {item.description || "—"}
                 {item.not_supported_reason ? (
                   <p className="mt-1 text-xs text-rose-700">{item.not_supported_reason}</p>
@@ -217,7 +217,7 @@ export function ExportCenterPage() {
                     available
                   </span>
                 ) : (
-                  <span className="rounded-full bg-ink-100 dark:bg-surface-dark-raised px-2 py-0.5 text-xs font-medium text-ink-600 dark:text-surface-dark-text-muted">
+                  <span className="rounded-full bg-ink-100 px-2 py-0.5 text-xs font-medium text-ink-600">
                     not available
                   </span>
                 )}
@@ -353,7 +353,7 @@ function CycloneDxPreviewPanel({ scanId }: { scanId: number }) {
       <div className="mt-4">
         <button
           type="button"
-          className="rounded border border-ink-300 dark:border-surface-dark-border-strong bg-white dark:bg-surface-dark-surface px-4 py-2 text-sm font-medium text-ink-800 dark:text-surface-dark-text"
+          className="rounded border border-ink-300 bg-surface px-4 py-2 text-sm font-medium text-ink-800"
           onClick={() => setExpanded(true)}
           data-testid="preview-show-button"
         >
@@ -366,9 +366,9 @@ function CycloneDxPreviewPanel({ scanId }: { scanId: number }) {
 
   if (loading && !preview) {
     return (
-      <div className="mt-4 rounded-md border border-ink-200 dark:border-surface-dark-border bg-ink-50 dark:bg-surface-dark-app p-4 text-sm text-ink-700 dark:text-surface-dark-text">
-        <p className="font-semibold text-ink-900 dark:text-surface-dark-text">CycloneDX 1.7 preview</p>
-        <p className="mt-1 text-ink-600 dark:text-surface-dark-text-muted">Loading evidence summary…</p>
+      <div className="mt-4 rounded-md border border-ink-200 bg-ink-50 p-4 text-sm text-ink-700">
+        <p className="font-semibold text-ink-900">CycloneDX 1.7 preview</p>
+        <p className="mt-1 text-ink-600">Loading evidence summary…</p>
       </div>
     );
   }
@@ -376,11 +376,11 @@ function CycloneDxPreviewPanel({ scanId }: { scanId: number }) {
   if (!preview || !preview.eligibility || !preview.inventory || !preview.evidence_coverage) {
     return (
       <div
-        className="mt-4 rounded-md border border-ink-200 dark:border-surface-dark-border bg-ink-50 dark:bg-surface-dark-app p-4 text-sm text-ink-700 dark:text-surface-dark-text"
+        className="mt-4 rounded-md border border-ink-200 bg-ink-50 p-4 text-sm text-ink-700"
         data-testid="preview-panel"
       >
-        <p className="font-semibold text-ink-900 dark:text-surface-dark-text">CycloneDX 1.7 preview</p>
-        <p className="mt-1 text-ink-600 dark:text-surface-dark-text-muted">Evidence summary is not yet available.</p>
+        <p className="font-semibold text-ink-900">CycloneDX 1.7 preview</p>
+        <p className="mt-1 text-ink-600">Evidence summary is not yet available.</p>
       </div>
     );
   }
@@ -409,15 +409,15 @@ function PreviewBody({
   return (
     <section
       aria-label="CycloneDX 1.7 evidence preview"
-      className="mt-4 rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface p-4 text-sm"
+      className="mt-4 rounded-md border border-ink-200 bg-surface p-4 text-sm"
     >
       <header className="flex items-start justify-between gap-4">
         <div>
-          <p className="flex items-center gap-2 font-semibold text-ink-900 dark:text-surface-dark-text">
+          <p className="flex items-center gap-2 font-semibold text-ink-900">
             <FileText aria-hidden="true" className="h-4 w-4" />
             CycloneDX 1.7 SBOM &mdash; evidence preview
           </p>
-          <p className="mt-1 text-xs text-ink-600 dark:text-surface-dark-text-muted">
+          <p className="mt-1 text-xs text-ink-600">
             Read-only summary generated from persisted scan evidence. The bytes are downloaded
             directly in the browser; they are not sent to a third party. This preview does not
             generate a full SBOM.
@@ -425,7 +425,7 @@ function PreviewBody({
         </div>
         <button
           type="button"
-          className="rounded border border-ink-200 dark:border-surface-dark-border px-3 py-1 text-xs font-medium text-ink-700 dark:text-surface-dark-text"
+          className="rounded border border-ink-200 px-3 py-1 text-xs font-medium text-ink-700"
           onClick={onToggle}
           aria-expanded={expanded}
         >
@@ -470,7 +470,7 @@ function PreviewBody({
       ) : null}
 
       {expanded ? (
-        <div className="mt-3 space-y-3 text-xs text-ink-700 dark:text-surface-dark-text">
+        <div className="mt-3 space-y-3 text-xs text-ink-700">
           <InventorySummary inventory={preview.inventory} />
           <CoverageSummary coverage={preview.evidence_coverage} />
           <SbomOutputSummary sbom={preview.sbom_output} />
@@ -500,10 +500,10 @@ function PreviewKvp({
         ? "text-amber-700"
         : tone === "danger"
           ? "text-rose-700"
-          : "text-ink-900 dark:text-surface-dark-text";
+          : "text-ink-900";
   return (
-    <div className="rounded border border-ink-100 dark:border-surface-dark-border bg-ink-50 dark:bg-surface-dark-app px-3 py-2">
-      <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">{label}</p>
+    <div className="rounded border border-ink-100 bg-ink-50 px-3 py-2">
+      <p className="text-[10px] uppercase tracking-wide text-ink-500">{label}</p>
       <p
         className={`mt-0.5 font-medium ${colour}`}
         data-testid={testId}
@@ -523,7 +523,7 @@ function PreviewNotice({
 }) {
   const colour =
     tone === "info"
-      ? "border-ink-200 dark:border-surface-dark-border bg-ink-50 dark:bg-surface-dark-app text-ink-800 dark:text-surface-dark-text"
+      ? "border-ink-200 bg-ink-50 text-ink-800"
       : tone === "warn"
         ? "border-amber-200 bg-amber-50 text-amber-900"
         : "border-rose-200 bg-rose-50 text-rose-900";
@@ -540,47 +540,47 @@ function PreviewNotice({
 function InventorySummary({ inventory }: { inventory: CycloneDxPreviewInventory }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">Inventory summary</p>
+      <p className="text-[10px] uppercase tracking-wide text-ink-500">Inventory summary</p>
       <ul className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 md:grid-cols-3">
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Components:</span>{" "}
-          <span className="font-medium text-ink-900 dark:text-surface-dark-text" data-testid="preview-inventory-components">
+          <span className="text-ink-500">Components:</span>{" "}
+          <span className="font-medium text-ink-900" data-testid="preview-inventory-components">
             {inventory.component_count}
           </span>
         </li>
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Manifests:</span>{" "}
-          <span className="font-medium text-ink-900 dark:text-surface-dark-text" data-testid="preview-inventory-manifests">
+          <span className="text-ink-500">Manifests:</span>{" "}
+          <span className="font-medium text-ink-900" data-testid="preview-inventory-manifests">
             {inventory.manifest_count}
           </span>
         </li>
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Ecosystems:</span>{" "}
-          <span className="font-medium text-ink-900 dark:text-surface-dark-text">
+          <span className="text-ink-500">Ecosystems:</span>{" "}
+          <span className="font-medium text-ink-900">
             {inventory.ecosystems.length === 0 ? "—" : inventory.ecosystems.join(", ")}
           </span>
         </li>
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Direct:</span>{" "}
-          <span className="font-medium text-ink-900 dark:text-surface-dark-text">{inventory.direct_count}</span>
+          <span className="text-ink-500">Direct:</span>{" "}
+          <span className="font-medium text-ink-900">{inventory.direct_count}</span>
         </li>
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Transitive:</span>{" "}
-          <span className="font-medium text-ink-900 dark:text-surface-dark-text">{inventory.transitive_count}</span>
+          <span className="text-ink-500">Transitive:</span>{" "}
+          <span className="font-medium text-ink-900">{inventory.transitive_count}</span>
         </li>
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Missing version:</span>{" "}
+          <span className="text-ink-500">Missing version:</span>{" "}
           <span
-            className={`font-medium ${inventory.missing_version_count > 0 ? "text-amber-700" : "text-ink-900 dark:text-surface-dark-text"}`}
+            className={`font-medium ${inventory.missing_version_count > 0 ? "text-amber-700" : "text-ink-900"}`}
             data-testid="preview-inventory-missing-version"
           >
             {inventory.missing_version_count}
           </span>
         </li>
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Duplicate observations:</span>{" "}
+          <span className="text-ink-500">Duplicate observations:</span>{" "}
           <span
-            className={`font-medium ${inventory.duplicate_observations_count > 0 ? "text-amber-700" : "text-ink-900 dark:text-surface-dark-text"}`}
+            className={`font-medium ${inventory.duplicate_observations_count > 0 ? "text-amber-700" : "text-ink-900"}`}
           >
             {inventory.duplicate_observations_count}
           </span>
@@ -593,30 +593,30 @@ function InventorySummary({ inventory }: { inventory: CycloneDxPreviewInventory 
 function CoverageSummary({ coverage }: { coverage: CycloneDxPreviewCoverage }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">Evidence coverage</p>
+      <p className="text-[10px] uppercase tracking-wide text-ink-500">Evidence coverage</p>
       <ul className="mt-1 grid grid-cols-1 gap-1 md:grid-cols-3">
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Inventory:</span>{" "}
+          <span className="text-ink-500">Inventory:</span>{" "}
           <span
-            className="font-medium text-ink-900 dark:text-surface-dark-text"
+            className="font-medium text-ink-900"
             data-testid="preview-coverage-inventory"
           >
             {coverage.inventory_coverage}
           </span>
         </li>
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Dependency graph:</span>{" "}
+          <span className="text-ink-500">Dependency graph:</span>{" "}
           <span
-            className="font-medium text-ink-900 dark:text-surface-dark-text"
+            className="font-medium text-ink-900"
             data-testid="preview-coverage-graph"
           >
             {coverage.dependency_graph_coverage}
           </span>
         </li>
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Provider:</span>{" "}
+          <span className="text-ink-500">Provider:</span>{" "}
           <span
-            className={`font-medium ${coverage.provider_coverage === "degraded" ? "text-amber-700" : "text-ink-900 dark:text-surface-dark-text"}`}
+            className={`font-medium ${coverage.provider_coverage === "degraded" ? "text-amber-700" : "text-ink-900"}`}
             data-testid="preview-coverage-provider"
           >
             {coverage.provider_coverage}
@@ -630,32 +630,32 @@ function CoverageSummary({ coverage }: { coverage: CycloneDxPreviewCoverage }) {
 function SbomOutputSummary({ sbom }: { sbom: CycloneDxPreviewSbomOutput }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">SBOM output facts</p>
+      <p className="text-[10px] uppercase tracking-wide text-ink-500">SBOM output facts</p>
       <ul className="mt-1 grid grid-cols-1 gap-1 md:grid-cols-2">
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Format:</span>{" "}
-          <span className="font-medium text-ink-900 dark:text-surface-dark-text">{sbom.format}</span>
+          <span className="text-ink-500">Format:</span>{" "}
+          <span className="font-medium text-ink-900">{sbom.format}</span>
         </li>
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Spec version:</span>{" "}
-          <span className="font-medium text-ink-900 dark:text-surface-dark-text">{sbom.spec_version}</span>
+          <span className="text-ink-500">Spec version:</span>{" "}
+          <span className="font-medium text-ink-900">{sbom.spec_version}</span>
         </li>
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Media type:</span>{" "}
-          <span className="font-mono text-[11px] text-ink-700 dark:text-surface-dark-text">{sbom.media_type}</span>
+          <span className="text-ink-500">Media type:</span>{" "}
+          <span className="font-mono text-[11px] text-ink-700">{sbom.media_type}</span>
         </li>
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Filename template:</span>{" "}
-          <span className="font-mono text-[11px] text-ink-700 dark:text-surface-dark-text">
+          <span className="text-ink-500">Filename template:</span>{" "}
+          <span className="font-mono text-[11px] text-ink-700">
             {sbom.filename_template}
           </span>
         </li>
         <li className="md:col-span-2">
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Schema validation:</span>{" "}
-          <span className="font-medium text-ink-900 dark:text-surface-dark-text">{sbom.schema_validation}</span>
+          <span className="text-ink-500">Schema validation:</span>{" "}
+          <span className="font-medium text-ink-900">{sbom.schema_validation}</span>
         </li>
       </ul>
-      <p className="mt-1 text-[11px] text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="mt-1 text-[11px] text-ink-500">
         Source: {sbom.generation_source}. The official CycloneDX 1.7 schema is bundled
         with the library; no network access occurs at export time.
       </p>
@@ -683,9 +683,9 @@ function OmissionsList({ omissions }: { omissions: string[] }) {
   };
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">Omissions and limitations</p>
+      <p className="text-[10px] uppercase tracking-wide text-ink-500">Omissions and limitations</p>
       <ul
-        className="mt-1 list-disc space-y-0.5 pl-5 text-ink-700 dark:text-surface-dark-text"
+        className="mt-1 list-disc space-y-0.5 pl-5 text-ink-700"
         data-testid="preview-omissions"
       >
         {omissions.map((marker) => (
@@ -698,7 +698,7 @@ function OmissionsList({ omissions }: { omissions: string[] }) {
 
 function LegacyNote({ note }: { note: string }) {
   return (
-    <p className="rounded border border-ink-100 dark:border-surface-dark-border bg-ink-50 dark:bg-surface-dark-app p-2 text-[11px] text-ink-700 dark:text-surface-dark-text">
+    <p className="rounded border border-ink-100 bg-ink-50 p-2 text-[11px] text-ink-700">
       {note}
     </p>
   );
@@ -831,15 +831,15 @@ function EvidenceReportPanel({ scanId }: { scanId: number }) {
 
   return (
     <section
-      className="mt-4 rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface p-4 shadow-sm"
+      className="mt-4 rounded-md border border-ink-200 bg-surface p-4 shadow-sm"
       data-testid="evidence-report-panel"
     >
-      <div className="flex flex-col gap-1 border-b border-ink-100 dark:border-surface-dark-border pb-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-1 border-b border-ink-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-ink-800 dark:text-surface-dark-text">
+          <h2 className="text-sm font-semibold text-ink-800">
             Evidence report
           </h2>
-          <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">
+          <p className="text-xs text-ink-500">
             Markdown. Evidence-only summary, not a security verdict,
             not a certification, not a compliance pass-or-fail.
           </p>
@@ -878,7 +878,7 @@ function EvidenceReportPanel({ scanId }: { scanId: number }) {
       {expanded ? (
         <div className="mt-3" data-testid="evidence-report-summary">
           {notImpl ? (
-            <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">
+            <p className="text-xs text-ink-500">
               The evidence-report endpoint is not exposed by the API yet.
             </p>
           ) : error ? (
@@ -919,16 +919,16 @@ function EvidenceReportSummary({
   return (
     <div className="space-y-3 text-xs" data-testid="evidence-report-body">
       <p
-        className="rounded border border-ink-100 dark:border-surface-dark-border bg-ink-50 dark:bg-surface-dark-app p-2 text-ink-700 dark:text-surface-dark-text"
+        className="rounded border border-ink-100 bg-ink-50 p-2 text-ink-700"
         data-testid="evidence-report-disclaimer"
       >
         {report.disclaimer}
       </p>
       <div>
-        <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="text-[10px] uppercase tracking-wide text-ink-500">
           Scan
         </p>
-        <ul className="mt-1 space-y-0.5 text-ink-700 dark:text-surface-dark-text">
+        <ul className="mt-1 space-y-0.5 text-ink-700">
           <li>
             Status:{" "}
             <span className="font-mono" data-testid="evidence-report-scan-status">
@@ -950,11 +950,11 @@ function EvidenceReportSummary({
         </ul>
       </div>
       <div>
-        <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="text-[10px] uppercase tracking-wide text-ink-500">
           Evidence gaps
         </p>
         <ul
-          className="mt-1 space-y-0.5 text-ink-700 dark:text-surface-dark-text"
+          className="mt-1 space-y-0.5 text-ink-700"
           data-testid="evidence-report-gaps"
         >
           <li>
@@ -982,11 +982,11 @@ function EvidenceReportSummary({
         </ul>
       </div>
       <div>
-        <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="text-[10px] uppercase tracking-wide text-ink-500">
           CycloneDX 1.7 relationship
         </p>
         <ul
-          className="mt-1 space-y-0.5 text-ink-700 dark:text-surface-dark-text"
+          className="mt-1 space-y-0.5 text-ink-700"
           data-testid="evidence-report-cyclonedx"
         >
           <li>
@@ -1010,11 +1010,11 @@ function EvidenceReportSummary({
         </ul>
       </div>
       <div>
-        <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="text-[10px] uppercase tracking-wide text-ink-500">
           Evidence coverage
         </p>
         <ul
-          className="mt-1 space-y-0.5 text-ink-700 dark:text-surface-dark-text"
+          className="mt-1 space-y-0.5 text-ink-700"
           data-testid="evidence-report-coverage"
         >
           <li>
@@ -1033,7 +1033,7 @@ function EvidenceReportSummary({
           </li>
         </ul>
       </div>
-      <p className="text-[11px] text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="text-[11px] text-ink-500">
         Not a certification. Not a security verdict. Not a compliance
         pass-or-fail.
       </p>

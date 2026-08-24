@@ -47,16 +47,16 @@ export function FilterBar({
   if (layout === "card") {
     return (
       <div
-        className="rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface p-4 shadow-sm"
+        className="rounded-md border border-ink-200 bg-surface p-4 shadow-sm"
         role="region"
         aria-label={ariaLabel}
         data-testid="filterbar-card"
       >
-        <div className="flex flex-col gap-1 border-b border-ink-100 dark:border-surface-dark-border pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1 border-b border-ink-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-baseline gap-2">
             {title ? (
               <h2
-                className="text-sm font-semibold text-ink-800 dark:text-surface-dark-text"
+                className="text-sm font-semibold text-ink-800"
                 data-testid="filterbar-title"
               >
                 {title}
@@ -66,9 +66,9 @@ export function FilterBar({
               <span
                 aria-live="polite"
                 data-testid="filterbar-result-count"
-                className="text-xs text-ink-500 dark:text-surface-dark-text-muted"
+                className="text-xs text-ink-500"
               >
-                <span className="font-mono font-semibold text-ink-800 dark:text-surface-dark-text">
+                <span className="font-mono font-semibold text-ink-800">
                   {resultCount}
                 </span>{" "}
                 {resultLabel}
@@ -95,7 +95,7 @@ export function FilterBar({
             </label>
             <Search
               aria-hidden="true"
-              className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400 dark:text-surface-dark-text-subtle"
+              className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400"
             />
             <input
               id="filterbar-search"
@@ -121,7 +121,7 @@ export function FilterBar({
   }
   return (
     <div
-      className="flex flex-col gap-3 rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface p-3 sm:flex-row sm:items-center sm:justify-between"
+      className="flex flex-col gap-3 rounded-md border border-ink-200 bg-surface p-3 sm:flex-row sm:items-center sm:justify-between"
       role="region"
       aria-label={ariaLabel}
     >
@@ -132,7 +132,7 @@ export function FilterBar({
           </label>
           <Search
             aria-hidden="true"
-            className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400 dark:text-surface-dark-text-subtle"
+            className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400"
           />
           <input
             id="filterbar-search"
@@ -146,7 +146,7 @@ export function FilterBar({
         </div>
         <div className="flex flex-wrap items-center gap-2">{children}</div>
       </div>
-      <div className="flex items-center gap-3 text-sm text-ink-500 dark:text-surface-dark-text-muted">
+      <div className="flex items-center gap-3 text-sm text-ink-500">
         {typeof resultCount === "number" ? (
           <span aria-live="polite">
             {resultCount} {resultLabel}
@@ -201,14 +201,17 @@ export function SelectFilter({
   const containerClass = stacked
     ? `flex flex-col gap-1 ${className}`
     : `flex items-center gap-2 ${className}`;
-  const selectClass = stacked
-    ? "w-full rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface px-2 py-1 text-sm text-ink-700 dark:text-surface-dark-text shadow-sm focus:border-accent-500 dark:focus:border-accent-dark-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:focus:ring-accent-dark-500"
-    : "rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface px-2 py-1 text-sm text-ink-700 dark:text-surface-dark-text shadow-sm focus:border-accent-500 dark:focus:border-accent-dark-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:focus:ring-accent-dark-500";
+  // The hand-rolled select chrome is replaced by the shared
+  // ``.select`` primitive. Filter controls were the last form
+  // surface still declaring their own background, which is why the
+  // Repositories and Diagnostics filter rows stayed white in Dark
+  // mode while the page around them was dark.
+  const selectClass = stacked ? "select w-full" : "select";
   return (
     <div className={containerClass} data-testid={`select-filter-${id}`}>
       <label
         htmlFor={id}
-        className="text-xs font-medium text-ink-500 dark:text-surface-dark-text-muted"
+        className="text-xs font-medium text-ink-500"
       >
         {label}
       </label>

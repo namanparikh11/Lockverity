@@ -62,24 +62,24 @@ export function AppearanceControl({
       aria-labelledby={groupLabelId}
       aria-describedby={groupDescId}
       data-testid={testId}
-      className="rounded-lg border border-ink-200 bg-white p-4 shadow-sm dark:border-surface-dark-border dark:bg-surface-dark-surface"
+      className="rounded-lg border border-ink-200 bg-surface p-4 shadow-sm"
     >
       <h3
         id={groupLabelId}
-        className="text-sm font-semibold text-ink-900 dark:text-surface-dark-text"
+        className="text-sm font-semibold text-ink-900"
       >
         Appearance
       </h3>
       <p
         id={groupDescId}
-        className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted"
+        className="mt-1 text-xs text-ink-500"
       >
         System follows your operating system appearance.
       </p>
       <div
         role="radiogroup"
         aria-label="Appearance"
-        className="mt-3 inline-flex rounded-md border border-ink-200 bg-ink-50 p-0.5 dark:border-surface-dark-border dark:bg-surface-dark-raised"
+        className="mt-3 inline-flex rounded-md border border-ink-200 bg-canvas p-0.5"
       >
         {CHOICES.map((choice) => {
           const checked = appearance === choice.value;
@@ -93,9 +93,9 @@ export function AppearanceControl({
               className={[
                 "relative cursor-pointer select-none rounded px-3 py-1.5 text-xs font-medium transition",
                 checked
-                  ? "bg-white text-accent-700 shadow-sm dark:bg-surface-dark-surface dark:text-accent-dark-300"
-                  : "text-ink-600 hover:text-ink-900 dark:text-surface-dark-text-muted dark:hover:text-surface-dark-text",
-                "focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent-500 dark:focus-within:outline-accent-dark-500",
+                  ? "bg-surface text-accent-700 shadow-sm"
+                  : "text-ink-600 hover:text-ink-900",
+                "focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent-500",
               ].join(" ")}
             >
               <input

@@ -123,23 +123,23 @@ export function ScanDetailsPage() {
         >
           <p className="flex items-center gap-2">
             <StatusBadge status={scan.status} />
-            <span className="text-sm text-ink-600 dark:text-surface-dark-text-muted">{scanStatusLabel[scan.status]}</span>
+            <span className="text-sm text-ink-600">{scanStatusLabel[scan.status]}</span>
           </p>
         </SummaryCard>
         <SummaryCard label="Identifiers" tone="muted">
           <CopyableIdentifier label="scan id" value={String(scan.id)} />
-          <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+          <p className="mt-1 text-xs text-ink-500">
             Requested ref: <span className="font-mono">{scan.requested_ref ?? "—"}</span>
           </p>
-          <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">
+          <p className="text-xs text-ink-500">
             Resolved commit: <span className="font-mono">{scan.resolved_commit_sha ?? "—"}</span>
           </p>
         </SummaryCard>
         <SummaryCard label="Timing" tone="muted">
-          <p className="text-xs text-ink-700 dark:text-surface-dark-text">
+          <p className="text-xs text-ink-700">
             Started: {formatTimestamp(scan.started_at)}
           </p>
-          <p className="text-xs text-ink-700 dark:text-surface-dark-text">
+          <p className="text-xs text-ink-700">
             Completed: {formatTimestamp(scan.completed_at)}
           </p>
           <Timestamp prefix="Created" value={scan.created_at} mode="both" />
@@ -157,7 +157,7 @@ export function ScanDetailsPage() {
         <ScanActions scan={scan} refreshKey={polls} />
       </div>
       <PipelineFailureAlert stages={stages} />
-      <h2 className="mb-2 mt-4 text-sm font-semibold text-ink-700 dark:text-surface-dark-text">Pipeline</h2>
+      <h2 className="mb-2 mt-4 text-sm font-semibold text-ink-700">Pipeline</h2>
       <DataCompletenessNotice
         title="Stages show intent and outcome"
         description="Every stage records its status, provider, records processed, and any failure summary. The pipeline below is the truth of what ran; nothing is marked complete without a stage record."
@@ -169,7 +169,7 @@ export function ScanDetailsPage() {
       <div className="mt-4">
         <ScanTimeline stages={stages} />
       </div>
-      <h2 className="mb-2 mt-8 text-sm font-semibold text-ink-700 dark:text-surface-dark-text">Explore this scan</h2>
+      <h2 className="mb-2 mt-8 text-sm font-semibold text-ink-700">Explore this scan</h2>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
         {EXPLORE_CARDS.map((card) => (
           <Link
@@ -177,14 +177,14 @@ export function ScanDetailsPage() {
             to={card.to.replace(":scanId", String(scan.id))}
             className="card flex flex-col gap-1 hover:border-accent-300"
           >
-            <p className="text-sm font-semibold text-ink-900 dark:text-surface-dark-text">{card.title}</p>
-            <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">{card.description}</p>
+            <p className="text-sm font-semibold text-ink-900">{card.title}</p>
+            <p className="text-xs text-ink-500">{card.description}</p>
             {card.categories ? (
               <ul className="mt-1 flex flex-wrap gap-1">
                 {card.categories.map((c) => (
                   <li
                     key={c}
-                    className="rounded bg-ink-100 dark:bg-surface-dark-raised px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink-600 dark:text-surface-dark-text-muted"
+                    className="rounded bg-ink-100 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink-600"
                   >
                     {findingCategoryLabel[c]}
                   </li>

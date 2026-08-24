@@ -74,6 +74,12 @@ describe("ConfirmationDialog", () => {
       />
     );
     const button = screen.getByRole("button", { name: /delete/i });
-    expect(button.className).toContain("bg-rose-600");
+    // The destructive surface moved out of this component into the
+    // shared ``.btn-danger`` primitive so the solid rose stays
+    // legible under white label text in both themes. The contract
+    // the test guards is unchanged: destructive => danger styling,
+    // non-destructive => the primary styling.
+    expect(button.className).toContain("btn-danger");
+    expect(button.className).not.toContain("btn-primary");
   });
 });

@@ -288,13 +288,13 @@ export function DependencyExplorerPage() {
           <div className="flex flex-col gap-1" data-testid="select-filter-ecosystem">
             <label
               htmlFor="ecosystem"
-              className="text-xs font-medium text-ink-500 dark:text-surface-dark-text-muted"
+              className="text-xs font-medium text-ink-500"
             >
               Ecosystem
             </label>
             <input
               id="ecosystem"
-              className="w-full rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface px-2 py-1 text-sm text-ink-700 dark:text-surface-dark-text shadow-sm focus:border-accent-500 dark:focus:border-accent-dark-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:focus:ring-accent-dark-500 font-mono"
+              className="w-full rounded-md border border-ink-200 bg-surface px-2 py-1 text-sm text-ink-700 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 font-mono"
               placeholder="npm, PyPI, ..."
               value={filters.ecosystem}
               onChange={(e) => setFilters((f) => ({ ...f, ecosystem: e.target.value }))}
@@ -388,16 +388,16 @@ export function DependencyExplorerPage() {
             {items.map((component) => (
               <tr
                 key={component.id}
-                className="table-row cursor-pointer hover:bg-ink-50 dark:bg-surface-dark-app"
+                className="table-row cursor-pointer hover:bg-ink-50"
                 onClick={() => setSelected(component)}
               >
                 <td className="table-cell">
                   <ComponentIdentity component={component as unknown as Component} />
                 </td>
-                <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+                <td className="table-cell text-ink-500">
                   {component.ecosystem ?? "—"}
                 </td>
-                <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+                <td className="table-cell text-ink-500">
                   {component.version ?? "—"}
                 </td>
                 <td className="table-cell">
@@ -409,7 +409,7 @@ export function DependencyExplorerPage() {
                 <td className="table-cell">
                   <button
                     type="button"
-                    className="rounded border border-ink-300 dark:border-surface-dark-border-strong bg-white dark:bg-surface-dark-surface px-2 py-1 text-xs font-medium text-ink-800 dark:text-surface-dark-text"
+                    className="rounded border border-ink-300 bg-surface px-2 py-1 text-xs font-medium text-ink-800"
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelected(component);
@@ -441,10 +441,10 @@ export function DependencyExplorerPage() {
           <div className="space-y-4">
             <div>
               <h3 className="label">Identity</h3>
-              <p className="mt-1 text-sm text-ink-800 dark:text-surface-dark-text">
+              <p className="mt-1 text-sm text-ink-800">
                 <ComponentIdentity component={selected as unknown as Component} />
               </p>
-              <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+              <p className="mt-1 text-xs text-ink-500">
                 Ecosystem: <span className="font-mono">{selected.ecosystem ?? "—"}</span> ·
                 Source: <span className="font-mono">{selected.version_source ?? "—"}</span>
               </p>
@@ -510,7 +510,7 @@ function ComponentEvidencePanel({
   if (loading && !evidence) {
     return (
       <p
-        className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted"
+        className="mt-1 text-xs text-ink-500"
         data-testid="component-evidence-loading"
       >
         Loading evidence…
@@ -520,7 +520,7 @@ function ComponentEvidencePanel({
   if (!evidence) {
     return (
       <p
-        className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted"
+        className="mt-1 text-xs text-ink-500"
         data-testid="component-evidence-empty"
       >
         Evidence is not yet available.
@@ -532,29 +532,29 @@ function ComponentEvidencePanel({
   return (
     <div className="mt-1 space-y-3 text-xs" data-testid="component-evidence-panel">
       <div>
-        <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">Identity</p>
-        <ul className="mt-1 space-y-0.5 text-ink-700 dark:text-surface-dark-text">
+        <p className="text-[10px] uppercase tracking-wide text-ink-500">Identity</p>
+        <ul className="mt-1 space-y-0.5 text-ink-700">
           <li>
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">Package:</span>{" "}
+            <span className="text-ink-500">Package:</span>{" "}
             <span className="font-mono" data-testid="ce-package-name">
               {c.package_name}
             </span>
           </li>
           <li>
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">Ecosystem:</span>{" "}
+            <span className="text-ink-500">Ecosystem:</span>{" "}
             <span className="font-mono">{c.ecosystem ?? "—"}</span>
           </li>
           <li>
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">Version:</span>{" "}
+            <span className="text-ink-500">Version:</span>{" "}
             <span className="font-mono">{c.version ?? "—"}</span>{" "}
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">(source: {c.version_source ?? "—"})</span>
+            <span className="text-ink-500">(source: {c.version_source ?? "—"})</span>
           </li>
           <li>
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">Direct:</span>{" "}
+            <span className="text-ink-500">Direct:</span>{" "}
             <span className="font-mono">{c.direct ? "yes" : "no"}</span>
           </li>
           <li>
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">PURL:</span>{" "}
+            <span className="text-ink-500">PURL:</span>{" "}
             <span className="font-mono" data-testid="ce-purl">
               {c.package_url ?? "—"}
             </span>
@@ -562,7 +562,7 @@ function ComponentEvidencePanel({
               <span className="ml-2 text-rose-700">persisted PURL malformed</span>
             ) : null}
             {c.package_url === null && c.purl_constructible ? (
-              <span className="ml-2 text-ink-500 dark:text-surface-dark-text-muted">
+              <span className="ml-2 text-ink-500">
                 PURL omitted from persistence but constructible from ecosystem + name + version.
               </span>
             ) : null}
@@ -587,10 +587,10 @@ function EvidenceManifestBlock({
   if (!manifest.available) {
     return (
       <div>
-        <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="text-[10px] uppercase tracking-wide text-ink-500">
           Manifest evidence
         </p>
-        <p className="mt-1 text-ink-700 dark:text-surface-dark-text" data-testid="ce-manifest-empty">
+        <p className="mt-1 text-ink-700" data-testid="ce-manifest-empty">
           No persisted manifest association available.
         </p>
       </div>
@@ -598,24 +598,24 @@ function EvidenceManifestBlock({
   }
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="text-[10px] uppercase tracking-wide text-ink-500">
         Manifest evidence
       </p>
-      <ul className="mt-1 space-y-0.5 text-ink-700 dark:text-surface-dark-text" data-testid="ce-manifest">
+      <ul className="mt-1 space-y-0.5 text-ink-700" data-testid="ce-manifest">
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Path:</span>{" "}
+          <span className="text-ink-500">Path:</span>{" "}
           <span className="font-mono">{manifest.path ?? "—"}</span>
         </li>
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Type:</span>{" "}
+          <span className="text-ink-500">Type:</span>{" "}
           <span className="font-mono">{manifest.manifest_type ?? "—"}</span>
         </li>
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Parse status:</span>{" "}
+          <span className="text-ink-500">Parse status:</span>{" "}
           <span className="font-mono">{manifest.parse_status ?? "—"}</span>
         </li>
         <li>
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">Warnings:</span>{" "}
+          <span className="text-ink-500">Warnings:</span>{" "}
           <span className="font-mono">{manifest.parse_warning_count ?? 0}</span>
         </li>
       </ul>
@@ -631,10 +631,10 @@ function EvidenceLicenceBlock({
   if (!licence.available) {
     return (
       <div>
-        <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="text-[10px] uppercase tracking-wide text-ink-500">
           Licence evidence
         </p>
-        <p className="mt-1 text-ink-700 dark:text-surface-dark-text" data-testid="ce-licence-empty">
+        <p className="mt-1 text-ink-700" data-testid="ce-licence-empty">
           No persisted licence evidence available.
         </p>
       </div>
@@ -642,14 +642,14 @@ function EvidenceLicenceBlock({
   }
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="text-[10px] uppercase tracking-wide text-ink-500">
         Licence evidence
       </p>
-      <ul className="mt-1 space-y-0.5 text-ink-700 dark:text-surface-dark-text" data-testid="ce-licence">
+      <ul className="mt-1 space-y-0.5 text-ink-700" data-testid="ce-licence">
         {licence.observations.map((o, idx) => (
           <li key={`${o.finding_id}-${idx}`}>
             <span className="font-mono">{o.value}</span>{" "}
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">
+            <span className="text-ink-500">
               ({o.classification}, {o.provenance})
             </span>
           </li>
@@ -667,10 +667,10 @@ function EvidenceProviderBlock({
   if (!provider.available) {
     return (
       <div>
-        <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="text-[10px] uppercase tracking-wide text-ink-500">
           Provider / advisory evidence
         </p>
-        <p className="mt-1 text-ink-700 dark:text-surface-dark-text" data-testid="ce-provider-empty">
+        <p className="mt-1 text-ink-700" data-testid="ce-provider-empty">
           No provider observations or advisories were recorded for this
           component.
         </p>
@@ -679,17 +679,17 @@ function EvidenceProviderBlock({
   }
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="text-[10px] uppercase tracking-wide text-ink-500">
         Provider / advisory evidence
       </p>
-      <ul className="mt-1 space-y-0.5 text-ink-700 dark:text-surface-dark-text" data-testid="ce-provider">
+      <ul className="mt-1 space-y-0.5 text-ink-700" data-testid="ce-provider">
         {provider.observations.map((o) => (
           <li key={o.id}>
             <span className="font-mono">{o.provider}</span>{" "}
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">({o.operation}):</span>{" "}
+            <span className="text-ink-500">({o.operation}):</span>{" "}
             <span className="font-mono">{o.status}</span>{" "}
             {o.http_status ? (
-              <span className="text-ink-500 dark:text-surface-dark-text-muted">http {o.http_status}</span>
+              <span className="text-ink-500">http {o.http_status}</span>
             ) : null}
           </li>
         ))}
@@ -698,11 +698,11 @@ function EvidenceProviderBlock({
             <span className="font-mono">
               {a.canonical_id ?? a.source_advisory_id ?? a.advisory_id}
             </span>{" "}
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">
+            <span className="text-ink-500">
               ({a.severity_label ?? "unknown"})
             </span>{" "}
             {a.confidence === null ? (
-              <span className="text-ink-500 dark:text-surface-dark-text-muted">no confidence supplied</span>
+              <span className="text-ink-500">no confidence supplied</span>
             ) : null}
           </li>
         ))}
@@ -720,10 +720,10 @@ function EvidenceDependencyBlock({
   if (dependency.no_edges_observed) {
     return (
       <div>
-        <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="text-[10px] uppercase tracking-wide text-ink-500">
           Dependency evidence
         </p>
-        <p className="mt-1 text-ink-700 dark:text-surface-dark-text" data-testid="ce-dependency-empty">
+        <p className="mt-1 text-ink-700" data-testid="ce-dependency-empty">
           No persisted dependency edges for this component. The
           dependency graph coverage is reported as <span className="font-mono">{coverage}</span>;
           a partial / unknown graph is not the same as &ldquo;no dependencies&rdquo;.
@@ -733,10 +733,10 @@ function EvidenceDependencyBlock({
   }
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="text-[10px] uppercase tracking-wide text-ink-500">
         Dependency evidence
       </p>
-      <p className="mt-1 text-ink-700 dark:text-surface-dark-text" data-testid="ce-dependency">
+      <p className="mt-1 text-ink-700" data-testid="ce-dependency">
         Incoming: {dependency.incoming.length}, outgoing:{" "}
         {dependency.outgoing.length}. Coverage:{" "}
         <span className="font-mono">{coverage}</span>.
@@ -752,10 +752,10 @@ function EvidenceExportImplications({
 }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="text-[10px] uppercase tracking-wide text-ink-500">
         Export implications
       </p>
-      <ul className="mt-1 space-y-0.5 text-ink-700 dark:text-surface-dark-text" data-testid="ce-export">
+      <ul className="mt-1 space-y-0.5 text-ink-700" data-testid="ce-export">
         <li>
           Appears in CycloneDX 1.7:{" "}
           <span className="font-mono">{impl.appears_in_cyclonedx_17 ? "yes" : "no"}</span>
@@ -764,7 +764,7 @@ function EvidenceExportImplications({
           Version omitted from export:{" "}
           <span className="font-mono">{impl.version_omitted ? "yes" : "no"}</span>
           {impl.version_omitted ? (
-            <span className="text-ink-500 dark:text-surface-dark-text-muted">
+            <span className="text-ink-500">
               {" "}
               — no concrete version was persisted, so the export
               leaves the version field empty.
@@ -780,7 +780,7 @@ function EvidenceExportImplications({
           <span className="font-mono">
             {impl.dependency_relationships_emitted ? "yes" : "no"}
           </span>{" "}
-          <span className="text-ink-500 dark:text-surface-dark-text-muted">
+          <span className="text-ink-500">
             (graph coverage {impl.graph_coverage})
           </span>
         </li>
@@ -792,11 +792,11 @@ function EvidenceExportImplications({
 function EvidenceOmissions({ omissions }: { omissions: string[] }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="text-[10px] uppercase tracking-wide text-ink-500">
         Evidence-honesty markers
       </p>
       <ul
-        className="mt-1 list-disc space-y-0.5 pl-5 text-ink-700 dark:text-surface-dark-text"
+        className="mt-1 list-disc space-y-0.5 pl-5 text-ink-700"
         data-testid="ce-omissions"
       >
         {omissions.map((marker) => (
@@ -890,7 +890,7 @@ function EvidenceBadge({
       ? "rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
       : tone === "warn"
         ? "rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700"
-        : "rounded-full bg-ink-100 dark:bg-surface-dark-raised px-2 py-0.5 text-[11px] font-medium text-ink-600 dark:text-surface-dark-text-muted";
+        : "rounded-full bg-ink-100 px-2 py-0.5 text-[11px] font-medium text-ink-600";
   return <span className={classes}>{label}</span>;
 }
 
@@ -907,7 +907,7 @@ function FacetsPanel({
   const ecosystems = Object.entries(facets.ecosystems);
   return (
     <section
-      className="mb-4 grid grid-cols-2 gap-3 rounded-md border border-ink-200 dark:border-surface-dark-border bg-ink-50 dark:bg-surface-dark-app p-3 text-xs sm:grid-cols-3 lg:grid-cols-5"
+      className="mb-4 grid grid-cols-2 gap-3 rounded-md border border-ink-200 bg-ink-50 p-3 text-xs sm:grid-cols-3 lg:grid-cols-5"
       data-testid="facets-panel"
     >
       <FacetItem
@@ -975,10 +975,10 @@ function FacetsPanel({
 function FacetItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="text-[10px] uppercase tracking-wide text-ink-500">
         {label}
       </p>
-      <p className="mt-0.5 font-mono text-sm text-ink-900 dark:text-surface-dark-text">{value}</p>
+      <p className="mt-0.5 font-mono text-sm text-ink-900">{value}</p>
     </div>
   );
 }

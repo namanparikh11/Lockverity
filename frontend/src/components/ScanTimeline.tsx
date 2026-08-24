@@ -18,9 +18,9 @@ function StageIcon({ status }: { status: StageStatus }) {
   const cls = "h-5 w-5 flex-shrink-0";
   switch (status) {
     case "pending":
-      return <Circle aria-hidden="true" className={`${cls} text-ink-400 dark:text-surface-dark-text-subtle`} />;
+      return <Circle aria-hidden="true" className={`${cls} text-ink-400`} />;
     case "running":
-      return <PlayCircle aria-hidden="true" className={`${cls} text-accent-600 dark:text-accent-dark-400`} />;
+      return <PlayCircle aria-hidden="true" className={`${cls} text-accent-600`} />;
     case "completed":
       return <CheckCircle2 aria-hidden="true" className={`${cls} text-emerald-600`} />;
     case "partial":
@@ -28,9 +28,9 @@ function StageIcon({ status }: { status: StageStatus }) {
     case "failed":
       return <XCircle aria-hidden="true" className={`${cls} text-rose-600`} />;
     case "skipped":
-      return <PauseCircle aria-hidden="true" className={`${cls} text-ink-400 dark:text-surface-dark-text-subtle`} />;
+      return <PauseCircle aria-hidden="true" className={`${cls} text-ink-400`} />;
     default:
-      return <Circle aria-hidden="true" className={`${cls} text-ink-400 dark:text-surface-dark-text-subtle`} />;
+      return <Circle aria-hidden="true" className={`${cls} text-ink-400`} />;
   }
 }
 
@@ -44,14 +44,14 @@ function StageIcon({ status }: { status: StageStatus }) {
 export function ScanTimeline({ stages }: { stages: ScanStage[] }) {
   if (stages.length === 0) {
     return (
-      <p className="text-sm text-ink-500 dark:text-surface-dark-text-muted">
+      <p className="text-sm text-ink-500">
         No stages recorded for this scan.
       </p>
     );
   }
   return (
     <ol
-      className="relative space-y-3 border-l border-ink-200 dark:border-surface-dark-border pl-5"
+      className="relative space-y-3 border-l border-ink-200 pl-5"
       aria-label="Scan stage timeline"
     >
       {stages.map((stage) => (
@@ -61,7 +61,7 @@ export function ScanTimeline({ stages }: { stages: ScanStage[] }) {
           data-stage-status={stage.status}
         >
           <span
-            className="absolute -left-[1.42rem] top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-white dark:bg-surface-dark-surface"
+            className="absolute -left-[1.42rem] top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-surface"
             aria-hidden="true"
           >
             <StageIcon status={stage.status} />
@@ -69,12 +69,12 @@ export function ScanTimeline({ stages }: { stages: ScanStage[] }) {
           <div className="card flex flex-col gap-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-sm font-semibold text-ink-900 dark:text-surface-dark-text">
+                <h3 className="text-sm font-semibold text-ink-900">
                   {labelStage(stage.stage_type)}
                 </h3>
                 <StatusBadge status={stage.status} />
                 {stage.provider ? (
-                  <span className="text-xs text-ink-500 dark:text-surface-dark-text-muted">
+                  <span className="text-xs text-ink-500">
                     provider: <span className="font-mono">{stage.provider}</span>
                   </span>
                 ) : null}
@@ -82,9 +82,9 @@ export function ScanTimeline({ stages }: { stages: ScanStage[] }) {
                   <StatusBadge status={stage.provider_status} />
                 ) : null}
               </div>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-ink-500">
                 <span>
-                  <span className="font-medium text-ink-700 dark:text-surface-dark-text">
+                  <span className="font-medium text-ink-700">
                     {stage.records_processed}
                   </span>{" "}
                   records
@@ -134,7 +134,7 @@ export function PipelineSummary({ stages }: { stages: ScanStage[] }) {
   );
   return (
     <div
-      className="flex flex-wrap items-center gap-2 text-xs text-ink-600 dark:text-surface-dark-text-muted"
+      className="flex flex-wrap items-center gap-2 text-xs text-ink-600"
       role="group"
       aria-label="Pipeline status counts"
     >
@@ -143,14 +143,14 @@ export function PipelineSummary({ stages }: { stages: ScanStage[] }) {
         .map(([status, count]) => (
           <span
             key={status}
-            className="inline-flex items-center gap-1 rounded-full border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface px-2 py-0.5"
+            className="inline-flex items-center gap-1 rounded-full border border-ink-200 bg-surface px-2 py-0.5"
           >
             <StatusBadge status={status} />
-            <span className="font-medium text-ink-700 dark:text-surface-dark-text">{count}</span>
+            <span className="font-medium text-ink-700">{count}</span>
           </span>
         ))}
       {stages.length === 0 ? (
-        <span className="inline-flex items-center gap-1 text-ink-400 dark:text-surface-dark-text-subtle">
+        <span className="inline-flex items-center gap-1 text-ink-400">
           <Clock aria-hidden="true" className="h-3.5 w-3.5" />
           no stages
         </span>
@@ -235,7 +235,7 @@ export function StageMessage({
   // info: neutral styling, no failure prefix
   return (
     <p
-      className="rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface px-3 py-2 text-xs text-ink-700 dark:text-surface-dark-text"
+      className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-xs text-ink-700"
       role="status"
     >
       {summary}

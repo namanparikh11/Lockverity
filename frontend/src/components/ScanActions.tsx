@@ -256,7 +256,7 @@ export function ScanActions({
         </div>
       ) : null}
       {lastRescan ? (
-        <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted" role="status">
+        <p className="text-xs text-ink-500" role="status">
           Latest rescan: scan #{lastRescan.scan_id}
         </p>
       ) : null}
@@ -293,7 +293,7 @@ function ActionButton({
     variant === "primary"
       ? "btn-primary"
       : variant === "danger"
-        ? "btn bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
+        ? "btn-danger"
         : "btn-secondary";
   return (
     <button

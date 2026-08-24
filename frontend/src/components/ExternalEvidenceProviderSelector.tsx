@@ -23,8 +23,8 @@ export function ExternalEvidenceProviderSelector({
   }
 
   return (
-    <fieldset className="rounded-md border border-ink-200 dark:border-surface-dark-border bg-ink-50 dark:bg-surface-dark-app p-3">
-      <legend className="px-1 text-sm font-semibold text-ink-900 dark:text-surface-dark-text">
+    <fieldset className="rounded-md border border-ink-200 bg-ink-50 p-3">
+      <legend className="px-1 text-sm font-semibold text-ink-900">
         External evidence providers
       </legend>
       <div className="space-y-3">
@@ -57,7 +57,7 @@ export function ExternalEvidenceProviderSelector({
           onChange={(checked) => setProvider("openssf", checked)}
         />
       </div>
-      <p className="mt-3 text-xs text-ink-600 dark:text-surface-dark-text-muted">
+      <p className="mt-3 text-xs text-ink-600">
         Running this scan sends the documented repository/package coordinates
         to the selected providers. {" "}
         <Link to="/privacy" className="link">
@@ -84,18 +84,18 @@ function ProviderChoice({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label htmlFor={id} className="flex items-start gap-2 text-sm text-ink-800 dark:text-surface-dark-text">
+    <label htmlFor={id} className="flex items-start gap-2 text-sm text-ink-800">
       <input
         id={id}
         type="checkbox"
-        className="mt-0.5 h-4 w-4 rounded border-ink-300 dark:border-surface-dark-border-strong text-accent-700 dark:text-accent-dark-300"
+        className="mt-0.5 h-4 w-4 rounded border-ink-300 text-accent-700"
         checked={checked}
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
       />
       <span>
-        <span className="font-medium text-ink-900 dark:text-surface-dark-text">{label}</span>
-        <span className="block text-xs text-ink-500 dark:text-surface-dark-text-muted">{description}</span>
+        <span className="font-medium text-ink-900">{label}</span>
+        <span className="block text-xs text-ink-500">{description}</span>
       </span>
     </label>
   );

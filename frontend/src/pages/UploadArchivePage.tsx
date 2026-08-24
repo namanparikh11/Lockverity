@@ -85,7 +85,7 @@ export function UploadArchivePage() {
         >
           <div
             className={`flex flex-col items-center justify-center gap-3 rounded-md border-2 border-dashed p-6 text-center ${
-              dragOver ? "border-accent-400 bg-accent-50 dark:bg-surface-dark-raised" : "border-ink-200 dark:border-surface-dark-border"
+              dragOver ? "border-accent-400 bg-accent-50" : "border-ink-200"
             }`}
             onDragOver={(e) => {
               e.preventDefault();
@@ -99,7 +99,7 @@ export function UploadArchivePage() {
               if (dropped) onSelect(dropped);
             }}
           >
-            <p className="text-sm text-ink-700 dark:text-surface-dark-text">
+            <p className="text-sm text-ink-700">
               Drag a <code>.zip</code> archive here, or
             </p>
             <button
@@ -117,9 +117,9 @@ export function UploadArchivePage() {
               onChange={(e) => onSelect(e.target.files?.[0] ?? null)}
             />
             {file ? (
-              <p className="mt-2 text-sm text-ink-700 dark:text-surface-dark-text">
+              <p className="mt-2 text-sm text-ink-700">
                 Selected: <span className="font-mono">{file.name}</span>{" "}
-                <span className="text-ink-500 dark:text-surface-dark-text-muted">({(file.size / 1024 / 1024).toFixed(1)} MB)</span>
+                <span className="text-ink-500">({(file.size / 1024 / 1024).toFixed(1)} MB)</span>
               </p>
             ) : null}
           </div>

@@ -124,7 +124,7 @@ export function ProviderHealthPage() {
         }
       />
       <section className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold text-ink-700 dark:text-surface-dark-text">Per-provider rollup</h2>
+        <h2 className="mb-2 text-sm font-semibold text-ink-700">Per-provider rollup</h2>
         {rollupNotImpl ? (
           <DataCompletenessNotice
             title="Per-provider rollup endpoint not yet implemented"
@@ -153,12 +153,12 @@ export function ProviderHealthPage() {
               >
                 <div className="flex items-center gap-2">
                   <ProviderStatusBadge status={entry.status} />
-                  <span className="text-xs text-ink-500 dark:text-surface-dark-text-muted">
+                  <span className="text-xs text-ink-500">
                     {entry.records_returned} records
                   </span>
                 </div>
                 {entry.cache_status ? (
-                  <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">cache: {entry.cache_status}</p>
+                  <p className="mt-1 text-xs text-ink-500">cache: {entry.cache_status}</p>
                 ) : null}
                 {entry.redacted_failure_summary ? (
                   <p
@@ -169,9 +169,9 @@ export function ProviderHealthPage() {
                   </p>
                 ) : null}
                 {entry.last_error_code === "disabled_by_operator" ? (
-                  <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">Disabled by operator</p>
+                  <p className="mt-1 text-xs text-ink-500">Disabled by operator</p>
                 ) : null}
-                <p className="mt-1 text-xs text-ink-400 dark:text-surface-dark-text-subtle">
+                <p className="mt-1 text-xs text-ink-400">
                   observed across {entry.scans_with_observations} scans
                 </p>
               </SummaryCard>
@@ -181,7 +181,7 @@ export function ProviderHealthPage() {
       </section>
       {sid !== null && Number.isFinite(sid) ? (
         <section>
-          <h2 className="mb-2 text-sm font-semibold text-ink-700 dark:text-surface-dark-text">Observations for scan #{sid}</h2>
+          <h2 className="mb-2 text-sm font-semibold text-ink-700">Observations for scan #{sid}</h2>
           <div className="mb-3">
             <FilterBar
               search={provider}
@@ -215,25 +215,25 @@ export function ProviderHealthPage() {
               >
                 {observations.map((obs) => (
                   <tr key={obs.id} className="table-row">
-                    <td className="table-cell font-mono text-xs text-ink-700 dark:text-surface-dark-text">
+                    <td className="table-cell font-mono text-xs text-ink-700">
                       {obs.provider}
                     </td>
-                    <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">{obs.operation}</td>
+                    <td className="table-cell text-ink-500">{obs.operation}</td>
                     <td className="table-cell">
                       <ProviderStatusBadge status={obs.status} />
                     </td>
-                    <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+                    <td className="table-cell text-ink-500">
                       {obs.http_status ?? "—"}
                     </td>
-                    <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+                    <td className="table-cell text-ink-500">
                       {obs.records_returned}
                     </td>
                     <td className="table-cell max-w-md">
-                      <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">
+                      <p className="text-xs text-ink-500">
                         {providerObservationDetail(obs)}
                       </p>
                     </td>
-                    <td className="table-cell text-xs text-ink-500 dark:text-surface-dark-text-muted">
+                    <td className="table-cell text-xs text-ink-500">
                       <Timestamp value={obs.completed_at ?? obs.created_at} mode="both" />
                     </td>
                   </tr>

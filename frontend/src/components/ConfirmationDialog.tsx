@@ -82,7 +82,7 @@ export function ConfirmationDialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 p-4 motion-safe:animate-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/50 p-4 motion-safe:animate-in"
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) onCancel();
@@ -96,11 +96,11 @@ export function ConfirmationDialog({
         aria-describedby={description ? "confirm-description" : undefined}
         className="card max-w-md space-y-3 shadow-lg"
       >
-        <h2 id="confirm-title" className="text-base font-semibold text-ink-900 dark:text-surface-dark-text">
+        <h2 id="confirm-title" className="text-base font-semibold text-ink-900">
           {title}
         </h2>
         {description ? (
-          <p id="confirm-description" className="text-sm text-ink-600 dark:text-surface-dark-text-muted">
+          <p id="confirm-description" className="text-sm text-ink-600">
             {description}
           </p>
         ) : null}
@@ -117,11 +117,7 @@ export function ConfirmationDialog({
           <button
             ref={confirmRef}
             type="button"
-            className={
-              destructive
-                ? "btn bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
-                : "btn-primary"
-            }
+            className={destructive ? "btn-danger" : "btn-primary"}
             onClick={onConfirm}
             disabled={busy}
           >

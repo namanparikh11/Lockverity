@@ -1,13 +1,12 @@
-type Tone = "ok" | "warn" | "danger" | "muted" | "info" | "unknown";
+import { badgeClasses, type Tone } from "./tone";
 
-const TONE_CLASSES: Record<Tone, string> = {
-  unknown: "bg-ink-100 dark:bg-surface-dark-raised text-ink-700 dark:text-surface-dark-text border-ink-200 dark:border-surface-dark-border",
-  info: "bg-accent-50 dark:bg-surface-dark-raised text-accent-700 dark:text-accent-dark-300 border-accent-200",
-  ok: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  warn: "bg-amber-50 text-amber-700 border-amber-200",
-  danger: "bg-rose-50 text-rose-700 border-rose-200",
-  muted: "bg-ink-50 dark:bg-surface-dark-app text-ink-500 dark:text-surface-dark-text-muted border-ink-200 dark:border-surface-dark-border",
-};
+/**
+ * Provider availability chip. ``available`` is success,
+ * ``unavailable`` is danger, ``partial`` / ``rate_limited`` are
+ * warnings, and everything the backend did not assert stays
+ * neutral. The meaning is identical in both themes; only the tint
+ * and foreground adapt (see ``./tone``).
+ */
 
 function toneFor(status: string): Tone {
   switch (status) {
@@ -24,15 +23,14 @@ function toneFor(status: string): Tone {
     case "unknown":
       return "muted";
     default:
-      return "unknown";
+      return "neutral";
   }
 }
 
 export function ProviderStatusBadge({ status }: { status: string }) {
-  const tone = toneFor(status);
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${TONE_CLASSES[tone]}`}
+      className={badgeClasses(toneFor(status))}
       aria-label={`Provider status: ${status}`}
     >
       {status}

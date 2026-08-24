@@ -212,24 +212,24 @@ function RepositoryRow({ repo }: { repo: RepositoryWithSummary }) {
       <td className="table-cell">
         <Link
           to={`/repositories/${repo.id}`}
-          className="block font-medium text-ink-900 dark:text-surface-dark-text hover:text-accent-700 dark:text-accent-dark-300"
+          className="block font-medium text-ink-900 hover:text-accent-700"
         >
           {repo.display_name}
           {repo.archived ? (
-            <span className="ml-2 inline-block rounded-full bg-ink-100 dark:bg-surface-dark-raised px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+            <span className="ml-2 inline-block rounded-full bg-ink-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-500">
               archived
             </span>
           ) : null}
         </Link>
-        <p className="mt-0.5 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-0.5 text-xs text-ink-500">
           {repo.canonical_identity}
         </p>
-        <p className="mt-0.5 text-xs text-ink-400 dark:text-surface-dark-text-subtle">
+        <p className="mt-0.5 text-xs text-ink-400">
           {repositorySourceLabel[repo.source_type]} ·{" "}
           {repositoryVisibilityLabel[repo.visibility]}
         </p>
       </td>
-      <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+      <td className="table-cell text-ink-500">
         {repositoryProviderLabel[repo.provider]}
       </td>
       <td className="table-cell">
@@ -237,7 +237,7 @@ function RepositoryRow({ repo }: { repo: RepositoryWithSummary }) {
           <div className="flex flex-col">
             <Link
               to={`/scans/${latestScan.id}`}
-              className="text-sm font-medium text-ink-900 dark:text-surface-dark-text hover:text-accent-700 dark:text-accent-dark-300"
+              className="text-sm font-medium text-ink-900 hover:text-accent-700"
             >
               #{latestScan.id}
             </Link>
@@ -246,24 +246,24 @@ function RepositoryRow({ repo }: { repo: RepositoryWithSummary }) {
             </StatusBadge>
           </div>
         ) : (
-          <span className="text-xs text-ink-500 dark:text-surface-dark-text-muted">No scans</span>
+          <span className="text-xs text-ink-500">No scans</span>
         )}
       </td>
-      <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+      <td className="table-cell text-ink-500">
         {repo.summary.scan_count === 0 ? "0" : repo.summary.scan_count}
         {eligibleForCompare ? (
-          <p className="text-xs text-ink-400 dark:text-surface-dark-text-subtle">
+          <p className="text-xs text-ink-400">
             {repo.summary.eligible_comparison_scan_count} eligible to compare
           </p>
         ) : null}
       </td>
-      <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+      <td className="table-cell text-ink-500">
         {latestScan?.completed_at ? (
           <Timestamp value={latestScan.completed_at} mode="relative" />
         ) : latestScan ? (
           <Timestamp value={latestScan.created_at} mode="relative" />
         ) : (
-          <span className="text-xs text-ink-500 dark:text-surface-dark-text-muted">Never</span>
+          <span className="text-xs text-ink-500">Never</span>
         )}
       </td>
       <td className="table-cell">

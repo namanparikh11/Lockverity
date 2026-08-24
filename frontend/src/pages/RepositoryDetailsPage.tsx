@@ -308,29 +308,29 @@ export function RepositoryDetailsPage() {
             {repositoryDisplayName(repo)}
           </p>
           {repo.original_filename ? (
-            <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+            <p className="mt-1 text-xs text-ink-500">
               Original filename: <span className="font-mono">{repo.original_filename}</span>
             </p>
           ) : null}
-          <p className="mt-1 break-all text-sm text-ink-700 dark:text-surface-dark-text">
+          <p className="mt-1 break-all text-sm text-ink-700">
             {repo.canonical_url ?? "—"}
           </p>
-          <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+          <p className="mt-1 text-xs text-ink-500">
             Default branch: <span className="font-mono">{repo.default_branch ?? "—"}</span>
           </p>
         </SummaryCard>
         <SummaryCard label="Source &amp; provider" tone="muted">
-          <p className="text-sm text-ink-700 dark:text-surface-dark-text">
+          <p className="text-sm text-ink-700">
             {repositorySourceLabel[repo.source_type]} ·{" "}
             {repositoryProviderLabel[repo.provider]}
           </p>
-          <p className="mt-1 flex items-center gap-2 text-sm text-ink-700 dark:text-surface-dark-text">
+          <p className="mt-1 flex items-center gap-2 text-sm text-ink-700">
             <StatusBadge status={repo.visibility} />
-            <span className="text-xs text-ink-500 dark:text-surface-dark-text-muted">
+            <span className="text-xs text-ink-500">
               {repositoryVisibilityLabel[repo.visibility]}
             </span>
             {repo.archived ? (
-              <span className="rounded-full bg-ink-100 dark:bg-surface-dark-raised px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+              <span className="rounded-full bg-ink-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-500">
                 archived
               </span>
             ) : null}
@@ -338,7 +338,7 @@ export function RepositoryDetailsPage() {
         </SummaryCard>
         <SummaryCard label="Identifiers" tone="muted">
           <CopyableIdentifier label="id" value={String(repo.id)} />
-          <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+          <p className="mt-1 text-xs text-ink-500">
             Last provider sync: {formatTimestamp(repo.last_provider_sync_at)}
           </p>
           <Timestamp prefix="Added" value={repo.created_at} mode="both" />
@@ -360,17 +360,17 @@ export function RepositoryDetailsPage() {
       </section>
 
       <div className="mt-8 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold text-ink-700 dark:text-surface-dark-text" data-testid="scan-history-heading">
+        <h2 className="text-sm font-semibold text-ink-700" data-testid="scan-history-heading">
           Scan history
           {scansMeta ? (
-            <span className="ml-2 text-xs font-normal text-ink-500 dark:text-surface-dark-text-muted">
+            <span className="ml-2 text-xs font-normal text-ink-500">
               {scansMeta.total} scan{scansMeta.total === 1 ? "" : "s"}
             </span>
           ) : null}
         </h2>
         <Link
           to={`/repositories/${repo.id}/compare`}
-          className="text-xs text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200"
+          className="text-xs text-accent-700 hover:text-accent-800"
           data-testid="repository-compare-link"
         >
           Open repository comparison selector →
@@ -493,28 +493,28 @@ export function RepositoryDetailsPage() {
                 <td className="table-cell">
                   <Link
                     to={`/scans/${scan.id}`}
-                    className="text-ink-900 dark:text-surface-dark-text hover:text-accent-700 dark:text-accent-dark-300"
+                    className="text-ink-900 hover:text-accent-700"
                   >
                     #{scan.id}
                   </Link>
-                  <div className="mt-1 flex flex-wrap gap-2 text-[10px] uppercase tracking-wide text-ink-500 dark:text-surface-dark-text-muted">
+                  <div className="mt-1 flex flex-wrap gap-2 text-[10px] uppercase tracking-wide text-ink-500">
                     <Link
                       to={`/scans/${scan.id}/findings`}
-                      className="hover:text-accent-700 dark:text-accent-dark-300"
+                      className="hover:text-accent-700"
                     >
                       Findings
                     </Link>
                     <span aria-hidden="true">·</span>
                     <Link
                       to={`/scans/${scan.id}/dependencies`}
-                      className="hover:text-accent-700 dark:text-accent-dark-300"
+                      className="hover:text-accent-700"
                     >
                       Dependencies
                     </Link>
                     <span aria-hidden="true">·</span>
                     <Link
                       to={`/scans/${scan.id}/exports`}
-                      className="hover:text-accent-700 dark:text-accent-dark-300"
+                      className="hover:text-accent-700"
                     >
                       Exports
                     </Link>
@@ -523,19 +523,19 @@ export function RepositoryDetailsPage() {
                 <td className="table-cell">
                   <StatusBadge status={scan.status} />
                 </td>
-                <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+                <td className="table-cell text-ink-500">
                   {scanTriggerLabel[scan.trigger_type]}
                 </td>
-                <td className="table-cell font-mono text-xs text-ink-500 dark:text-surface-dark-text-muted">
+                <td className="table-cell font-mono text-xs text-ink-500">
                   {scan.requested_ref ?? "—"}
                 </td>
-                <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+                <td className="table-cell text-ink-500">
                   {formatTimestamp(scan.started_at)}
                 </td>
-                <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+                <td className="table-cell text-ink-500">
                   {formatTimestamp(scan.completed_at)}
                 </td>
-                <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+                <td className="table-cell text-ink-500">
                   <Timestamp value={scan.updated_at} mode="relative" />
                 </td>
               </tr>
@@ -653,8 +653,8 @@ function CompareScansCard({
       className="card"
       data-testid="repository-compare-card"
     >
-      <h3 className="text-sm font-semibold text-ink-700 dark:text-surface-dark-text">Compare two scans</h3>
-      <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+      <h3 className="text-sm font-semibold text-ink-700">Compare two scans</h3>
+      <p className="mt-1 text-xs text-ink-500">
         Pick two terminal scans of this repository. The comparator never
         compares across repositories, never compares a scan with itself, and
         never compares against a failed or cancelled scan.
@@ -666,7 +666,7 @@ function CompareScansCard({
       ) : scans === null ? (
         <Skeleton rows={2} />
       ) : eligible.length < 2 ? (
-        <p className="mt-2 text-xs text-ink-500 dark:text-surface-dark-text-muted" data-testid="repository-compare-empty">
+        <p className="mt-2 text-xs text-ink-500" data-testid="repository-compare-empty">
           {eligible.length === 0
             ? "This repository has no completed or partial scans yet. Run another scan to create one."
             : "This repository has only one completed or partial scan so far. Run another scan to enable comparison."}
@@ -674,14 +674,14 @@ function CompareScansCard({
       ) : (
         <div className="mt-3 flex flex-wrap items-end gap-2 text-xs">
           <div>
-            <div className="text-ink-500 dark:text-surface-dark-text-muted">Baseline</div>
-            <div className="font-mono text-ink-700 dark:text-surface-dark-text" data-testid="repository-compare-baseline">
+            <div className="text-ink-500">Baseline</div>
+            <div className="font-mono text-ink-700" data-testid="repository-compare-baseline">
               {baselineValid ? `#${baseline}` : "—"}
             </div>
           </div>
           <div>
-            <div className="text-ink-500 dark:text-surface-dark-text-muted">Comparison</div>
-            <div className="font-mono text-ink-700 dark:text-surface-dark-text" data-testid="repository-compare-head">
+            <div className="text-ink-500">Comparison</div>
+            <div className="font-mono text-ink-700" data-testid="repository-compare-head">
               {comparisonValid ? `#${comparison}` : "—"}
             </div>
           </div>
@@ -711,8 +711,8 @@ function ExportShortcutsCard({
   if (!headScan) {
     return (
       <div className="card">
-        <h3 className="text-sm font-semibold text-ink-700 dark:text-surface-dark-text">Exports</h3>
-        <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+        <h3 className="text-sm font-semibold text-ink-700">Exports</h3>
+        <p className="mt-1 text-xs text-ink-500">
           Exports are available after at least one scan reaches a complete or
           partial state. Run another scan to begin.
         </p>
@@ -721,8 +721,8 @@ function ExportShortcutsCard({
   }
   return (
     <div className="card">
-      <h3 className="text-sm font-semibold text-ink-700 dark:text-surface-dark-text">Exports</h3>
-      <p className="mt-1 text-xs text-ink-500 dark:text-surface-dark-text-muted">
+      <h3 className="text-sm font-semibold text-ink-700">Exports</h3>
+      <p className="mt-1 text-xs text-ink-500">
         Generate a CycloneDX SBOM, SARIF, findings JSON, or findings CSV from
         the most recent completed scan.
       </p>

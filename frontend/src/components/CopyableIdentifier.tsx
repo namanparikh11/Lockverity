@@ -24,13 +24,13 @@ export function CopyableIdentifier({
 
   return (
     <span className={`inline-flex items-center gap-1.5 ${className}`}>
-      {label ? <span className="text-ink-500 dark:text-surface-dark-text-muted">{label}:</span> : null}
-      <code className="rounded bg-ink-100 dark:bg-surface-dark-raised px-1.5 py-0.5 font-mono text-xs text-ink-700 dark:text-surface-dark-text">
+      {label ? <span className="text-ink-500">{label}:</span> : null}
+      <code className="rounded bg-ink-100 px-1.5 py-0.5 font-mono text-xs text-ink-700">
         {value}
       </code>
       <button
         type="button"
-        className="rounded p-1 text-ink-400 dark:text-surface-dark-text-subtle hover:bg-ink-100 dark:bg-surface-dark-raised hover:text-ink-700 dark:text-surface-dark-text"
+        className="rounded p-1 text-ink-400 hover:bg-ink-100 hover:text-ink-700"
         onClick={handleCopy}
         aria-label={copied ? "Copied" : "Copy identifier"}
       >

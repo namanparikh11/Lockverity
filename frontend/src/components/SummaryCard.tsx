@@ -31,17 +31,17 @@ export function SummaryCard({
           : tone === "danger"
             ? "border-rose-200"
             : tone === "muted"
-              ? "border-ink-200 dark:border-surface-dark-border"
-              : "border-ink-200 dark:border-surface-dark-border";
+              ? "border-ink-200"
+              : "border-ink-200";
   return (
     <div className={`card flex flex-col gap-2 ${toneClass} ${className}`}>
       <div className="flex items-start justify-between gap-2">
         <p className="label">{label}</p>
         {actions ? <div className="flex flex-wrap gap-1">{actions}</div> : null}
       </div>
-      <div className="text-ink-900 dark:text-surface-dark-text">{children}</div>
+      <div className="text-ink-900">{children}</div>
       {caption ? (
-        <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">{caption}</p>
+        <p className="text-xs text-ink-500">{caption}</p>
       ) : null}
     </div>
   );

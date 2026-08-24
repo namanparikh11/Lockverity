@@ -50,7 +50,7 @@ export function DetailsDrawer({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-40 flex justify-end bg-ink-900/30 motion-safe:animate-in"
+      className="fixed inset-0 z-40 flex justify-end bg-scrim/45 motion-safe:animate-in"
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -60,14 +60,14 @@ export function DetailsDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel ?? title}
-        className={`flex h-full w-full ${widthClass} flex-col border-l border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface shadow-xl`}
+        className={`flex h-full w-full ${widthClass} flex-col border-l border-ink-200 bg-surface shadow-xl`}
       >
-        <header className="flex items-center justify-between border-b border-ink-200 dark:border-surface-dark-border px-4 py-3">
-          <h2 className="text-base font-semibold text-ink-900 dark:text-surface-dark-text">{title}</h2>
+        <header className="flex items-center justify-between border-b border-ink-200 px-4 py-3">
+          <h2 className="text-base font-semibold text-ink-900">{title}</h2>
           <button
             ref={closeRef}
             type="button"
-            className="rounded p-1 text-ink-500 dark:text-surface-dark-text-muted hover:bg-ink-100 dark:bg-surface-dark-raised"
+            className="rounded p-1 text-ink-500 hover:bg-ink-100"
             onClick={onClose}
             aria-label="Close details"
           >

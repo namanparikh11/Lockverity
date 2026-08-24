@@ -340,7 +340,7 @@ export function RepositoryComparePage() {
       ) : (
         <>
           <p
-            className="mb-3 text-xs text-ink-500 dark:text-surface-dark-text-muted"
+            className="mb-3 text-xs text-ink-500"
             data-testid="repository-compare-help"
           >
             Newest eligible scans are listed first. Click a scan to set it as
@@ -385,7 +385,7 @@ export function RepositoryComparePage() {
                 <td className="table-cell">
                   <Link
                     to={`/scans/${scan.id}`}
-                    className="text-ink-900 dark:text-surface-dark-text hover:text-accent-700 dark:text-accent-dark-300"
+                    className="text-ink-900 hover:text-accent-700"
                   >
                     #{scan.id}
                   </Link>
@@ -393,10 +393,10 @@ export function RepositoryComparePage() {
                 <td className="table-cell">
                   <StatusBadge status={scan.status} />
                 </td>
-                <td className="table-cell font-mono text-xs text-ink-500 dark:text-surface-dark-text-muted">
+                <td className="table-cell font-mono text-xs text-ink-500">
                   {scan.requested_ref ?? "—"}
                 </td>
-                <td className="table-cell text-ink-500 dark:text-surface-dark-text-muted">
+                <td className="table-cell text-ink-500">
                   {formatRelative(scan.created_at)}
                 </td>
                 <td className="table-cell">

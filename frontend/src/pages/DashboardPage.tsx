@@ -84,7 +84,7 @@ export function DashboardPage() {
           caption={`Environment: ${info.environment}`}
         >
           <p className="text-lg font-semibold">{info.name}</p>
-          <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">v{info.version}</p>
+          <p className="text-xs text-ink-500">v{info.version}</p>
         </SummaryCard>
         <SummaryCard
           label="Database"
@@ -93,7 +93,7 @@ export function DashboardPage() {
         >
           <p className="flex items-center gap-2 text-lg font-semibold">
             <StatusBadge status={health.database === "ok" ? "available" : "unavailable"} />
-            <span className="text-sm font-normal text-ink-600 dark:text-surface-dark-text-muted">
+            <span className="text-sm font-normal text-ink-600">
               {health.database === "ok" ? "Connected" : "Unavailable"}
             </span>
           </p>
@@ -253,8 +253,8 @@ function ProviderHealthPanel() {
   return (
     <div className="card">
       <header className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-ink-700 dark:text-surface-dark-text">Provider health</h2>
-        <Link to="/providers" className="text-xs text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200">
+        <h2 className="text-sm font-semibold text-ink-700">Provider health</h2>
+        <Link to="/providers" className="text-xs text-accent-700 hover:text-accent-800">
           View all
         </Link>
       </header>
@@ -265,11 +265,11 @@ function ProviderHealthPanel() {
           <Skeleton rows={2} />
         </div>
       ) : notImpl ? (
-        <p className="mt-2 text-sm text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-2 text-sm text-ink-500">
           Provider health rollups are not yet available from the API.
         </p>
       ) : entries && entries.length === 0 ? (
-        <p className="mt-2 text-sm text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-2 text-sm text-ink-500">
           No provider activity recorded yet. Run a scan that touches a provider to populate
           this view.
         </p>
@@ -278,13 +278,13 @@ function ProviderHealthPanel() {
           {entries.map((entry) => (
             <li
               key={entry.provider}
-              className="flex flex-col gap-1 rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface p-2"
+              className="flex flex-col gap-1 rounded-md border border-ink-200 bg-surface p-2"
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-xs text-ink-700 dark:text-surface-dark-text">{entry.provider}</span>
+                <span className="font-mono text-xs text-ink-700">{entry.provider}</span>
                 <ProviderStatusBadge status={entry.status} />
               </div>
-              <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">
+              <p className="text-xs text-ink-500">
                 {entry.records_returned} records
               </p>
               {entry.redacted_failure_summary ? (
@@ -343,8 +343,8 @@ function FindingsSummaryPanel() {
   return (
     <div className="card">
       <header className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-ink-700 dark:text-surface-dark-text">Findings</h2>
-        <Link to="/findings" className="text-xs text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200">
+        <h2 className="text-sm font-semibold text-ink-700">Findings</h2>
+        <Link to="/findings" className="text-xs text-accent-700 hover:text-accent-800">
           Open findings
         </Link>
       </header>
@@ -355,16 +355,16 @@ function FindingsSummaryPanel() {
           <Skeleton rows={2} />
         </div>
       ) : data.notImpl ? (
-        <p className="mt-2 text-sm text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-2 text-sm text-ink-500">
           Findings aggregation is not yet wired up. Open the latest scan to see findings
           when analyzers are enabled.
         </p>
       ) : data.total === 0 ? (
-        <p className="mt-2 text-sm text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-2 text-sm text-ink-500">
           No findings recorded for the most recent completed or partial scans.
         </p>
       ) : (
-        <p className="mt-2 text-2xl font-semibold text-ink-900 dark:text-surface-dark-text">{data.total}</p>
+        <p className="mt-2 text-2xl font-semibold text-ink-900">{data.total}</p>
       )}
     </div>
   );
@@ -403,8 +403,8 @@ function WorkflowSummaryPanel() {
   return (
     <div className="card">
       <header className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-ink-700 dark:text-surface-dark-text">Workflow findings</h2>
-        <Link to="/workflows" className="text-xs text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200">
+        <h2 className="text-sm font-semibold text-ink-700">Workflow findings</h2>
+        <Link to="/workflows" className="text-xs text-accent-700 hover:text-accent-800">
           View workflows
         </Link>
       </header>
@@ -415,15 +415,15 @@ function WorkflowSummaryPanel() {
           <Skeleton rows={1} />
         </div>
       ) : notImpl ? (
-        <p className="mt-2 text-sm text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-2 text-sm text-ink-500">
           Workflow finding endpoints are not yet exposed by the API.
         </p>
       ) : count === 0 ? (
-        <p className="mt-2 text-sm text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-2 text-sm text-ink-500">
           No workflow observations recorded for the most recent scans.
         </p>
       ) : (
-        <p className="mt-2 text-2xl font-semibold text-ink-900 dark:text-surface-dark-text">{count}</p>
+        <p className="mt-2 text-2xl font-semibold text-ink-900">{count}</p>
       )}
     </div>
   );
@@ -477,25 +477,25 @@ function IncompleteDataPanel() {
   }, []);
   return (
     <div className="card">
-      <h2 className="text-sm font-semibold text-ink-700 dark:text-surface-dark-text">Incomplete data &amp; attention</h2>
+      <h2 className="text-sm font-semibold text-ink-700">Incomplete data &amp; attention</h2>
       {error ? (
         <p className="mt-2 text-sm text-rose-700">Could not load attention summary.</p>
       ) : (
         <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <li className="rounded-md border border-ink-200 dark:border-surface-dark-border p-3">
+          <li className="rounded-md border border-ink-200 p-3">
             <p className="label">Provider calls marked unavailable</p>
             <p className="mt-1 text-2xl font-semibold">
               {providerAttention ?? "—"}
             </p>
-            <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">
+            <p className="text-xs text-ink-500">
               Across the most recent provider activity. A non-zero count is expected
               when a third-party service is down.
             </p>
           </li>
-          <li className="rounded-md border border-ink-200 dark:border-surface-dark-border p-3">
+          <li className="rounded-md border border-ink-200 p-3">
             <p className="label">Partial or failed scans</p>
             <p className="mt-1 text-2xl font-semibold">{partialFailed ?? "—"}</p>
-            <p className="text-xs text-ink-500 dark:text-surface-dark-text-muted">
+            <p className="text-xs text-ink-500">
               Scans that did not reach a complete state. Each one has a reason recorded
               in the scan detail.
             </p>
@@ -540,8 +540,8 @@ function LatestScansPanel() {
   return (
     <div className="card">
       <header className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-ink-700 dark:text-surface-dark-text">Latest scans</h2>
-        <Link to="/scans" className="text-xs text-accent-700 dark:text-accent-dark-300 hover:text-accent-800 dark:text-accent-dark-200">
+        <h2 className="text-sm font-semibold text-ink-700">Latest scans</h2>
+        <Link to="/scans" className="text-xs text-accent-700 hover:text-accent-800">
           Open scans
         </Link>
       </header>
@@ -552,7 +552,7 @@ function LatestScansPanel() {
           <Skeleton rows={3} />
         </div>
       ) : items.length === 0 ? (
-        <p className="mt-2 text-sm text-ink-500 dark:text-surface-dark-text-muted">
+        <p className="mt-2 text-sm text-ink-500">
           No scans yet. Add a repository and queue a scan to populate this list.
         </p>
       ) : (
@@ -560,18 +560,18 @@ function LatestScansPanel() {
           {items.map((scan) => (
             <li
               key={scan.id}
-              className="rounded-md border border-ink-200 dark:border-surface-dark-border bg-white dark:bg-surface-dark-surface p-3"
+              className="rounded-md border border-ink-200 bg-surface p-3"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <Link
                     to={`/scans/${scan.id}`}
-                    className="text-sm font-semibold text-ink-900 dark:text-surface-dark-text hover:text-accent-700 dark:text-accent-dark-300"
+                    className="text-sm font-semibold text-ink-900 hover:text-accent-700"
                   >
                     Scan #{scan.id}
                   </Link>
                   <StatusBadge status={scan.status} />
-                  <span className="text-xs text-ink-500 dark:text-surface-dark-text-muted">
+                  <span className="text-xs text-ink-500">
                     repo #{scan.repository_id} · {scan.trigger_type}
                   </span>
                 </div>
@@ -668,7 +668,7 @@ function ScanFailureNote({
   }
   if (severity === "info") {
     return (
-      <p className="mt-2 text-xs text-ink-600 dark:text-surface-dark-text-muted" role="status">
+      <p className="mt-2 text-xs text-ink-600" role="status">
         {summary}
       </p>
     );

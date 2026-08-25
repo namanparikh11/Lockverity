@@ -10,6 +10,10 @@ import { ErrorState } from "@/components/ErrorState";
 import { FilterBar, SelectFilter } from "@/components/FilterBar";
 import { PageHeader } from "@/components/PageHeader";
 import { Pagination } from "@/components/Pagination";
+import {
+  providerHealthEntryReason,
+  providerObservationReason,
+} from "@/components/providerHealthReason";
 import { ProviderStatusBadge } from "@/components/ProviderStatusBadge";
 import { ResponsiveTable } from "@/components/ResponsiveTable";
 import { Skeleton } from "@/components/Skeleton";
@@ -160,17 +164,28 @@ export function ProviderHealthPage() {
                 {entry.cache_status ? (
                   <p className="mt-1 text-xs text-ink-500">cache: {entry.cache_status}</p>
                 ) : null}
-                {entry.redacted_failure_summary ? (
-                  <p
-                    className="mt-1 truncate text-xs text-rose-700"
-                    title={entry.redacted_failure_summary}
-                  >
-                    {entry.redacted_failure_summary}
-                  </p>
-                ) : null}
-                {entry.last_error_code === "disabled_by_operator" ? (
-                  <p className="mt-1 text-xs text-ink-500">Disabled by operator</p>
-                ) : null}
+                {(() => {
+                  // The reason line is derived from the
+                  // structured status / error_code / http_status
+                  // fields. The raw ``redacted_failure_summary``
+                  // is preserved on the underlying entry and is
+                  // surfaced here only as a tooltip for
+                  // operators who want the original provider
+                  // message. The full text remains available in
+                  // Diagnostics, the per-scan observation list,
+                  // and the application logs.
+                  const reason = providerHealthEntryReason(entry);
+                  if (!reason) return null;
+                  return (
+                    <p
+                      className="mt-1 truncate text-xs text-rose-700"
+                      data-testid="provider-health-reason"
+                      title={entry.redacted_failure_summary ?? reason}
+                    >
+                      {reason}
+                    </p>
+                  );
+                })()}
                 <p className="mt-1 text-xs text-ink-400">
                   observed across {entry.scans_with_observations} scans
                 </p>
@@ -229,7 +244,10 @@ export function ProviderHealthPage() {
                       {obs.records_returned}
                     </td>
                     <td className="table-cell max-w-md">
-                      <p className="text-xs text-ink-500">
+                      <p
+                        className="text-xs text-ink-500"
+                        title={obs.error_summary ?? providerObservationDetail(obs)}
+                      >
                         {providerObservationDetail(obs)}
                       </p>
                     </td>
@@ -251,14 +269,20 @@ export function ProviderHealthPage() {
 }
 
 function providerObservationDetail(observation: ProviderObservation): string {
-  if (observation.error_code === "disabled_by_operator") {
-    return "Disabled by operator";
-  }
-  if (observation.error_code === "not_applicable") {
-    return "Not applicable";
-  }
+  // The per-scan observation row uses the same structured
+  // presentation as the per-provider rollup card. When the
+  // structured fields do not yield a reason (e.g. an
+  // available / cached / not_requested row, or a skip-code
+  // like ``no_components``), fall back to the small set of
+  // historical phrases that those specific skip-codes used to
+  // render, then to the raw bounded summary as a last resort.
+  const reason = providerObservationReason(observation);
+  if (reason) return reason;
   if (observation.error_code === "no_components") {
     return "No applicable components";
+  }
+  if (observation.error_code === "no_workflow_files") {
+    return "No applicable workflow files";
   }
   return observation.error_summary ?? "—";
 }

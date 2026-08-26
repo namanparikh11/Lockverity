@@ -34,14 +34,20 @@ The tests in this module are the regression guard:
     selected native renderer is pinned in the
     import graph.
   * :func:`test_frozen_gui_payload_contains_webview`
-    inspects the most recent frozen ``Lockverity.exe``
-    (or the most recent ``build/packaging`` portable
-    root) and asserts the PYZ archive contains the
-    ``webview`` module and the
-    ``webview.platforms.edgechromium`` backend. The
-    test is skipped if no built portable is on disk
-    so the suite remains fast on dev machines that
-    have not yet built.
+    inspects the canonical frozen ``Lockverity.exe`` under the
+    canonical packaging output (``<repo>/build/packaging``) and
+    asserts the PYZ archive contains the ``webview`` module and
+    the ``webview.platforms.edgechromium`` backend. The test is
+    skipped if no canonical portable is on disk so the suite
+    remains fast on dev machines that have not yet built; the
+    skip message names the expected canonical path.
+
+LV-002 policy: this module resolves packaged artifacts through
+:mod:`tests.packaging_artifacts`, which serves the canonical
+``<repo>/build/packaging`` output ONLY. Developer outputs
+(``backend/build/dev`` and friends) must never satisfy these
+release checks: a stale dev payload silently standing in for the
+release candidate is exactly the failure the policy prevents.
 """
 
 from __future__ import annotations
@@ -51,28 +57,14 @@ from pathlib import Path
 
 import pytest
 
+from tests.packaging_artifacts import (
+    CANONICAL_PORTABLE_ROOT,
+    find_release_lockverity_exe,
+    find_release_portable_root,
+)
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GUI_SPEC_PATH = REPO_ROOT / "backend" / "pyinstaller" / "lockverity.spec"
-PORTABLE_NAME = "Lockverity-2.1.2-windows-x64-portable"
-# Built artefacts are written under any of:
-#   - ``backend/build/packaging/<name>/...`` (canonical)
-#   - ``build/dev/packaging/<name>/...`` (developer)
-#   - ``backend/build/dev/packaging/<name>/...`` (developer)
-# The first existing root is the one we inspect.
-CANDIDATE_PORTABLE_ROOTS: tuple[Path, ...] = (
-    REPO_ROOT / "backend" / "build" / "dev" / "packaging" / PORTABLE_NAME,
-    REPO_ROOT / "build" / "dev" / "packaging" / PORTABLE_NAME,
-    REPO_ROOT / "backend" / "build" / "packaging" / PORTABLE_NAME,
-    REPO_ROOT / "build" / "packaging" / PORTABLE_NAME,
-)
-CANDIDATE_FROZEN_EXES: tuple[Path, ...] = (
-    *tuple(root / "Lockverity.exe" for root in CANDIDATE_PORTABLE_ROOTS),
-    # PyInstaller ``dist`` layout (used by some CI / dev invocations).
-    REPO_ROOT / "backend" / "build" / "dev" / "pyinstaller_out" / "Lockverity" / "Lockverity.exe",
-    REPO_ROOT / "backend" / "pyinstaller_out" / "Lockverity" / "Lockverity.exe",
-    REPO_ROOT / "build" / "dev" / "pyinstaller_out" / "Lockverity" / "Lockverity.exe",
-    REPO_ROOT / "pyinstaller_out" / "Lockverity" / "Lockverity.exe",
-)
 
 
 # ---------------------------------------------------------------------------
@@ -126,11 +118,10 @@ def test_gui_pyinstaller_spec_includes_webview() -> None:
     """
     spec_text = GUI_SPEC_PATH.read_text(encoding="utf-8")
     assert '"webview"' in spec_text, (
-        "GUI spec must list `\"webview\"` in HIDDENIMPORTS. "
-        f"Edit {GUI_SPEC_PATH}."
+        f'GUI spec must list `"webview"` in HIDDENIMPORTS. Edit {GUI_SPEC_PATH}.'
     )
     assert '"webview.platforms.edgechromium"' in spec_text, (
-        "GUI spec must list `\"webview.platforms.edgechromium\"` in "
+        'GUI spec must list `"webview.platforms.edgechromium"` in '
         "HIDDENIMPORTS so the Microsoft Edge WebView2 backend is "
         "pinned in the import graph. "
         f"Edit {GUI_SPEC_PATH}."
@@ -138,18 +129,16 @@ def test_gui_pyinstaller_spec_includes_webview() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Payload guard: inspect the most recent frozen GUI EXE and assert the
+# Payload guard: inspect the canonical frozen GUI EXE and assert the
 # PYZ archive contains the webview module and the edgechromium backend.
-# The test is skipped if no built portable is on disk so the suite
-# remains fast on dev machines that have not yet built.
+# The test is skipped if no canonical portable is on disk so the suite
+# remains fast on dev machines that have not yet built. The skip (and
+# every failure) names the canonical path that was expected.
 # ---------------------------------------------------------------------------
 
 
 def _find_frozen_exe() -> Path | None:
-    for candidate in CANDIDATE_FROZEN_EXES:
-        if candidate.is_file():
-            return candidate
-    return None
+    return find_release_lockverity_exe()
 
 
 def _read_pyz(exe_path: Path) -> bytes | None:
@@ -157,7 +146,14 @@ def _read_pyz(exe_path: Path) -> bytes | None:
 
     Returns the raw PYZ bytes (header + TOC + source area) or
     ``None`` if the EXE is not a PyInstaller CArchive (older
-    onefile layouts embed the PYZ differently).
+    onefile layouts embed the PYZ differently). The archive name
+    differs across PyInstaller versions: legacy releases call it
+    ``PYZ.pyz`` while current releases call it ``PYZ-00.pyz``;
+    any ``*.pyz`` TOC entry is accepted. Matching only the legacy
+    name made this guard silently skip against the canonical
+    v2.1.2 artifact (whose archive is ``PYZ-00.pyz``) -- exactly
+    the "never validates the actual release candidate" failure
+    LV-002 exists to prevent.
     """
     try:
         from PyInstaller.archive.readers import CArchiveReader
@@ -168,7 +164,7 @@ def _read_pyz(exe_path: Path) -> bytes | None:
     except Exception:
         return None
     for key in reader.toc:
-        if key.upper() == "PYZ.PYZ":
+        if key.upper().endswith(".PYZ"):
             return reader.extract(key)
     return None
 
@@ -205,21 +201,25 @@ def _list_pyz_module_names(pyz_bytes: bytes) -> list[str]:
 
 
 def test_frozen_gui_payload_contains_webview() -> None:
-    """The most recent frozen ``Lockverity.exe`` must contain ``webview``.
+    """The canonical frozen ``Lockverity.exe`` must contain ``webview``.
 
-    This is the v2.1.2 regression guard. The build artefact is
+    This is the v2.1.2 regression guard. The canonical artefact is
     optional in the test environment; the test skips cleanly when
-    no built portable is on disk so the suite stays fast for a
-    developer who has not yet run ``scripts/build_windows_portable.py``.
-    Once a build is on disk, a missing ``webview`` module is a
-    hard fail with a clear remediation message.
+    no canonical portable is on disk so the suite stays fast for a
+    developer who has not yet run
+    ``scripts/build_windows_portable.py``. Once the canonical build
+    is on disk, a missing ``webview`` module is a hard fail with a
+    clear remediation message.
     """
     exe_path = _find_frozen_exe()
     if exe_path is None:
         pytest.skip(
-            "No built Lockverity.exe found in any known packaging output "
-            "directory; run `python backend/scripts/build_windows_portable.py` "
-            "to populate the frozen payload before running this guard."
+            "No canonical Lockverity.exe found at "
+            f"{CANONICAL_PORTABLE_ROOT / 'Lockverity.exe'}; run "
+            "`python backend/scripts/build_windows_portable.py` to "
+            "produce the canonical release artefact. Developer "
+            "outputs (backend/build/dev) are deliberately NOT used "
+            "as a fallback for release validation."
         )
     pyz_bytes = _read_pyz(exe_path)
     if pyz_bytes is None:
@@ -253,7 +253,7 @@ def test_frozen_gui_payload_contains_webview() -> None:
 
 
 def test_frozen_gui_payload_carries_webview2_interop_dlls() -> None:
-    """The most recent frozen portable must carry the WebView2 interop DLLs.
+    """The canonical frozen portable must carry the WebView2 interop DLLs.
 
     The pywebview ``__pyinstaller/hook-webview.py`` collects the
     ``webview/lib`` data files and the ``webview`` dynamic
@@ -261,14 +261,14 @@ def test_frozen_gui_payload_carries_webview2_interop_dlls() -> None:
     the WebView2 window on a real Windows desktop even if
     ``import webview`` succeeds.
     """
-    portable_root = next(
-        (root for root in CANDIDATE_PORTABLE_ROOTS if root.is_dir()), None
-    )
+    portable_root = find_release_portable_root()
     if portable_root is None:
         pytest.skip(
-            "No built portable root found; run "
-            "`python backend/scripts/build_windows_portable.py` to "
-            "populate the frozen payload before running this guard."
+            f"No canonical portable root found at {CANONICAL_PORTABLE_ROOT}; "
+            "run `python backend/scripts/build_windows_portable.py` to "
+            "produce the canonical release artefact. Developer outputs "
+            "(backend/build/dev) are deliberately NOT used as a fallback "
+            "for release validation."
         )
     webview2_dir = portable_root / "_internal" / "webview" / "lib"
     if not webview2_dir.is_dir():
@@ -326,8 +326,10 @@ def test_frozen_gui_exe_size_meets_minimum() -> None:
     exe_path = _find_frozen_exe()
     if exe_path is None:
         pytest.skip(
-            "No built Lockverity.exe found in any known packaging output "
-            "directory."
+            "No canonical Lockverity.exe found at "
+            f"{CANONICAL_PORTABLE_ROOT / 'Lockverity.exe'}; run "
+            "`python backend/scripts/build_windows_portable.py` to "
+            "produce the canonical release artefact."
         )
     size = exe_path.stat().st_size
     assert size >= _MIN_GUI_BYTES, (
@@ -375,20 +377,22 @@ def test_frozen_gui_exe_size_meets_minimum() -> None:
 
 
 def _find_frozen_psutil_pyd() -> Path | None:
-    """Locate the psutil native extension inside the frozen portable.
+    """Locate the psutil native extension inside the canonical frozen portable.
 
     Returns the first ``_psutil_*.{pyd,so}`` under
-    ``_internal/psutil/`` of any known portable root, or
-    ``None`` if the portable has not been built yet.
+    ``_internal/psutil/`` of the canonical portable root, or
+    ``None`` if the canonical portable has not been built yet.
     """
-    for root in CANDIDATE_PORTABLE_ROOTS:
-        psutil_dir = root / "_internal" / "psutil"
-        if not psutil_dir.is_dir():
-            continue
-        for pattern in ("_psutil_*.pyd", "_psutil_*.so"):
-            matches = sorted(psutil_dir.glob(pattern))
-            if matches:
-                return matches[0]
+    root = find_release_portable_root()
+    if root is None:
+        return None
+    psutil_dir = root / "_internal" / "psutil"
+    if not psutil_dir.is_dir():
+        return None
+    for pattern in ("_psutil_*.pyd", "_psutil_*.so"):
+        matches = sorted(psutil_dir.glob(pattern))
+        if matches:
+            return matches[0]
     return None
 
 
@@ -456,7 +460,8 @@ def test_frozen_psutil_native_is_runtime_compatible() -> None:
     pyd_path = _find_frozen_psutil_pyd()
     if pyd_path is None:
         pytest.skip(
-            "No built portable carries a _psutil_*.pyd under "
+            "The canonical portable at "
+            f"{CANONICAL_PORTABLE_ROOT} carries no _psutil_*.pyd under "
             "_internal/psutil/; run `python backend/scripts/"
             "build_windows_portable.py` first."
         )

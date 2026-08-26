@@ -73,6 +73,7 @@ Lockverity-2.1.2-windows-x64-portable\
   THIRD_PARTY_NOTICES.txt          (Python + frontend dependency licences)
   BUILD-MANIFEST.json              (build provenance)
   SHA256SUMS.txt                   (SHA-256 of every user-facing file)
+  PAYLOAD-MANIFEST.json            (complete file-tree integrity manifest)
 ```
 
 The frozen directory is treated as read-only application
@@ -349,7 +350,20 @@ user-facing file to ``SHA256SUMS.txt`` and a structured
 SHA, the build timestamp in UTC, the Python and
 PyInstaller versions, the Node and npm versions, the
 Alembic head, and the SHA-256 of every approved brand
-asset.
+asset. It also writes ``PAYLOAD-MANIFEST.json``, the
+complete file-tree integrity manifest: the SHA-256 and
+size of EVERY regular file in the payload (the frozen
+runtime under ``_internal\``, the frontend assets, the
+Alembic configuration and migrations, the notices and
+licences, and everything else actually distributed).
+The manifest covers every file except itself; it is
+generated last so ``SHA256SUMS.txt`` and
+``BUILD-MANIFEST.json`` are covered by it. Lockverity
+is unsigned: the manifest establishes payload
+completeness and integrity relative to the build
+output, not code signing or publisher authentication.
+The distributed ZIP hash is the outer verification
+point.
 
 The committed ``backend/pyinstaller/lockverity.spec``
 and ``backend/pyinstaller/cli.spec`` files are the

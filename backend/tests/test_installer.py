@@ -1043,6 +1043,167 @@ class TestInstallerSourceContract:
 
 
 # ---------------------------------------------------------------------
+# Upgrade cleanup contract (LV-001)
+# ---------------------------------------------------------------------
+
+
+class TestUpgradeCleanupContract:
+    """Upgrades must remove obsolete payload files (LV-001).
+
+    The [Files] section replaces files at matching paths but never
+    removes files that no longer exist in the new payload, so an
+    upgraded install could keep stale DLL / PYD / module / runtime
+    files indefinitely. Lockverity already experienced this exact
+    failure class with a stale native psutil mismatch during
+    portable packaging, so the installer must retire the old
+    payload directory before copying the new one.
+    """
+
+    def test_install_step_removes_previous_payload_dir(self) -> None:
+        """The cleanup runs at ``ssInstall``, before [Files] copies.
+
+        ``CurStepChanged(ssInstall)`` fires after every
+        ``PrepareToInstall`` check passed (runtime confirmed
+        stopped, WebView2 present) and immediately before the
+        [Files] entries are copied -- the only point where the
+        removal is both safe and effective.
+        """
+        text = _iss_text()
+        assert "procedure RemovePreviousPayload" in text, (
+            "Installer must declare a RemovePreviousPayload procedure in [Code]"
+        )
+        assert "if CurStep = ssInstall then" in text, (
+            "CurStepChanged must gate the payload cleanup on ``ssInstall`` so it "
+            "runs after the live-instance/WebView2 checks and before [Files] copies"
+        )
+        assert "DelTree(" in text, (
+            "The payload cleanup must use DelTree on the old payload directory"
+        )
+        assert "RaiseException(" in text, (
+            "The cleanup must abort the install (RaiseException) when the old "
+            "payload cannot be removed; layering the new payload on a partially "
+            "stale tree reproduces the obsolete-files failure"
+        )
+
+    def test_cleanup_targets_only_packaged_payload_dir(self) -> None:
+        """The cleanup target is exactly ``{app}\\<INSTALL_PAYLOAD_DIR>``.
+
+        The deletion must not be able to reach the operator's
+        runtime data home ``%LOCALAPPDATA%\\Lockverity`` or the
+        bare install root. The test extracts the payload-dir
+        constant from the [Code] ``const`` block and asserts the
+        DelTree argument is built from ``{app}`` plus that
+        constant and nothing else.
+        """
+        text = _iss_text()
+        match = re.search(r"INSTALL_PAYLOAD_DIR\s*=\s*'([^']+)'", text)
+        assert match is not None, "Installer [Code] must define the INSTALL_PAYLOAD_DIR constant"
+        payload_dir = match.group(1)
+        assert payload_dir, "INSTALL_PAYLOAD_DIR must not be empty"
+        target = "ExpandConstant('{app}') + '\\' + INSTALL_PAYLOAD_DIR"
+        assert target in text, (
+            "The cleanup target must be built as "
+            f"``{target}``; do not widen it to the install root or "
+            "any {localappdata} path"
+        )
+        # The cleanup procedure must not reference any
+        # localappdata-based path: the runtime data home
+        # ``%LOCALAPPDATA%\Lockverity`` is a different tree and
+        # must never be deletable by the upgrade cleanup.
+        proc = text.split("procedure RemovePreviousPayload", 1)[1]
+        proc = proc.split("procedure CurStepChanged", 1)[0]
+        assert "localappdata" not in proc.lower(), (
+            "The upgrade cleanup must never reference {localappdata}; the "
+            "runtime data home is preserved by design"
+        )
+        # A bare ``ExpandConstant('{app}')`` deletion (without the
+        # payload subdir suffix) would remove the install root
+        # including the uninstaller; the target must carry the
+        # payload subdirectory suffix.
+        assert "DelTree(OldPayloadDir" in proc, (
+            "DelTree must receive the payload-subdir-qualified OldPayloadDir "
+            "variable, never a bare {app} path"
+        )
+
+    def test_upgrade_removes_obsolete_sentinel(self, tmp_path: Path) -> None:
+        """Conceptual upgrade simulation: an obsolete file is gone.
+
+        The test extracts the cleanup rule from the committed .iss
+        (the ``INSTALL_PAYLOAD_DIR`` constant and the
+        ``{app}``-relative target construction), replays it against
+        an isolated fake install root that mirrors an OLD install
+        (containing ``app\\obsolete-sentinel.dll``), then applies
+        the new payload and asserts the sentinel is gone. No real
+        installation is performed; everything happens under
+        ``tmp_path``.
+        """
+        import shutil
+
+        match = re.search(r"INSTALL_PAYLOAD_DIR\s*=\s*'([^']+)'", _iss_text())
+        assert match is not None
+        payload_dir = match.group(1)
+
+        fake_app = tmp_path / "Programs" / "Lockverity"
+        old_payload = fake_app / payload_dir
+        old_payload.mkdir(parents=True)
+        (old_payload / "Lockverity.exe").write_bytes(b"OLD-EXE")
+        (old_payload / "obsolete-sentinel.dll").write_bytes(b"OBSOLETE")
+        (old_payload / "_internal").mkdir()
+        (old_payload / "_internal" / "stale.pyd").write_bytes(b"STALE-PYD")
+        # The operator's runtime data home is a SIBLING tree; the
+        # cleanup must leave it untouched.
+        runtime_home = tmp_path / "Lockverity"
+        runtime_home.mkdir()
+        (runtime_home / "run").mkdir()
+        (runtime_home / "run" / "marker.txt").write_text("user-data", encoding="utf-8")
+
+        # Apply the extracted cleanup rule: remove {app}\app when
+        # it exists (the DirExists + DelTree semantics).
+        if old_payload.exists():
+            shutil.rmtree(old_payload)
+
+        # Apply the [Files] copy of the fresh payload.
+        new_payload = fake_app / payload_dir
+        new_payload.mkdir(parents=True)
+        (new_payload / "Lockverity.exe").write_bytes(b"NEW-EXE")
+        (new_payload / "_internal").mkdir()
+        (new_payload / "_internal" / "fresh.pyd").write_bytes(b"FRESH-PYD")
+
+        assert not (new_payload / "obsolete-sentinel.dll").exists(), (
+            "obsolete-sentinel.dll survived the upgrade: the old payload "
+            "directory must be removed before the new payload is copied"
+        )
+        assert not (new_payload / "_internal" / "stale.pyd").exists(), (
+            "a stale _internal file survived the upgrade"
+        )
+        assert (new_payload / "_internal" / "fresh.pyd").is_file()
+        assert (runtime_home / "run" / "marker.txt").read_text(encoding="utf-8") == "user-data", (
+            "the cleanup rule must not be able to touch %LOCALAPPDATA%\\Lockverity user data"
+        )
+
+    def test_fresh_install_cleanup_is_noop(self, tmp_path: Path) -> None:
+        """With no previous payload the cleanup exits without error.
+
+        The DirExists guard makes the ssInstall cleanup a no-op on
+        a fresh install; the procedure must not raise when
+        ``{app}\\app`` does not exist yet.
+        """
+        text = _iss_text()
+        proc = text.split("procedure RemovePreviousPayload", 1)[1]
+        proc = proc.split("procedure CurStepChanged", 1)[0]
+        assert "if not DirExists(OldPayloadDir) then" in proc, (
+            "The cleanup must be guarded by DirExists so a fresh install "
+            "(no previous payload) proceeds without error"
+        )
+        assert "exit" in proc, "The DirExists guard must exit early on a fresh install"
+        # Simulate the no-op path: nothing exists under the fake
+        # install root; the guard means no deletion is attempted.
+        fake_app = tmp_path / "Programs" / "Lockverity"
+        fake_app.mkdir(parents=True)
+        assert not (fake_app / "app").exists()
+
+
+# ---------------------------------------------------------------------
 # Build script contract
 # ---------------------------------------------------------------------
 

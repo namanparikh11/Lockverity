@@ -9,10 +9,14 @@ Windows installer. It wraps the Inno Setup 6.x compiler
     its embedded ``BUILD-MANIFEST.json``;
   - verifies the payload's *integrity* by reading its
     embedded ``SHA256SUMS.txt`` and comparing every entry
-    against the actual file bytes (no generated binary
-    hash is pinned by this script; every generated hash is
-    read at build time and recorded in the external
-    ``INSTALLER-MANIFEST.json`` and ``SHA256SUMS.txt``);
+    against the actual file bytes, then verifying the
+    COMPLETE payload file tree against the payload's
+    ``PAYLOAD-MANIFEST.json`` (every regular file, expected-vs-
+    actual path-set comparison, symlink/traversal defense --
+    LV-003); no generated binary hash is pinned by this script,
+    every generated hash is read at build time and recorded in
+    the external ``INSTALLER-MANIFEST.json`` and
+    ``SHA256SUMS.txt``;
   - extracts the payload into a dedicated staging directory
     (the installer source then copies the staging tree into
     ``{app}\\app\\``);
@@ -216,6 +220,40 @@ def _sha256_of(path: Path) -> str:
     return h.hexdigest()
 
 
+def _verify_payload_tree_complete(payload_root: Path) -> dict[str, object]:
+    """Verify the COMPLETE payload file tree (LV-003).
+
+    The ``SHA256SUMS.txt`` verification covers the operator-facing
+    top-level entries only. This check loads the dedicated
+    ``backend/scripts/payload_manifest.py`` module (via
+    :mod:`importlib.util`; the scripts tree is not a package) and
+    verifies every regular file in the payload against the
+    payload's ``PAYLOAD-MANIFEST.json``: expected-vs-actual path
+    set comparison before any hash is accepted, plus the
+    traversal / absolute-path / duplicate-entry / symlink
+    defenses. The manifest is MANDATORY -- an installer build
+    must never claim a complete verified payload while only
+    checking a few top-level files.
+
+    Returns the manifest summary (``file_count``, ``total_bytes``).
+    """
+    import importlib.util
+
+    module_path = BACKEND_ROOT / "scripts" / "payload_manifest.py"
+    spec = importlib.util.spec_from_file_location(
+        "lockverity_installer_payload_manifest", module_path
+    )
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"ERROR: could not load {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    try:
+        summary: dict[str, object] = module.verify_payload_tree(payload_root)
+    except module.PayloadManifestError as exc:
+        raise SystemExit(f"ERROR: payload complete-tree verification failed: {exc}") from exc
+    return summary
+
+
 def _verify_microsoft_authenticode(path: Path) -> str:
     """Require a valid Microsoft Authenticode signature on ``path``.
 
@@ -391,7 +429,11 @@ def _verify_payload_zip(
        payload's own manifest — *no* generated binary hash is
        pinned by this script. A mismatch on any entry (including
        a tampered file, a missing file, or an entry that names
-       a file that is not in the payload) is rejected.
+       a file that is not in the payload) is rejected. The check
+       then extends to the COMPLETE file tree: the payload's
+       ``PAYLOAD-MANIFEST.json`` must exist and every regular
+       file in the payload (expected set vs actual set, then
+       hashes) must match it exactly (LV-003).
     """
     if not payload_zip.is_file():
         raise SystemExit(
@@ -453,6 +495,11 @@ def _verify_payload_zip(
                 "The payload appears to be tampered. Restore the accepted "
                 "B3A portable ZIP and retry."
             )
+    # Complete-tree verification (LV-003): every regular file in
+    # the payload must match PAYLOAD-MANIFEST.json exactly --
+    # missing, extra, modified, linked, or malformed entries all
+    # abort the installer build.
+    tree_summary = _verify_payload_tree_complete(payload_root)
     return {
         "payload_zip": str(payload_zip),
         "payload_zip_sha256": actual_zip_sha,
@@ -461,6 +508,7 @@ def _verify_payload_zip(
         "build_manifest_sha256": _sha256_of(manifest_path),
         "payload_root": str(payload_root),
         "payload_sha256_entries": computed,
+        "payload_manifest_file_count": tree_summary["file_count"],
     }
 
 
@@ -687,6 +735,7 @@ def _write_installer_manifest(
         "payload_zip": payload_zip.name,
         "payload_zip_sha256": payload_summary["payload_zip_sha256"],
         "payload_build_manifest_sha256": payload_summary["build_manifest_sha256"],
+        "payload_manifest_file_count": payload_summary["payload_manifest_file_count"],
         "lockverity_exe_sha256": payload_summary["payload_sha256_entries"]["Lockverity.exe"],
         "lockverity_cli_exe_sha256": payload_summary["payload_sha256_entries"][
             "lockverity-cli.exe"

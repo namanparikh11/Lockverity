@@ -26,6 +26,12 @@ rebuilt by this script.
      ``pip-licenses``.
   7. Generates ``BUILD-MANIFEST.json``.
   8. Generates ``SHA256SUMS.txt``.
+  8a. Generates ``PAYLOAD-MANIFEST.json`` -- the complete
+     file-tree integrity manifest covering EVERY regular file
+     in the payload (LV-003). Generated last so
+     ``BUILD-MANIFEST.json`` and ``SHA256SUMS.txt`` are covered
+     by it; the manifest itself is the sole exclusion, keeping
+     self-hashing non-circular.
   9. Zips the portable directory into
      ``dist/windows/Lockverity-2.1.2-windows-x64-portable.zip``.
  10. Runs the packaged smoke tests against the
@@ -1018,11 +1024,12 @@ def _generate_sha256_sums(target: Path) -> dict[str, str]:
     top-level executables, the manifest, the
     licence, the portable README, and the third-party
     notices. The internal ``_internal/`` tree is
-    intentionally excluded from the operator-visible
-    hash list because the launcher and CLI exes
-    reference it and any change inside the tree is
-    reflected in the exe hash; hashing every DLL
-    would create a long, low-signal manifest.
+    intentionally excluded from this operator-facing
+    hash list; the COMPLETE file-tree integrity
+    record (every regular file under ``_internal/``
+    included) is ``PAYLOAD-MANIFEST.json``, generated
+    by :func:`_generate_payload_manifest` after this
+    function runs.
 
     The function returns the same ``{name: hash}``
     mapping it writes to disk, so the caller can
@@ -1047,6 +1054,35 @@ def _generate_sha256_sums(target: Path) -> dict[str, str]:
             lines.append(f"{digest}  {name}")
     (target / "SHA256SUMS.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return hashes
+
+
+def _generate_payload_manifest(target: Path, version: str) -> int:
+    """Write the complete file-tree ``PAYLOAD-MANIFEST.json`` (LV-003).
+
+    The function loads the dedicated
+    ``backend/scripts/payload_manifest.py`` module via
+    :mod:`importlib.util` (the established pattern in this
+    script; see :func:`_regenerate_exe_icon`) and generates the
+    complete payload manifest: every regular file in the portable
+    tree is hashed, with the manifest itself as the sole
+    exclusion (non-circular self-hashing). The walk is defensive:
+    a symlink or non-regular entry inside the staged payload
+    aborts the build.
+
+    Returns the number of files covered by the manifest for the
+    build report.
+    """
+    import importlib.util
+
+    script_path = BACKEND_ROOT / "scripts" / "payload_manifest.py"
+    spec = importlib.util.spec_from_file_location("lockverity_build_payload_manifest", script_path)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"ERROR: could not load {script_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    manifest_path = module.write_payload_manifest(target, product="Lockverity", version=version)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    return int(manifest["file_count"])
 
 
 def _zip_portable(source: Path, zip_path: Path) -> str:
@@ -1181,6 +1217,7 @@ def main(argv: list[str] | None = None) -> int:
         "portable_root": None,
         "portable_zip": None,
         "executable_sha256": {},
+        "payload_manifest_file_count": None,
         "zip_sha256": None,
         "smoke_status": "skipped",
     }
@@ -1289,6 +1326,13 @@ def main(argv: list[str] | None = None) -> int:
         )
         exe_hashes = _generate_sha256_sums(portable_root)
         report["executable_sha256"] = exe_hashes
+        # Complete file-tree integrity manifest (LV-003). Must
+        # run AFTER SHA256SUMS.txt / BUILD-MANIFEST.json exist so
+        # both are covered, and BEFORE the zip so the manifest
+        # ships inside the distributed payload.
+        manifest_file_count = _generate_payload_manifest(portable_root, str(report["app_version"]))
+        report["payload_manifest_file_count"] = manifest_file_count
+        _log("manifest", f"PAYLOAD-MANIFEST.json covers {manifest_file_count} files")
         # Zip.
         zip_path = args.output_dir / PORTABLE_ZIP_NAME
         zip_hash = _zip_portable(portable_root, zip_path)

@@ -628,10 +628,55 @@ begin
         Result := EnsureWebView2Runtime();
 end;
 
+// Remove the previous application payload before the new one is
+// copied. Inno Setup's [Files] section only replaces files that
+// exist at matching paths; files removed from the new build would
+// otherwise stay installed indefinitely across upgrades (stale
+// DLL / PYD / module / runtime files). Lockverity already hit
+// this failure class with a stale native psutil mismatch during
+// portable packaging, so upgrades must retire the old payload
+// directory instead of layering the new one on top of it.
+//
+// The removal targets ONLY ``{app}\app`` (the packaged
+// application payload installed by this setup). The operator's
+// runtime data home ``%LOCALAPPDATA%\Lockverity`` is a different
+// tree and is never touched by this code.
+procedure RemovePreviousPayload;
+var
+    OldPayloadDir: string;
+begin
+    OldPayloadDir := ExpandConstant('{app}') + '\' + INSTALL_PAYLOAD_DIR;
+    if not DirExists(OldPayloadDir) then
+    begin
+        Log('LV-001: no previous payload at ' + OldPayloadDir + ' (fresh install)');
+        exit;
+    end;
+    Log('LV-001: removing previous application payload at ' + OldPayloadDir);
+    if not DelTree(OldPayloadDir, True, True) then
+    begin
+        // A locked or unreadable file inside the old payload means
+        // the old tree cannot be cleanly retired. Abort instead of
+        // layering the new payload on top: continuing would
+        // silently reproduce the obsolete-files upgrade failure
+        // this cleanup exists to prevent.
+        RaiseException(
+            'Lockverity could not remove the previous application payload at ' +
+            OldPayloadDir + '. Close Lockverity and any program that may hold ' +
+            'those files open, then run the installer again.');
+    end;
+    Log('LV-001: previous application payload removed');
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
-    // The post-install ``Run`` action is gated on
-    // ``ShouldRunPostInstall`` so silent installs skip it.
+    // ``ssInstall`` fires after every ``PrepareToInstall`` check
+    // has passed (the runtime is confirmed stopped and WebView2 is
+    // present) and immediately before the [Files] entries are
+    // copied -- the only point at which removing the old payload
+    // is both safe (nothing is running from it) and effective
+    // (the new payload is copied right after).
+    if CurStep = ssInstall then
+        RemovePreviousPayload;
 end;
 
 // After the files are in place, the installed CLI can be invoked

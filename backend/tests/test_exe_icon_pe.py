@@ -15,10 +15,19 @@ that drops a frame, embeds the wrong ICO, or replaces
 the resource structure with a non-icon set is caught
 at unit-test time, not at user-install time.
 
-The tests skip gracefully if the Lockverity.exe has
-not been built yet (``build/dev/...`` is a gitignored
-output directory) so the test suite still runs in a
-clean checkout.
+The tests skip gracefully if the canonical Lockverity.exe has
+not been built yet (``build/packaging`` is a gitignored output
+directory) so the test suite still runs in a clean checkout.
+The skip message names the canonical path that was expected.
+
+LV-002 policy: the EXE is resolved through
+:mod:`tests.packaging_artifacts`, which serves the canonical
+``<repo>/build/packaging`` portable ONLY. The historical
+developer iteration outputs under ``backend/build/dev`` (the
+``gui-transparent`` / ``gui-v214`` / ... one-off builds this
+module once inspected first) must never satisfy a release check:
+a stale development EXE silently standing in for the release
+candidate is exactly the failure the policy prevents.
 """
 
 from __future__ import annotations
@@ -28,43 +37,14 @@ from pathlib import Path
 
 import pytest
 
+from tests.packaging_artifacts import (
+    CANONICAL_PORTABLE_ROOT,
+    find_release_lockverity_exe,
+)
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BACKEND_ROOT = REPO_ROOT / "backend"
 DERIVATIVE_ICO = BACKEND_ROOT / "pyinstaller" / "favicon-exe.ico"
-
-# Possible Lockverity.exe build paths. The GUI-only
-# icon-iteration build (``gui-transparent``) is checked
-# first because it is the freshest visual-iteration
-# artefact; the full portable layout follows. The test
-# walks every candidate and uses the first that exists.
-EXE_CANDIDATES = (
-    BACKEND_ROOT / "build" / "dev" / "dist" / "gui-transparent" / "Lockverity" / "Lockverity.exe",
-    BACKEND_ROOT
-    / "build"
-    / "dev"
-    / "packaging"
-    / "Lockverity-2.1.2-windows-x64-portable"
-    / "Lockverity.exe",
-    BACKEND_ROOT
-    / "build"
-    / "dev"
-    / "packaging"
-    / "pyinstaller_out"
-    / "Lockverity"
-    / "Lockverity.exe",
-    BACKEND_ROOT / "build" / "dev" / "dist" / "gui-v214" / "Lockverity" / "Lockverity.exe",
-    BACKEND_ROOT / "build" / "dev" / "dist" / "gui" / "Lockverity" / "Lockverity.exe",
-    BACKEND_ROOT / "build" / "dev" / "dist" / "gui-clean" / "Lockverity" / "Lockverity.exe",
-    BACKEND_ROOT / "build" / "dev" / "dist" / "gui-final" / "Lockverity" / "Lockverity.exe",
-    BACKEND_ROOT / "build" / "dev" / "dist" / "gui-fresh" / "Lockverity" / "Lockverity.exe",
-)
-
-
-def _find_lockverity_exe() -> Path | None:
-    for candidate in EXE_CANDIDATES:
-        if candidate.is_file():
-            return candidate
-    return None
 
 
 def _parse_ico_sizes(data: bytes) -> list[tuple[int, int, int, bytes]]:
@@ -139,9 +119,16 @@ def _png_dimensions(body: bytes) -> tuple[int, int] | None:
 
 @pytest.fixture(scope="module")
 def lockverity_exe() -> Path:
-    p = _find_lockverity_exe()
+    p = find_release_lockverity_exe()
     if p is None:
-        pytest.skip("Lockverity.exe not built yet; run scripts/build_windows_portable.py")
+        pytest.skip(
+            "No canonical Lockverity.exe found at "
+            f"{CANONICAL_PORTABLE_ROOT / 'Lockverity.exe'}; run "
+            "`python backend/scripts/build_windows_portable.py` to produce "
+            "the canonical release artefact. Developer outputs "
+            "(backend/build/dev) are deliberately NOT used as a fallback "
+            "for release validation."
+        )
     return p
 
 

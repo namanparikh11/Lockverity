@@ -188,7 +188,10 @@ payload. The installer:
 - requests a graceful stop via the installed
   `lockverity-cli.exe stop`;
 - replaces the application files in
-  `%LOCALAPPDATA%\Programs\Lockverity\app\`;
+  `%LOCALAPPDATA%\Programs\Lockverity\app\` — the previous
+  payload directory is removed before the new payload is copied,
+  so files that no longer exist in the new build cannot survive
+  an upgrade as stale DLL / PYD / runtime files;
 - preserves your runtime data, databases, and logs in
   `%LOCALAPPDATA%\Lockverity\`;
 - does not duplicate Start Menu or desktop shortcuts;
@@ -343,7 +346,10 @@ The build script:
 
 1. verifies Windows x64 and a clean Git working tree;
 2. verifies the accepted B3A portable payload's hashes (it will
-   **refuse** to build if any hash differs);
+   **refuse** to build if any hash differs) and verifies the
+   COMPLETE payload file tree against the payload's
+   `PAYLOAD-MANIFEST.json` — every regular file must match, with
+   no missing, extra, modified, or linked entries;
 3. extracts the payload into a dedicated staging directory;
 4. obtains the official WebView2 Evergreen bootstrapper and rejects it
    unless Microsoft Authenticode verification succeeds;

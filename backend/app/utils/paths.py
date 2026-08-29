@@ -24,6 +24,88 @@ class PathNormalizationError(ValueError):
     """Raised when a path cannot be normalized safely."""
 
 
+# ---------------------------------------------------------------------
+# Win32 path semantics (LV-010)
+# ---------------------------------------------------------------------
+# Lockverity extracts untrusted archives onto a Windows host. A handful
+# of component spellings that are perfectly ordinary on POSIX have
+# *special* meaning to the Win32 API and must never reach the
+# extraction layer:
+#
+#   * ``payload.txt:stream`` - NTFS Alternate Data Stream syntax. The
+#     Win32 API writes the bytes into a hidden stream attached to
+#     ``payload.txt``; the visible file looks empty and the analyzed
+#     content silently disappears. A colon also spells a drive
+#     designator; an archive destination component is always relative,
+#     so a colon has no legitimate meaning anywhere inside one.
+#   * ``NUL`` / ``CON.txt`` / ``COM1`` - reserved DOS device names.
+#     Opening one talks to a device, not a file: a write to ``NUL`` is
+#     discarded and a read from ``CON`` blocks on console input.
+#     Windows matches the device name *before* the first dot and
+#     ignores any extension, so ``NUL.json`` is still the NUL device.
+#   * ``name.`` / ``name `` - Win32 strips trailing dots and spaces
+#     while canonicalising a path, so two archive entries that differ
+#     only by a trailing dot collapse onto a single destination file.
+#
+# All three are rejected outright. The rules are applied on every host
+# so a scan verdict is identical on Windows, Linux, and macOS.
+_WINDOWS_RESERVED_NAMES: frozenset[str] = frozenset(
+    {"CON", "PRN", "AUX", "NUL"}
+    | {f"COM{index}" for index in range(1, 10)}
+    | {f"LPT{index}" for index in range(1, 10)}
+)
+
+# Characters Win32 strips from the end of a path component while it
+# canonicalises a path.
+_WINDOWS_TRAILING_TRIM = ". "
+
+
+def _reject_unsafe_windows_component(segment: str) -> None:
+    """Raise if ``segment`` carries special Win32 semantics.
+
+    ``segment`` is one already-split path component. The function is a
+    pure predicate; it never touches the filesystem.
+    """
+    if ":" in segment:
+        raise PathNormalizationError(
+            "Path components may not contain ':' (NTFS alternate data stream or drive designator)."
+        )
+    if segment.rstrip(_WINDOWS_TRAILING_TRIM) != segment:
+        raise PathNormalizationError("Path components may not end with '.' or a space.")
+    # Windows resolves the device name from the text before the first
+    # dot, so ``CON``, ``CON.txt``, and ``CON.tar.gz`` all name the
+    # console device. ``console.txt`` and ``nullability.json`` keep
+    # their full stem and stay ordinary filenames.
+    device = segment.split(".", 1)[0].upper()
+    if device in _WINDOWS_RESERVED_NAMES:
+        raise PathNormalizationError(
+            f"Path component {segment!r} is a reserved Windows device name."
+        )
+
+
+def windows_collision_key(normalized: str) -> str:
+    """Return the Win32-equivalence key for a normalized relative path.
+
+    Two archive entries whose keys are equal resolve to the *same*
+    destination file on a Windows host and therefore collide, even
+    when the spellings the archive recorded differ. The key folds the
+    three equivalences Win32 applies:
+
+      * case (``README.md`` and ``readme.md`` are one file)
+      * trailing dots and spaces (stripped while canonicalising)
+      * separators (already ``/`` once normalized)
+
+    The caller is expected to pass the output of
+    :func:`normalize_relative_path`; the trailing-trim step is defence
+    in depth because that function already rejects those spellings.
+    """
+    parts: list[str] = []
+    for segment in normalized.split("/"):
+        trimmed = segment.rstrip(_WINDOWS_TRAILING_TRIM) or segment
+        parts.append(trimmed.lower())
+    return "/".join(parts)
+
+
 def normalize_relative_path(raw: str) -> str:
     """Return the canonical relative path for ``raw``.
 
@@ -85,6 +167,10 @@ def normalize_relative_path(raw: str) -> str:
             raise PathNormalizationError("Path contains a NUL byte.")
         if os.path.basename(segment) in (".", ".."):
             raise PathNormalizationError("Path contains forbidden segments.")
+        # LV-010: reject component spellings with special Win32
+        # semantics before the path can reach the extraction
+        # layer. See ``_reject_unsafe_windows_component``.
+        _reject_unsafe_windows_component(segment)
 
     return "/".join(cleaned)
 

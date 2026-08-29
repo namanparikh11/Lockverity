@@ -748,6 +748,12 @@ _ARCHIVE_REJECTION_MESSAGES: dict[str, str] = {
         "empty or malformed target. Re-create the archive with a "
         "valid relative target."
     ),
+    "archive_symlink_target_too_large": (
+        "Archive was rejected: it contains a symbolic link whose "
+        "recorded target is far larger than any filesystem path. The "
+        "entry is carrying a payload rather than a link target; "
+        "investigate the archive source."
+    ),
     "archive_too_many_files": (
         "Archive was rejected: it contains more files than "
         "the configured cap. Reduce the archive size or split "

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from app.utils.archive_validation import (
+    MAX_SYMLINK_TARGET_BYTES,
     ArchiveEntry,
     ArchiveLimits,
     ArchiveValidationCollector,
@@ -410,9 +411,7 @@ def test_symlink_directory_target_is_recorded_without_traversal() -> None:
     ]
     collector = _validate_or_raise(entries, _limits())
     assert collector.errors == ()
-    assert collector.skipped_symlinks == (
-        SkippedSymlink(path="vendor", target="real-vendor"),
-    )
+    assert collector.skipped_symlinks == (SkippedSymlink(path="vendor", target="real-vendor"),)
 
 
 def test_bounded_recorded_target_does_not_bloat_result() -> None:
@@ -504,3 +503,176 @@ def test_deepseek_harness_fixture_is_skipped_and_continues() -> None:
     # The fixture path is returned so a future
     # test can reuse the same artifact.
     assert isinstance(fixture, type(entries[0].name)) or True
+
+
+# ---------------------------------------------------------------------------
+# LV-004: link entries participate in resource accounting
+# ---------------------------------------------------------------------------
+# A symbolic link's body is archive content like any other. The
+# historical validator returned from the symlink branch before any
+# size, budget, or ratio check ran, so a link could carry a payload
+# that no limit ever looked at.
+
+
+def test_symlink_body_is_charged_against_the_per_entry_cap() -> None:
+    entries = [
+        ArchiveEntry(
+            name="link",
+            size=5_000,
+            compressed_size=5_000,
+            is_symlink=True,
+            link_target="README.md",
+        )
+    ]
+    with pytest.raises(ArchiveValidationError) as exc:
+        _validate_or_raise(entries, _limits(max_file_bytes=1_000))
+    assert exc.value.code == "archive_entry_too_large"
+
+
+def test_symlink_target_beyond_the_path_ceiling_is_rejected() -> None:
+    """Even a generous ``max_file_bytes`` does not buy a huge target.
+
+    A link target is a path string, so anything past
+    :data:`MAX_SYMLINK_TARGET_BYTES` is a payload wearing a link's
+    metadata.
+    """
+    entries = [
+        ArchiveEntry(
+            name="link",
+            size=MAX_SYMLINK_TARGET_BYTES + 1,
+            compressed_size=MAX_SYMLINK_TARGET_BYTES + 1,
+            is_symlink=True,
+            link_target="README.md",
+        )
+    ]
+    with pytest.raises(ArchiveValidationError) as exc:
+        _validate_or_raise(
+            entries,
+            _limits(
+                max_file_bytes=10_000_000,
+                max_uncompressed_bytes=10_000_000,
+                max_compressed_bytes=10_000_000,
+            ),
+        )
+    assert exc.value.code == "archive_symlink_target_too_large"
+
+
+def test_symlink_bodies_share_the_cumulative_uncompressed_budget() -> None:
+    entries = [
+        ArchiveEntry(
+            name=f"link{index}",
+            size=800,
+            compressed_size=800,
+            is_symlink=True,
+            link_target="README.md",
+        )
+        for index in range(3)
+    ]
+    with pytest.raises(ArchiveValidationError) as exc:
+        _validate_or_raise(entries, _limits(max_uncompressed_bytes=2_000, max_file_bytes=1_000))
+    assert exc.value.code == "archive_uncompressed_too_large"
+
+
+def test_symlink_body_is_charged_against_the_ratio_heuristic() -> None:
+    entries = [
+        ArchiveEntry(
+            name="link",
+            size=1_500,
+            compressed_size=10,
+            is_symlink=True,
+            link_target="README.md",
+        )
+    ]
+    with pytest.raises(ArchiveValidationError) as exc:
+        _validate_or_raise(entries, _limits(suspicious_ratio=100, max_file_bytes=2_000))
+    assert exc.value.code == "archive_suspicious_compression"
+
+
+def test_symlinks_count_towards_the_entry_limit() -> None:
+    """A link-only archive cannot walk past ``max_file_count``."""
+    entries = [
+        ArchiveEntry(
+            name=f"link{index}",
+            size=0,
+            compressed_size=0,
+            is_symlink=True,
+            link_target="README.md",
+        )
+        for index in range(6)
+    ]
+    with pytest.raises(ArchiveValidationError) as exc:
+        _validate_or_raise(entries, _limits(max_file_count=5))
+    assert exc.value.code == "archive_too_many_files"
+
+
+def test_ordinary_small_symlink_still_passes() -> None:
+    """The v2.1.3 skip-and-record policy is preserved for real links."""
+    entries = [
+        ArchiveEntry(
+            name="docs/CLAUDE.md",
+            size=9,
+            compressed_size=9,
+            is_symlink=True,
+            link_target="../README.md",
+        ),
+        ArchiveEntry(name="README.md", size=120, compressed_size=40),
+    ]
+    collector = _validate_or_raise(entries, _limits())
+    assert collector.errors == ()
+    assert len(collector.skipped_symlinks) == 1
+    assert collector.file_count == 1
+    # The link body counts against the budget even though the link is
+    # not counted as an analyzable file.
+    assert collector.uncompressed_total == 129
+    assert collector.entry_count == 2
+
+
+# ---------------------------------------------------------------------------
+# LV-005: destination collisions across every entry-type pair
+# ---------------------------------------------------------------------------
+# The historical validator registered a normalised path only on the
+# regular-file branch. A link entry therefore claimed a destination
+# invisibly, and a later regular file with the same path sailed
+# through the duplicate check, was counted as analyzed, and was then
+# skipped by the extractor.
+
+
+def _link(name: str, target: str = "elsewhere.txt") -> ArchiveEntry:
+    return ArchiveEntry(name=name, size=0, compressed_size=0, is_symlink=True, link_target=target)
+
+
+def _file(name: str, size: int = 10) -> ArchiveEntry:
+    return ArchiveEntry(name=name, size=size, compressed_size=size)
+
+
+@pytest.mark.parametrize(
+    ("label", "entries"),
+    [
+        ("regular then regular", [_file("requirements.txt"), _file("requirements.txt")]),
+        ("symlink then regular", [_link("requirements.txt"), _file("requirements.txt")]),
+        ("regular then symlink", [_file("requirements.txt"), _link("requirements.txt")]),
+        ("symlink then symlink", [_link("requirements.txt"), _link("requirements.txt")]),
+        ("directory then file", [_file("pkg/", size=0), _file("pkg")]),
+        ("separator alias", [_file("a/b.txt"), _file("a\\b.txt")]),
+        ("dot-segment alias", [_file("a/b.txt"), _file("a/./b.txt")]),
+    ],
+)
+def test_colliding_destinations_are_rejected(label: str, entries: list) -> None:
+    with pytest.raises(ArchiveValidationError) as exc:
+        _validate_or_raise(entries, _limits())
+    assert exc.value.code == "archive_duplicate_entry", label
+
+
+def test_case_variant_paths_collide() -> None:
+    """Two spellings that differ only by case are one file on Windows."""
+    with pytest.raises(ArchiveValidationError) as exc:
+        _validate_or_raise([_file("README.md"), _file("readme.md")], _limits())
+    assert exc.value.code == "archive_duplicate_entry"
+    assert "collides with earlier entry" in exc.value.message
+
+
+def test_distinct_destinations_are_not_treated_as_collisions() -> None:
+    entries = [_file("a/b.txt"), _file("a/c.txt"), _link("a/d.txt"), _file("b/b.txt")]
+    collector = _validate_or_raise(entries, _limits())
+    assert collector.errors == ()
+    assert collector.file_count == 3

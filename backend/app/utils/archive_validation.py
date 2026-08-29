@@ -81,7 +81,11 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Literal
 
-from app.utils.paths import PathNormalizationError, normalize_relative_path
+from app.utils.paths import (
+    PathNormalizationError,
+    normalize_relative_path,
+    windows_collision_key,
+)
 
 # Maximum number of characters the validator keeps
 # from a symlink target. A target longer than this is
@@ -99,6 +103,15 @@ MAX_RECORDED_TARGET_LENGTH = 1024
 # is matched to :data:`MAX_RECORDED_TARGET_LENGTH`
 # for consistency.
 MAX_RECORDED_PATH_LENGTH = 1024
+
+# Maximum number of bytes a symbolic-link entry may declare for
+# its target. A link target is a path string: POSIX ``PATH_MAX``
+# is 4096 and the Windows wide API tops out well below that, so
+# any link body larger than this is a payload wearing a link's
+# metadata rather than a path. The bound is what lets the intake
+# layer read a link target with a hard cap instead of an
+# unbounded ``read()`` (LV-004).
+MAX_SYMLINK_TARGET_BYTES = 4096
 
 # Windows drive-prefix pattern. The pattern matches
 # both ``C:`` and ``C:\`` (and the rare ``C:/``
@@ -229,7 +242,11 @@ class ArchiveValidationCollector:
         self._errors: list[ArchiveValidationError] = []
         self._skipped_symlinks: list[SkippedSymlink] = []
         self._skipped_hardlinks: list[SkippedHardlink] = []
-        self._seen_paths: set[str] = set()
+        # Maps the Win32-equivalence collision key to the first
+        # normalised path that claimed it, so a collision message
+        # can name both spellings.
+        self._seen_paths: dict[str, str] = {}
+        self._entry_count = 0
         self._file_count = 0
         self._uncompressed_total = 0
         self._compressed_total = 0
@@ -247,7 +264,13 @@ class ArchiveValidationCollector:
         return tuple(self._skipped_hardlinks)
 
     @property
+    def entry_count(self) -> int:
+        """Every entry that claimed a destination, links included."""
+        return self._entry_count
+
+    @property
     def file_count(self) -> int:
+        """Entries that carry analyzable content (links excluded)."""
         return self._file_count
 
     @property
@@ -261,7 +284,9 @@ class ArchiveValidationCollector:
     def check_entry(self, entry: ArchiveEntry) -> None:
         """Validate ``entry`` and record any violations."""
         # 1. Path normalization handles traversal, absolute paths, drive
-        # letters, and UNC paths in one go.
+        # letters, UNC paths, and the Win32 component spellings
+        # (alternate data streams, reserved device names, trailing
+        # dot/space) in one go.
         try:
             normalized = normalize_relative_path(entry.name)
         except PathNormalizationError as exc:
@@ -279,7 +304,55 @@ class ArchiveValidationCollector:
             )
             return
 
-        # 2. Symlink / hardlink detection. The historical policy was
+        # 2. Destination identity (LV-005).
+        #
+        # Every entry registers the destination it claims *before* any
+        # type-specific early return. The historical order registered
+        # the path only on the regular-file branch, so a link entry
+        # could claim a destination silently and a later regular file
+        # with the same normalised path passed the duplicate check, was
+        # counted as analyzed, and was then skipped by the extractor as
+        # "this path belongs to a symlink". The archive reported a file
+        # that never reached the filesystem, which is exactly how a
+        # hostile archive hides a ``requirements.txt`` or a lockfile
+        # from analysis.
+        #
+        # The identity is the Win32-equivalence key so the collision
+        # semantics match what the extraction layer ultimately does on
+        # disk: case-insensitive, trailing dot/space folded, separators
+        # normalised. Collisions are detected across *all* entry-type
+        # pairs (regular/regular, regular/symlink, symlink/regular,
+        # symlink/symlink, directory/file) because the registration is
+        # unconditional.
+        key = windows_collision_key(normalized)
+        previous = self._seen_paths.get(key)
+        if previous is not None:
+            detail = (
+                f"Duplicate normalized path {normalized!r}."
+                if previous == normalized
+                else (
+                    f"Entry {normalized!r} collides with earlier entry "
+                    f"{previous!r} after Windows path normalization."
+                )
+            )
+            self._errors.append(ArchiveValidationError("archive_duplicate_entry", detail))
+            return
+        self._seen_paths[key] = normalized
+
+        # 3. Entry-count limit. Every entry that claims a destination
+        # counts, links included, so a link-heavy archive cannot walk
+        # past ``max_file_count``.
+        self._entry_count += 1
+        if self._entry_count > self.limits.max_file_count:
+            self._errors.append(
+                ArchiveValidationError(
+                    "archive_too_many_files",
+                    f"Archive exceeds max_file_count={self.limits.max_file_count}.",
+                )
+            )
+            return
+
+        # 4. Symlink / hardlink detection. The historical policy was
         # to reject the entire archive; the v2.1.3 policy splits
         # the cases:
         #
@@ -297,11 +370,17 @@ class ArchiveValidationCollector:
             )
             return
         if entry.is_symlink:
+            # LV-004: a link entry's body is archive content like any
+            # other. It is charged against the per-entry cap, the
+            # cumulative uncompressed and compressed budgets, and the
+            # compression-ratio heuristic *before* the target is
+            # classified, so an oversized or highly compressed link
+            # body cannot buy an exemption by being a link.
+            if not self._charge_resources(entry):
+                return
             verdict = self._classify_symlink_target(entry, normalized)
             if verdict.action == "reject":
-                self._errors.append(
-                    ArchiveValidationError(verdict.code, verdict.message)
-                )
+                self._errors.append(ArchiveValidationError(verdict.code, verdict.message))
                 return
             # The verdict is ``skip``: the link is safe
             # to record and ignore. The extractor
@@ -317,18 +396,21 @@ class ArchiveValidationCollector:
             )
             return
 
-        # 3. Duplicate normalized entries.
-        if normalized in self._seen_paths:
-            self._errors.append(
-                ArchiveValidationError(
-                    "archive_duplicate_entry",
-                    f"Duplicate normalized path {normalized!r}.",
-                )
-            )
+        # 5. Resource accounting for an entry that carries content.
+        if not self._charge_resources(entry):
             return
-        self._seen_paths.add(normalized)
+        self._file_count += 1
 
-        # 4. Individual entry size.
+    def _charge_resources(self, entry: ArchiveEntry) -> bool:
+        """Charge ``entry`` against every size budget.
+
+        Returns ``True`` when the entry is within every limit and
+        ``False`` once a violation has been recorded. The same
+        accounting runs for entries that carry content and for link
+        entries, so a link body cannot evade the per-file cap, the
+        cumulative uncompressed and compressed budgets, or the
+        compression-ratio heuristic (LV-004).
+        """
         if entry.size < 0:
             self._errors.append(
                 ArchiveValidationError(
@@ -336,7 +418,7 @@ class ArchiveValidationCollector:
                     f"Entry {entry.name!r} has negative size.",
                 )
             )
-            return
+            return False
         if entry.size > self.limits.max_file_bytes:
             self._errors.append(
                 ArchiveValidationError(
@@ -345,20 +427,21 @@ class ArchiveValidationCollector:
                     f"max is {self.limits.max_file_bytes}.",
                 )
             )
-            return
-
-        # 5. File count limit.
-        self._file_count += 1
-        if self._file_count > self.limits.max_file_count:
+            return False
+        # A link target is a path string. Anything past the longest
+        # path any host filesystem accepts is a payload wearing a
+        # link's metadata, so it is refused independently of the
+        # (much larger) per-file cap.
+        if entry.is_symlink and entry.size > MAX_SYMLINK_TARGET_BYTES:
             self._errors.append(
                 ArchiveValidationError(
-                    "archive_too_many_files",
-                    f"Archive exceeds max_file_count={self.limits.max_file_count}.",
+                    "archive_symlink_target_too_large",
+                    f"Symbolic link {entry.name!r} declares a {entry.size}-byte "
+                    f"target; max is {MAX_SYMLINK_TARGET_BYTES}.",
                 )
             )
-            return
+            return False
 
-        # 6. Uncompressed cumulative size.
         self._uncompressed_total += entry.size
         if self._uncompressed_total > self.limits.max_uncompressed_bytes:
             self._errors.append(
@@ -367,9 +450,8 @@ class ArchiveValidationCollector:
                     "Cumulative uncompressed size exceeds limit.",
                 )
             )
-            return
+            return False
 
-        # 7. Compressed cumulative size.
         self._compressed_total += max(0, entry.compressed_size)
         if self._compressed_total > self.limits.max_compressed_bytes:
             self._errors.append(
@@ -378,9 +460,9 @@ class ArchiveValidationCollector:
                     "Cumulative compressed size exceeds limit.",
                 )
             )
-            return
+            return False
 
-        # 8. Compression-ratio heuristic. We only flag a ratio when both
+        # Compression-ratio heuristic. We only flag a ratio when both
         # numerator and denominator are non-zero, so a single zero-byte
         # entry does not produce a divide-by-zero or a false positive.
         if (
@@ -396,6 +478,8 @@ class ArchiveValidationCollector:
                     f"ratio above {self.limits.suspicious_ratio}x is suspicious.",
                 )
             )
+            return False
+        return True
 
     def _classify_symlink_target(
         self, entry: ArchiveEntry, normalized_entry: str
@@ -474,8 +558,7 @@ class ArchiveValidationCollector:
                 action="reject",
                 code="archive_symlink_target_missing",
                 message=(
-                    f"Entry {entry.name!r} is a symbolic link with an "
-                    "empty target; not accepted."
+                    f"Entry {entry.name!r} is a symbolic link with an empty target; not accepted."
                 ),
                 path=bounded_path,
                 target=bounded_target,
@@ -490,10 +573,7 @@ class ArchiveValidationCollector:
             return self._SymlinkVerdict(
                 action="reject",
                 code="archive_symlink_target_unsafe",
-                message=(
-                    f"Symbolic link {entry.name!r} has an absolute "
-                    "target; not accepted."
-                ),
+                message=(f"Symbolic link {entry.name!r} has an absolute target; not accepted."),
                 path=bounded_path,
                 target=bounded_target,
             )
@@ -505,10 +585,7 @@ class ArchiveValidationCollector:
             return self._SymlinkVerdict(
                 action="reject",
                 code="archive_symlink_target_unsafe",
-                message=(
-                    f"Symbolic link {entry.name!r} has a Windows "
-                    "drive target; not accepted."
-                ),
+                message=(f"Symbolic link {entry.name!r} has a Windows drive target; not accepted."),
                 path=bounded_path,
                 target=bounded_target,
             )
@@ -518,10 +595,7 @@ class ArchiveValidationCollector:
             return self._SymlinkVerdict(
                 action="reject",
                 code="archive_symlink_target_unsafe",
-                message=(
-                    f"Symbolic link {entry.name!r} has a UNC target; "
-                    "not accepted."
-                ),
+                message=(f"Symbolic link {entry.name!r} has a UNC target; not accepted."),
                 path=bounded_path,
                 target=bounded_target,
             )

@@ -54,7 +54,8 @@ from app.models.scan_stage import (
     StageStatus,
     StageType,
 )
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 
 def _make_repo(session, *, canonical_url: str) -> int:
@@ -179,7 +180,7 @@ def _seed_minimal_state(session) -> None:
 def test_diagnostics_summary_returns_application_section(app_config) -> None:
     with _db_session.SessionLocal() as s:
         _seed_minimal_state(s)
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/diagnostics/summary")
     assert r.status_code == 200
     body = r.json()
@@ -202,7 +203,7 @@ def test_diagnostics_summary_does_not_trigger_external_call(app_config) -> None:
     """
     with _db_session.SessionLocal() as s:
         _seed_minimal_state(s)
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/diagnostics/summary")
     assert r.status_code == 200
     body = r.json()
@@ -222,7 +223,7 @@ def test_diagnostics_summary_provider_states_separated(app_config) -> None:
     """
     with _db_session.SessionLocal() as s:
         _seed_minimal_state(s)
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/diagnostics/summary")
     body = r.json()
     by_name = {p["provider"]: p for p in body["providers"]}
@@ -254,7 +255,7 @@ def test_diagnostics_summary_recent_issues_bounded(app_config) -> None:
     """The recent-issue list is bounded and excludes completed scans."""
     with _db_session.SessionLocal() as s:
         _seed_minimal_state(s)
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/diagnostics/summary")
     body = r.json()
     issues = body["recent_scan_issues"]
@@ -283,7 +284,7 @@ def test_diagnostics_summary_recent_issues_capped(app_config) -> None:
                 failure_summary="y",
             )
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/diagnostics/summary")
     body = r.json()
     assert len(body["recent_scan_issues"]) == MAX_RECENT_SCAN_ISSUES
@@ -294,7 +295,7 @@ def test_diagnostics_summary_stage_summary_uses_persisted_states(
 ) -> None:
     with _db_session.SessionLocal() as s:
         _seed_minimal_state(s)
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/diagnostics/summary")
     body = r.json()
     by_stage = {row["stage"]: row for row in body["stage_summary"]}
@@ -324,7 +325,7 @@ def test_diagnostics_summary_stage_summary_uses_persisted_states(
 def test_diagnostics_summary_executor_section(app_config) -> None:
     with _db_session.SessionLocal() as s:
         _seed_minimal_state(s)
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/diagnostics/summary")
     body = r.json()
     ex = body["executor"]
@@ -349,7 +350,7 @@ def test_diagnostics_summary_does_not_expose_secrets(app_config) -> None:
     """The diagnostics payload must not contain tokens, paths, or stack traces."""
     with _db_session.SessionLocal() as s:
         _seed_minimal_state(s)
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/diagnostics/summary")
     body = r.json()
     payload = json.dumps(body)
@@ -374,7 +375,7 @@ def test_diagnostics_summary_does_not_expose_secrets(app_config) -> None:
 
 def test_diagnostics_summary_uses_stable_envelope(app_config) -> None:
     """The error envelope is the standard envelope on failure."""
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/diagnostics/does-not-exist")
     assert r.status_code == 404
 
@@ -400,7 +401,7 @@ def test_diagnostics_summary_no_finding_records_leaked(app_config) -> None:
             )
         )
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/diagnostics/summary")
     body = r.json()
     payload = json.dumps(body)

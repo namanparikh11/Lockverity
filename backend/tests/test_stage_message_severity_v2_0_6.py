@@ -44,7 +44,8 @@ from app.utils.stage_severity import (
     PARSER_WARNING_SUMMARIES,
     derive_message_severity,
 )
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 # ---------------------------------------------------------------------------
 # Helper: build a stage row directly and map it through the API
@@ -400,7 +401,7 @@ def test_scan_stages_endpoint_includes_severity(app_config) -> None:
         failure_code=None,
         failure_summary="1 parser warnings",
     )
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get(f"/api/v1/scans/{scan_id}/stages")
     assert response.status_code == 200
     body = response.json()

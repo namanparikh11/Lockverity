@@ -38,6 +38,8 @@ from app.models.repository import (
 from app.models.scan_run import ScanRun, ScanStatus, ScanTriggerType
 from app.models.workspace import Workspace, WorkspaceKind, WorkspaceState
 
+from tests.api_client import api_client
+
 
 def _setup_two_components(
     session,
@@ -193,7 +195,6 @@ def test_enrichment_endpoint_associates_status_with_the_correct_component(
     from app.api import v0_3 as v03
     from app.db import session as _db_session_mod
     from app.main import app
-    from fastapi.testclient import TestClient
 
     def _get_db():
         s = _db_session_mod.SessionLocal()
@@ -204,7 +205,7 @@ def test_enrichment_endpoint_associates_status_with_the_correct_component(
 
     app.dependency_overrides[v03.DBSession] = _get_db
     try:
-        with TestClient(app) as client:
+        with api_client(app) as client:
             r = client.get(f"/api/v1/scans/{scan_id}/enrichments")
             assert r.status_code == 200
             body = r.json()
@@ -293,7 +294,6 @@ def test_enrichment_endpoint_with_no_observations_returns_neutral_state(
     from app.api import v0_3 as v03
     from app.db import session as _db_session_mod
     from app.main import app
-    from fastapi.testclient import TestClient
 
     def _get_db():
         s = _db_session_mod.SessionLocal()
@@ -304,7 +304,7 @@ def test_enrichment_endpoint_with_no_observations_returns_neutral_state(
 
     app.dependency_overrides[v03.DBSession] = _get_db
     try:
-        with TestClient(app) as client:
+        with api_client(app) as client:
             r = client.get(f"/api/v1/scans/{scan_id}/enrichments")
             assert r.status_code == 200
             body = r.json()

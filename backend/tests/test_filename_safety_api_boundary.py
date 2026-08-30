@@ -55,12 +55,13 @@ from app.models.workspace import WorkspaceKind, WorkspaceState
 from app.services import scan_service
 from app.services.workspace_service import WorkspaceService
 from app.utils.paths import basename_safely
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 
 @pytest.fixture
 def client(app_config):
-    return TestClient(app)
+    return api_client(app)
 
 
 def _build_repo(

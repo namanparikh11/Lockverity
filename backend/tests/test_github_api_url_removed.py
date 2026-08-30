@@ -24,6 +24,8 @@ from __future__ import annotations
 
 from app.core.config import Settings
 
+from tests.api_client import api_client
+
 
 def test_settings_does_not_expose_github_api_url(monkeypatch) -> None:
     """The ``Settings`` class does not expose a
@@ -86,9 +88,8 @@ def test_system_info_does_not_leak_github_api_url(app_config) -> None:
     pins that contract.
     """
     from app.main import app
-    from fastapi.testclient import TestClient
 
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get("/api/v1/system/info")
     assert response.status_code == 200
     body = response.json()

@@ -20,8 +20,8 @@ from app.providers.selection import ExternalEvidenceProviders
 from app.reports.evidence import EvidenceReportService
 from app.schemas.intake import ScanRunRequest
 from app.services.orchestrator_service import ScanOrchestrator
-from fastapi.testclient import TestClient
 
+from tests.api_client import api_client
 from tests.test_provider_stage_failure import (
     _patch_provider_service,
     _setup_scan_with_components,
@@ -274,7 +274,7 @@ def test_auto_run_honours_disabled_selection(
     )
     with _db_session.SessionLocal() as session:
         scan_id = _setup_scan_with_components(session, [])
-    response = TestClient(app).post(
+    response = api_client(app).post(
         f"/api/v1/scans/{scan_id}/auto-run",
         json={
             "external_evidence_providers": {
@@ -289,7 +289,7 @@ def test_auto_run_honours_disabled_selection(
 
 
 def test_run_contract_rejects_unknown_provider_field(app_config) -> None:
-    response = TestClient(app).post(
+    response = api_client(app).post(
         "/api/v1/scans/1/run",
         json={"external_evidence_providers": {"unknown": False}},
     )
@@ -318,7 +318,7 @@ def test_async_run_callback_captures_immutable_selection(
     monkeypatch.setattr(scans_api, "get_executor", lambda: executor)
     monkeypatch.setattr(scans_api, "_orchestrator_for_session", lambda _session: orchestrator)
 
-    response = TestClient(app).post(
+    response = api_client(app).post(
         f"/api/v1/scans/{scan_id}/run",
         json={
             "external_evidence_providers": {

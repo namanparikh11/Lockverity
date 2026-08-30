@@ -34,6 +34,8 @@ from app.static_frontend import (
     validate_dist,
 )
 
+from tests.api_client import api_client
+
 # --- Test fixtures ----------------------------------------------------
 
 
@@ -101,7 +103,6 @@ def app_with_synthetic_dist(
     The TestClient exercises the app in-process so the
     tests are hermetic and fast.
     """
-    from fastapi.testclient import TestClient
 
     os.environ["LOCKVERITY_ENVIRONMENT"] = "production"
     os.environ["LOCKVERITY_SERVE_FRONTEND"] = "true"
@@ -109,7 +110,7 @@ def app_with_synthetic_dist(
     get_settings.cache_clear()
     try:
         app = create_app()
-        with TestClient(app) as client:
+        with api_client(app) as client:
             yield client
     finally:
         get_settings.cache_clear()
@@ -130,14 +131,13 @@ def app_default_api_only() -> Iterator[Any]:
     API only. The tests verify that the default behaviour
     is unchanged.
     """
-    from fastapi.testclient import TestClient
 
     os.environ["LOCKVERITY_ENVIRONMENT"] = "production"
     os.environ.pop("LOCKVERITY_SERVE_FRONTEND", None)
     get_settings.cache_clear()
     try:
         app = create_app()
-        with TestClient(app) as client:
+        with api_client(app) as client:
             yield client
     finally:
         get_settings.cache_clear()

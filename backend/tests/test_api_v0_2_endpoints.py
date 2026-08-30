@@ -21,11 +21,12 @@ from app.main import app
 from app.models.provider_observation import ProviderObservation, ProviderStatus
 from app.models.scan_run import ScanTriggerType
 from app.services import repository_service, scan_service
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 
 def test_list_scans_returns_paginated_empty_list(app_config) -> None:
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/scans")
     assert r.status_code == 200
     body = r.json()
@@ -52,7 +53,7 @@ def test_list_scans_filters_by_status(app_config) -> None:
     finally:
         session.close()
 
-    client = TestClient(app)
+    client = api_client(app)
     r_all = client.get("/api/v1/scans")
     assert r_all.status_code == 200
     assert r_all.json()["pagination"]["total"] == 1
@@ -81,7 +82,7 @@ def test_list_scans_pagination(app_config) -> None:
     finally:
         session.close()
 
-    client = TestClient(app)
+    client = api_client(app)
     r1 = client.get("/api/v1/scans?page=1&page_size=2")
     assert r1.status_code == 200
     assert r1.json()["pagination"]["total"] == 3
@@ -95,7 +96,7 @@ def test_list_scans_clamps_oversized_page_size(app_config) -> None:
     """The pagination policy is enforced by the same machinery
     every other paginated endpoint uses. The clamp belongs to the
     application, not to a per-endpoint override."""
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/scans?page=1&page_size=999999")
     assert r.status_code == 200
     assert r.json()["pagination"]["page_size"] <= 200
@@ -108,7 +109,7 @@ def test_provider_health_returns_known_providers_when_no_activity(
     providers with ``status=not_requested``. This is the honest
     baseline - hiding a never-queried provider would be a
     provider-honesty violation."""
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/provider-health")
     assert r.status_code == 200
     body = r.json()
@@ -151,7 +152,7 @@ def test_provider_health_reflects_observed_provider(app_config) -> None:
     finally:
         session.close()
 
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/provider-health")
     assert r.status_code == 200
     body = r.json()
@@ -189,7 +190,7 @@ def test_provider_health_surfaces_unavailable(app_config) -> None:
     finally:
         session.close()
 
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/provider-health")
     body = r.json()
     osv = next(entry for entry in body["entries"] if entry["provider"] == "osv")
@@ -230,7 +231,7 @@ def test_provider_health_does_not_leak_secrets(app_config) -> None:
     finally:
         session.close()
 
-    client = TestClient(app)
+    client = api_client(app)
     body = client.get("/api/v1/provider-health").json()
     osv = next(entry for entry in body["entries"] if entry["provider"] == "osv")
     # The same string flows through; if a future change accidentally

@@ -6,12 +6,13 @@ import re
 
 import pytest
 from app.main import app
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 
 @pytest.fixture
 def client(app_config):
-    return TestClient(app)
+    return api_client(app)
 
 
 def test_create_repository_201(client) -> None:

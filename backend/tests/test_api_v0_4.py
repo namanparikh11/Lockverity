@@ -23,7 +23,8 @@ from app.models.repository import (
 )
 from app.models.scan_run import ScanRun, ScanStatus, ScanTriggerType
 from app.models.workspace import Workspace, WorkspaceKind, WorkspaceState
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 
 def _setup_scan(
@@ -126,7 +127,7 @@ def test_vulnerabilities_endpoint_includes_provider_provenance_and_aliases(app_c
             )
         )
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/vulnerabilities")
     assert r.status_code == 200
     items = r.json()["items"]
@@ -178,7 +179,7 @@ def test_enrichments_endpoint_returns_per_component_observations(app_config) -> 
             )
         )
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/enrichments")
     assert r.status_code == 200
     body = r.json()
@@ -209,7 +210,7 @@ def test_enrichments_endpoint_records_unavailable_state(app_config) -> None:
             )
         )
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/enrichments")
     assert r.status_code == 200
     body = r.json()
@@ -260,7 +261,7 @@ def test_provider_health_endpoint_aggregates_real_observations(app_config) -> No
             )
         )
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/provider-health")
     assert r.status_code == 200
     body = r.json()
@@ -311,7 +312,7 @@ def test_exports_include_provider_provenance(app_config) -> None:
             )
         )
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     # CycloneDX
     r = client.get(f"/api/v1/scans/{scan_id}/exports/cyclonedx_json")
     assert r.status_code == 200
@@ -351,7 +352,7 @@ def test_endpoint_returns_empty_state_for_unscanned_components(app_config) -> No
     """Components without observations render as honest empty state."""
     with _db_session.SessionLocal() as s:
         scan_id, _, _component_id = _setup_scan(s)
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/enrichments")
     assert r.status_code == 200
     body = r.json()

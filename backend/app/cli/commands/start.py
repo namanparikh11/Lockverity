@@ -173,8 +173,9 @@ def main(args: argparse.Namespace) -> int:
         else:
             print(
                 f"WARNING: server did not report healthy within "
-                f"{args.timeout:.0f}s. The process is running "
-                f"(pid={result.state.pid}); check the log at "
+                f"{args.timeout:.0f}s. The child process "
+                f"(pid={result.state.pid}) was terminated rather than "
+                f"left running untracked; check the log at "
                 f"{result.state.log_file} for details.",
                 file=sys.stderr,
             )

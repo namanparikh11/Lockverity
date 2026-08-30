@@ -60,7 +60,8 @@ from app.models.workspace import WorkspaceKind, WorkspaceState
 from app.services import scan_service
 from app.services.workspace_service import WorkspaceService
 from app.utils.errors import ApiError, ApiErrorCode
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 
 def _build_zip_bytes() -> bytes:
@@ -93,7 +94,7 @@ def _build_tar_gz_bytes() -> bytes:
 
 @pytest.fixture
 def client(app_config):
-    return TestClient(app)
+    return api_client(app)
 
 
 def _ingest_upload(client) -> tuple[int, int]:

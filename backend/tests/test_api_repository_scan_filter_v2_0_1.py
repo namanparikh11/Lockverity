@@ -22,6 +22,8 @@ from app.main import app
 from app.models.scan_run import ScanStatus, ScanTriggerType
 from fastapi.testclient import TestClient
 
+from tests.api_client import api_client
+
 
 @pytest.fixture()
 def client(app_config) -> TestClient:
@@ -33,7 +35,7 @@ def client(app_config) -> TestClient:
     instead of the per-test scratch DB and the per-repository
     listing would be empty.
     """
-    return TestClient(app)
+    return api_client(app)
 
 
 @pytest.fixture()

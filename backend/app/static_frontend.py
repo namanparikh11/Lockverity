@@ -44,6 +44,7 @@ Design contract:
 
 from __future__ import annotations
 
+import html
 import logging
 import mimetypes
 import re
@@ -52,9 +53,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import ClientDisconnect
+
+from app.core.control_plane import CONTROL_META_NAME
 
 logger = logging.getLogger("lockverity.frontend")
 
@@ -304,6 +307,31 @@ def serve_static_asset(dist: Path, rel_path: str) -> Response | None:
     )
 
 
+def inject_control_token(document: str, token: str) -> str:
+    """Return ``document`` with the control token as a ``<meta>`` tag.
+
+    This is how the per-process control token reaches the trusted
+    frontend (LV-007). The document is only readable by a page on this
+    same loopback origin, so a page from any other origin cannot learn
+    the token; and because the injection happens in the response body,
+    nothing on disk ever holds the secret - the dist directory stays
+    exactly as the build produced it.
+
+    The token is URL-safe base64, but it is HTML-escaped anyway so the
+    attribute cannot be broken out of regardless of what a future token
+    format contains.
+    """
+    meta = f'<meta name="{CONTROL_META_NAME}" content="{html.escape(token, quote=True)}">'
+    lowered = document.lower()
+    head_open = lowered.find("<head")
+    if head_open != -1:
+        head_end = document.find(">", head_open)
+        if head_end != -1:
+            return document[: head_end + 1] + meta + document[head_end + 1 :]
+    # No ``<head>``: put the tag first so the frontend still finds it.
+    return meta + document
+
+
 def serve_spa_fallback(dist: Path, request: Request) -> Response:
     """Serve ``index.html`` for extension-less requests that
     are not API-like.
@@ -319,6 +347,11 @@ def serve_spa_fallback(dist: Path, request: Request) -> Response:
         (so a missing static asset receives a clean 404).
       - Dotfile probes (so a hidden-endpoint scan
         receives a clean 404 instead of the React shell).
+
+    The served document carries the process control token in a
+    ``<meta>`` tag so the frontend it boots can authenticate its
+    state-changing API calls. The document is already served
+    ``no-store``, so the token is never cached to disk by the browser.
     """
     path = request.url.path
     if _is_api_like(path):
@@ -332,12 +365,21 @@ def serve_spa_fallback(dist: Path, request: Request) -> Response:
     # check here is defence in depth.
     if not index_html.is_file():
         raise StarletteHTTPException(status_code=500, detail="Frontend index missing")
-    response = FileResponse(
-        path=str(index_html),
+    token = str(getattr(request.app.state, "control_token", "") or "")
+    if not token:
+        # No token minted (an app built without the control plane).
+        # Serve the document unchanged rather than failing the load.
+        return FileResponse(
+            path=str(index_html),
+            media_type="text/html; charset=utf-8",
+            headers={"Cache-Control": _cache_control_for(INDEX_HTML)},
+        )
+    document = index_html.read_text(encoding="utf-8")
+    return HTMLResponse(
+        content=inject_control_token(document, token),
         media_type="text/html; charset=utf-8",
         headers={"Cache-Control": _cache_control_for(INDEX_HTML)},
     )
-    return response
 
 
 def install_security_headers(

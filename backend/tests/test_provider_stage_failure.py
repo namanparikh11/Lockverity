@@ -82,6 +82,8 @@ from app.providers.results import (
 )
 from app.services.orchestrator_service import ScanOrchestrator
 
+from tests.api_client import api_client
+
 # The :func:`conftest._fake_providers_for_scan_tests`
 # autouse fixture is the backstop behind this module's
 # own :func:`_patch_provider_service` helper: a future
@@ -507,7 +509,6 @@ def test_api_exposes_partial_scan_and_partial_provider_stage(
     - local findings (rule engine, workflow, parser)
       still present.
     """
-    from fastapi.testclient import TestClient
 
     osv = MagicMock()
     osv.query_batch.return_value = ProviderUnavailable(
@@ -545,7 +546,7 @@ def test_api_exposes_partial_scan_and_partial_provider_stage(
 
     app.dependency_overrides[v03.DBSession] = _get_db
     try:
-        with TestClient(app) as client:
+        with api_client(app) as client:
             # 1. Overall scan status is "partial".
             r = client.get(f"/api/v1/scans/{scan_id}")
             assert r.status_code == 200

@@ -9,7 +9,11 @@
  * - Request cancellation via `AbortController`.
  * - Timeout handling: requests abort after a configurable
  *   `VITE_API_TIMEOUT_MS` (default 30 000 ms).
- * - No credentials, no tokens, no production fixture fallback.
+ * - No credentials and no stored tokens. State-changing calls carry the
+ *   per-runtime control token the backend injected into this document;
+ *   it lives in memory only, is never persisted, and is never placed in
+ *   a URL. See `readControlToken`.
+ * - No production fixture fallback.
  * - Development-only fixtures may exist behind
  *   `VITE_DEV_FIXTURES=enabled` and must never activate due to
  *   API failure.
@@ -18,6 +22,22 @@
 const DEFAULT_BASE_URL = "/api/v1";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_TIMEOUT_MS = 120_000;
+
+/**
+ * Header carrying the per-runtime control token on state-changing
+ * requests. The backend refuses any mutation that does not present it,
+ * which is what stops an arbitrary web page from driving the local
+ * instance just because it is listening on loopback.
+ *
+ * A custom header is deliberate: a browser cannot send one cross-origin
+ * without a CORS preflight, and the backend grants none to a foreign
+ * origin. The token is never placed in a URL, a cookie, or storage.
+ */
+const CONTROL_HEADER = "X-Lockverity-Control";
+const CONTROL_META_NAME = "lockverity-control";
+
+/** Methods the backend treats as state-changing. */
+const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 /**
  * The only development-flag the API client recognises. A typo
@@ -118,6 +138,42 @@ export function readDevFixturesEnabled(): boolean {
   return env?.VITE_DEV_FIXTURES === DEV_FIXTURE_FLAG;
 }
 
+/**
+ * Read the control token issued to this window.
+ *
+ * In the shipped single-port runtime the backend injects the token into
+ * the `index.html` it serves, so the meta tag is always present and the
+ * value is unique to the running process. In the two-port Vite dev
+ * workflow the dev server serves the document instead, so the developer
+ * pins both sides with `LOCKVERITY_CONTROL_TOKEN` / `VITE_CONTROL_TOKEN`.
+ *
+ * Read on every call rather than cached at module load: the document is
+ * served `no-store` and a reload issues a fresh token.
+ */
+export function readControlToken(): string | null {
+  if (typeof document !== "undefined") {
+    const meta = document.querySelector(`meta[name="${CONTROL_META_NAME}"]`);
+    const fromMeta = meta?.getAttribute("content")?.trim();
+    if (fromMeta) return fromMeta;
+  }
+  const env = (import.meta as unknown as { env?: Record<string, unknown> }).env;
+  const fromEnv = env?.VITE_CONTROL_TOKEN;
+  if (typeof fromEnv === "string" && fromEnv.trim()) return fromEnv.trim();
+  return null;
+}
+
+/**
+ * Attach the control token to a header bag for a state-changing call.
+ * A missing token is not an error here: the request proceeds and the
+ * backend returns the `forbidden` envelope, so the failure is reported
+ * by the one component that actually knows the policy.
+ */
+function withControlToken(headers: Record<string, string>): Record<string, string> {
+  const token = readControlToken();
+  if (token) headers[CONTROL_HEADER] = token;
+  return headers;
+}
+
 function buildUrl(
   base: string,
   path: string,
@@ -207,6 +263,9 @@ async function request<T>(
   };
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";
+  }
+  if (MUTATING_METHODS.has(method.toUpperCase())) {
+    withControlToken(headers);
   }
   const init: RequestInit = {
     method,
@@ -322,7 +381,10 @@ async function requestUpload<T>(
   form.append("file", file);
   const init: RequestInit = {
     method: "POST",
-    headers: { Accept: "application/json" },
+    // The upload is a state-changing request like any other; the
+    // control token is required. ``Content-Type`` is deliberately left
+    // to the browser so the multipart boundary is generated correctly.
+    headers: withControlToken({ Accept: "application/json" }),
     signal,
     credentials: "omit",
     body: form,

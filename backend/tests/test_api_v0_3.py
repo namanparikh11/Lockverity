@@ -33,7 +33,8 @@ from app.services import repository_service, scan_service
 from app.services.orchestrator_service import ScanOrchestrator
 from app.services.workspace_service import WorkspaceService
 from app.utils.finding_keys import stable_finding_key
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 # The :func:`conftest._fake_providers_for_scan_tests`
 # autouse fixture replaces the real provider factories
@@ -87,7 +88,7 @@ def test_components_endpoint_returns_paginated_list(app_config, workspace_root) 
     with _db_session.SessionLocal() as s:
         scan_id, _, _ = _setup_scan_with_zip(s, workspace_root)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/components")
     assert r.status_code == 200
     body = r.json()
@@ -101,7 +102,7 @@ def test_vulnerabilities_endpoint_handles_empty_state(app_config, workspace_root
     with _db_session.SessionLocal() as s:
         scan_id, _, _ = _setup_scan_with_zip(s, workspace_root)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/vulnerabilities")
     assert r.status_code == 200
     assert r.json()["items"] == []
@@ -111,7 +112,7 @@ def test_advisories_endpoint_handles_empty_state(app_config, workspace_root) -> 
     with _db_session.SessionLocal() as s:
         scan_id, _, _ = _setup_scan_with_zip(s, workspace_root)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/advisories")
     assert r.status_code == 200
     assert r.json()["items"] == []
@@ -147,7 +148,7 @@ def test_workflow_findings_endpoint_returns_workflow_category(app_config, worksp
             )
         )
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/workflows")
     assert r.status_code == 200
     body = r.json()
@@ -184,7 +185,7 @@ def test_licences_endpoint_returns_licence_category(app_config, workspace_root) 
             )
         )
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/licences")
     assert r.status_code == 200
     body = r.json()
@@ -236,7 +237,7 @@ def test_dependency_path_for_known_component(app_config, workspace_root) -> None
         )
         s.commit()
         child_id = child.id
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/components/{child_id}/path")
     assert r.status_code == 200
     body = r.json()
@@ -249,7 +250,7 @@ def test_exports_listing_returns_supported_formats(app_config, workspace_root) -
     with _db_session.SessionLocal() as s:
         scan_id, _, _ = _setup_scan_with_zip(s, workspace_root)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     # The scan is QUEUED at this point; the 1.7 descriptor
     # is therefore not yet supported (the download endpoint
     # would 422). We move the scan to COMPLETED to verify
@@ -306,7 +307,7 @@ def test_list_exports_disables_cyclonedx_1_7_for_ineligible_scans(
     with _db_session.SessionLocal() as s:
         scan_id, _, _ = _setup_scan_with_zip(s, workspace_root)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     # Force the scan into the requested state without
     # rerunning the orchestrator.
     with _db_session.SessionLocal() as s:
@@ -347,7 +348,7 @@ def test_list_exports_cyclonedx_1_7_ineligible_partial_scan_without_inventory(
         scan.status = ScanStatus.PARTIAL
         s.add(scan)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/exports")
     body = r.json()
     cdx17 = next(item for item in body["items"] if item["format"] == "cyclonedx_1_7")
@@ -406,7 +407,7 @@ def test_list_exports_cyclonedx_1_7_partial_scan_with_inventory_carries_warning(
             )
         )
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/exports")
     body = r.json()
     cdx17 = next(item for item in body["items"] if item["format"] == "cyclonedx_1_7")
@@ -431,7 +432,7 @@ def test_list_exports_cyclonedx_1_7_completed_scan_has_no_warning(
         scan.status = ScanStatus.COMPLETED
         s.add(scan)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/exports")
     body = r.json()
     cdx17 = next(item for item in body["items"] if item["format"] == "cyclonedx_1_7")
@@ -446,7 +447,7 @@ def test_export_download_returns_attachment_with_filename(app_config, workspace_
     with _db_session.SessionLocal() as s:
         scan_id, _, _ = _setup_scan_with_zip(s, workspace_root)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/exports/findings_json")
     assert r.status_code == 200
     assert "attachment" in r.headers.get("content-disposition", "")
@@ -457,7 +458,7 @@ def test_export_unknown_format_returns_404(app_config, workspace_root) -> None:
     with _db_session.SessionLocal() as s:
         scan_id, _, _ = _setup_scan_with_zip(s, workspace_root)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/exports/spdx_xml")
     assert r.status_code == 404
 
@@ -497,7 +498,7 @@ def test_compare_scans_endpoint_returns_diff(app_config, workspace_root) -> None
         scan_service.transition_scan(s, head_id, target=ScanStatus.RUNNING)
         scan_service.transition_scan(s, head_id, target=ScanStatus.COMPLETED)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{head_id}/compare/{base_id}")
     assert r.status_code == 200
     body = r.json()
@@ -553,7 +554,7 @@ def test_compare_scans_rejects_different_repositories(app_config, workspace_root
         scan_service.transition_scan(s, scan2.id, target=ScanStatus.RUNNING)
         scan_service.transition_scan(s, scan2.id, target=ScanStatus.COMPLETED)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan2.id}/compare/{scan1}")
     assert r.status_code in {400, 422}
 
@@ -571,7 +572,7 @@ def test_compare_scans_rejects_non_terminal_scans(app_config, workspace_root) ->
         scan_service.transition_scan(s, base_id, target=ScanStatus.COMPLETED)
         s.commit()
         head_id = head.id
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{head_id}/compare/{base_id}")
     assert r.status_code == 409
     body = r.json()
@@ -585,7 +586,7 @@ def test_compare_scans_rejects_identical_scans(app_config, workspace_root) -> No
         scan_service.transition_scan(s, scan_id, target=ScanStatus.RUNNING)
         scan_service.transition_scan(s, scan_id, target=ScanStatus.COMPLETED)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/compare/{scan_id}")
     # The backend maps VALIDATION_ERROR to 422; accept either.
     assert r.status_code in {400, 422}
@@ -624,7 +625,7 @@ def test_orchestrator_end_to_end_pipeline_writes_components(app_config, workspac
         assert "left-pad" in names, names
     # And the workflow analyzer should have produced at least
     # one workflow finding for the unpinned action.
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/workflows")
     assert r.status_code == 200
     items = r.json()["items"]
@@ -642,7 +643,7 @@ def test_preview_endpoint_returns_completed_eligible_summary(app_config, workspa
         scan_service.transition_scan(s, scan_id, target=ScanStatus.RUNNING)
         scan_service.transition_scan(s, scan_id, target=ScanStatus.COMPLETED)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/exports/cyclonedx_1_7/preview")
     assert r.status_code == 200
     body = r.json()
@@ -658,7 +659,7 @@ def test_preview_endpoint_returns_completed_eligible_summary(app_config, workspa
 
 
 def test_preview_endpoint_returns_404_for_unknown_scan(app_config, workspace_root) -> None:
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/scans/999999/exports/cyclonedx_1_7/preview")
     assert r.status_code == 404
 
@@ -669,7 +670,7 @@ def test_preview_endpoint_returns_failed_ineligible_summary(app_config, workspac
         scan_service.transition_scan(s, scan_id, target=ScanStatus.RUNNING)
         scan_service.transition_scan(s, scan_id, target=ScanStatus.FAILED)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/exports/cyclonedx_1_7/preview")
     assert r.status_code == 200
     body = r.json()
@@ -683,7 +684,7 @@ def test_preview_endpoint_returns_cancelled_ineligible_summary(app_config, works
         scan_id, _, _ = _setup_scan_with_zip(s, workspace_root)
         scan_service.transition_scan(s, scan_id, target=ScanStatus.CANCELLED)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/exports/cyclonedx_1_7/preview")
     assert r.status_code == 200
     body = r.json()
@@ -698,7 +699,7 @@ def test_preview_endpoint_response_is_deterministic(app_config, workspace_root) 
         scan_service.transition_scan(s, scan_id, target=ScanStatus.RUNNING)
         scan_service.transition_scan(s, scan_id, target=ScanStatus.COMPLETED)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r1 = client.get(f"/api/v1/scans/{scan_id}/exports/cyclonedx_1_7/preview")
     r2 = client.get(f"/api/v1/scans/{scan_id}/exports/cyclonedx_1_7/preview")
     assert r1.status_code == 200
@@ -717,7 +718,7 @@ def test_preview_endpoint_does_not_validate_full_bom(app_config, workspace_root)
     with _db_session.SessionLocal() as s:
         scan_id, _, _ = _setup_scan_with_zip(s, workspace_root)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/exports/cyclonedx_1_7/preview")
     assert r.status_code == 200
     body = r.json()
@@ -761,7 +762,7 @@ def test_component_evidence_endpoint_returns_full_summary(app_config, workspace_
         s.add(component)
         s.commit()
         component_id = component.id
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/components/{component_id}/evidence")
     assert r.status_code == 200
     body = r.json()
@@ -804,7 +805,7 @@ def test_component_evidence_endpoint_returns_404_for_unknown_component(
         scan_service.transition_scan(s, scan_id, target=ScanStatus.RUNNING)
         scan_service.transition_scan(s, scan_id, target=ScanStatus.COMPLETED)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/components/999999/evidence")
     assert r.status_code == 404
 
@@ -840,7 +841,7 @@ def test_component_evidence_endpoint_returns_404_for_cross_scan_component(
         s.add(component)
         s.commit()
         component_id = component.id
-    client = TestClient(app)
+    client = api_client(app)
     # The component belongs to scan_a; scan_b must reject.
     r = client.get(f"/api/v1/scans/{scan_b}/components/{component_id}/evidence")
     assert r.status_code == 404
@@ -873,7 +874,7 @@ def test_component_evidence_endpoint_response_is_deterministic(app_config, works
         s.add(component)
         s.commit()
         component_id = component.id
-    client = TestClient(app)
+    client = api_client(app)
     r1 = client.get(f"/api/v1/scans/{scan_id}/components/{component_id}/evidence")
     r2 = client.get(f"/api/v1/scans/{scan_id}/components/{component_id}/evidence")
     assert r1.status_code == 200
@@ -908,7 +909,7 @@ def test_evidence_summary_default_returns_all_components(app_config, workspace_r
         for name in ("left-pad", "lodash", "stay"):
             _make_or_get_component(s, scan_id=scan_id, manifest_id=manifest.id, name=name)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/components/evidence-summary")
     assert r.status_code == 200
     body = r.json()
@@ -941,7 +942,7 @@ def test_evidence_summary_search_filter_narrows_results(app_config, workspace_ro
         for name in ("left-pad", "lodash", "stay"):
             _make_or_get_component(s, scan_id=scan_id, manifest_id=manifest.id, name=name)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/components/evidence-summary?search=pad")
     assert r.status_code == 200
     body = r.json()
@@ -978,7 +979,7 @@ def test_evidence_summary_direct_filter(app_config, workspace_root) -> None:
             direct=False,
         )
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/components/evidence-summary?direct=yes")
     assert r.status_code == 200
     body = r.json()
@@ -1020,7 +1021,7 @@ def test_evidence_summary_version_missing_filter(app_config, workspace_root) -> 
             version=None,
         )
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/components/evidence-summary?version=missing")
     assert r.status_code == 200
     body = r.json()
@@ -1060,7 +1061,7 @@ def test_evidence_summary_purl_persisted_filter(app_config, workspace_root) -> N
             package_url=None,
         )
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/components/evidence-summary?purl=persisted")
     assert r.status_code == 200
     body = r.json()
@@ -1109,7 +1110,7 @@ def test_evidence_summary_dependency_edges_present_filter(app_config, workspace_
             )
         )
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/components/evidence-summary?dependency_edges=present")
     assert r.status_code == 200
     body = r.json()
@@ -1158,7 +1159,7 @@ def test_evidence_summary_facets_match_filtered_set(app_config, workspace_root) 
             version=None,
         )
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/components/evidence-summary")
     assert r.status_code == 200
     body = r.json()
@@ -1176,7 +1177,7 @@ def test_evidence_summary_facets_match_filtered_set(app_config, workspace_root) 
 
 
 def test_evidence_summary_returns_404_for_unknown_scan(app_config, workspace_root) -> None:
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/scans/999999/components/evidence-summary")
     assert r.status_code == 404
 
@@ -1198,7 +1199,7 @@ def test_evidence_summary_response_is_deterministic(app_config, workspace_root) 
         for name in ("left-pad", "lodash", "stay"):
             _make_or_get_component(s, scan_id=scan_id, manifest_id=manifest.id, name=name)
         s.commit()
-    client = TestClient(app)
+    client = api_client(app)
     r1 = client.get(f"/api/v1/scans/{scan_id}/components/evidence-summary")
     r2 = client.get(f"/api/v1/scans/{scan_id}/components/evidence-summary")
     assert r1.status_code == 200

@@ -42,10 +42,11 @@ from app.reports.evidence import (
     EvidenceReportService,
     render_evidence_report_markdown,
 )
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+
+from tests.api_client import api_client
 
 # ---------------------------------------------------------------------
 # Fixtures
@@ -242,7 +243,7 @@ def client(session_factory, monkeypatch):
 
     app.dependency_overrides[_deps.DBSession] = _override_get_db
     monkeypatch.setattr(_db_session, "SessionLocal", session_factory)
-    yield TestClient(app)
+    yield api_client(app)
     app.dependency_overrides.clear()
 
 

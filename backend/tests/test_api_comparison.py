@@ -32,7 +32,8 @@ from app.models.repository import (
 )
 from app.models.scan_run import ScanStatus, ScanTriggerType
 from app.services import repository_service, scan_service
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -156,7 +157,7 @@ def test_compare_endpoint_returns_typed_v5_shape(app_config) -> None:
         repo_id = _setup_repo(s, canonical_url="https://github.com/octocat/Hello-World")
         base = _setup_terminal_scan(s, repository_id=repo_id)
         head = _setup_terminal_scan(s, repository_id=repo_id)
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{head}/compare/{base}")
     assert r.status_code == 200
     body = r.json()
@@ -214,7 +215,7 @@ def test_compare_endpoint_rejects_identical_scans(app_config) -> None:
     with _db_session.SessionLocal() as s:
         repo_id = _setup_repo(s, canonical_url="https://github.com/octocat/Hello-World")
         scan = _setup_terminal_scan(s, repository_id=repo_id)
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan}/compare/{scan}")
     # VALIDATION_ERROR maps to 422 by default; either is acceptable.
     assert r.status_code in {400, 422}
@@ -227,7 +228,7 @@ def test_compare_endpoint_rejects_cross_workspace(app_config) -> None:
         repo2 = _setup_repo(s, canonical_url="https://github.com/anthropics/anthropic-sdk-python")
         base = _setup_terminal_scan(s, repository_id=repo1)
         head = _setup_terminal_scan(s, repository_id=repo2)
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{head}/compare/{base}")
     assert r.status_code in {400, 422}
     assert r.json()["error"]["code"] == "validation_error"
@@ -242,7 +243,7 @@ def test_compare_endpoint_rejects_non_terminal_scans(app_config) -> None:
         )
         s.commit()
         head_id = head.id
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{head_id}/compare/{base}")
     assert r.status_code == 409
     assert r.json()["error"]["code"] == "illegal_transition"
@@ -252,7 +253,7 @@ def test_compare_endpoint_returns_404_for_missing_scans(app_config) -> None:
     with _db_session.SessionLocal() as s:
         repo_id = _setup_repo(s, canonical_url="https://github.com/octocat/Hello-World")
         head = _setup_terminal_scan(s, repository_id=repo_id)
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{head}/compare/999999")
     assert r.status_code == 404
     r = client.get(f"/api/v1/scans/999999/compare/{head}")
@@ -297,7 +298,7 @@ def test_compare_endpoint_component_diffs(app_config) -> None:
         scan_service.transition_scan(s, queued_head.id, target=ScanStatus.COMPLETED)
         s.commit()
         head = queued_head.id
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{head}/compare/{base}")
     assert r.status_code == 200
     body = r.json()
@@ -376,7 +377,7 @@ def test_compare_endpoint_workflow_diff(app_config) -> None:
                 ),
             ],
         )
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{head}/compare/{base}")
     body = r.json()
     by_key = {row["stable_key"]: row["state"] for row in body["workflows"]}
@@ -435,7 +436,7 @@ def test_compare_endpoint_provider_coverage_states(app_config) -> None:
                 ),
             ],
         )
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{head}/compare/{base}")
     body = r.json()
     by_provider = {row["provider"]: row for row in body["providers"]}
@@ -525,7 +526,7 @@ def test_compare_endpoint_vulnerability_preserves_provenance(app_config) -> None
         scan_service.transition_scan(s, queued_head.id, target=ScanStatus.COMPLETED)
         s.commit()
         head = queued_head.id
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{head}/compare/{base}")
     body = r.json()
     assert len(body["vulnerabilities"]) == 1
@@ -599,7 +600,7 @@ def test_compare_endpoint_vulnerability_indeterminate_when_provider_unavailable(
         scan_service.transition_scan(s, queued_head.id, target=ScanStatus.COMPLETED)
         s.commit()
         head = queued_head.id
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{head}/compare/{base}")
     body = r.json()
     assert len(body["vulnerabilities"]) == 1
@@ -621,7 +622,7 @@ def test_compare_endpoint_does_not_write_to_database(app_config) -> None:
         for model in [Component, ScanRun]:
             for row in s.execute(select(model)).scalars():
                 before[(model.__tablename__, row.id)] = row.updated_at
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{head}/compare/{base}")
     assert r.status_code == 200
     with _db_session.SessionLocal() as s:
@@ -669,7 +670,7 @@ def test_compare_endpoint_response_is_deterministically_ordered(app_config) -> N
         scan_service.transition_scan(s, queued_head.id, target=ScanStatus.COMPLETED)
         s.commit()
         head = queued_head.id
-    client = TestClient(app)
+    client = api_client(app)
     a = client.get(f"/api/v1/scans/{head}/compare/{base}").json()
     b = client.get(f"/api/v1/scans/{head}/compare/{base}").json()
     assert [c["package_name"] for c in a["components"]] == [

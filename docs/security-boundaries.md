@@ -101,6 +101,43 @@ Lockverity is **not**:
   does not stage pull requests, open issues, or contact
   maintainers on the operator's behalf.
 
+## Listening on loopback is not a caller boundary
+
+Lockverity binds loopback only, but that is a *network* boundary,
+not a *caller* boundary: any process on the machine can reach the
+port, and so can any web page the user has open, because a browser
+will issue a cross-site request to `http://127.0.0.1:<port>`
+without asking.
+
+Every state-changing API request therefore has to present a
+control token:
+
+- The backend mints one unguessable token per process. It lives in
+  memory for the lifetime of that process. It is never written to
+  disk, never logged, never placed in a URL, and never appears in
+  diagnostics, exports, evidence, or the CLI state file — whose
+  secret-free schema is a separate documented contract.
+- The token reaches the frontend by being injected into the
+  `index.html` that same process serves. A page on any other
+  origin cannot read that document, so it cannot learn the token.
+- The token is accepted in the `X-Lockverity-Control` request
+  header and nowhere else. A custom header cannot be sent
+  cross-origin without a CORS preflight, and no permissive CORS
+  policy is shipped.
+- `Host` is checked on every API request, so a DNS-rebinding page
+  cannot reach the port under a name it controls. `Origin`, when
+  present, must be same-origin or explicitly configured.
+- `GET /api/v1/health` stays unauthenticated because the launcher
+  waits on it before opening the window. It performs no mutation
+  and returns no sensitive value.
+
+**What this does not claim.** This is strong protection against
+arbitrary websites and against accidental unauthenticated callers.
+It is *not* a boundary against malware already running as the same
+user: such a process can read this process's memory, fetch the
+served document over the same loopback port, or simply act as the
+user. No in-process measure changes that, and none is claimed.
+
 ## Local dev and demo is not a hosted SaaS security boundary
 
 The local development setup (the manual-review SQLite database,
@@ -126,8 +163,10 @@ variable. The repository never contains a real secret:
 - The `fixtures/` directory contains only synthetic test data
   designed to fail any credential-leak scanner.
 - `.env` files are git-ignored.
-- The frontend never embeds a token; `credentials: "omit"` is
-  the only mode the API client uses.
+- The frontend source never embeds a token; `credentials: "omit"`
+  is the only mode the API client uses. The one token the client
+  does send is the local control token described below, which is
+  minted per process at runtime and never written to disk.
 
 If you find a committed secret, treat it as compromised. Rotate
 the credential and remove the file from history. See

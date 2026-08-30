@@ -53,7 +53,8 @@ from app.repositories import repository_repo
 from app.services import scan_service
 from app.services.workspace_service import WorkspaceService
 from app.utils.paths import basename_safely
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -331,7 +332,7 @@ def test_historical_pathful_archive_filename_is_sanitised(app_config, workspace_
         assert hist.historical_filename_conflict is False
 
     # The list API must not surface the original pathful value.
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get("/api/v1/repositories")
     assert response.status_code == 200
     body = response.json()
@@ -378,7 +379,7 @@ def test_historical_posix_path_archive_filename_is_sanitised(app_config, workspa
         result = repository_repo.get_repository_historical_filenames(s, [repo_id])
         hist = result[repo_id]
         assert hist.historical_archive_filename == "secret.zip"
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get("/api/v1/repositories")
     assert response.status_code == 200
     body = response.json()
@@ -441,7 +442,7 @@ def test_historical_empty_archive_filename_is_dropped(app_config, workspace_root
         assert hist.historical_archive_filename is None
         assert hist.historical_filename_conflict is False
         assert hist.historical_archive_filename_count == 0
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get("/api/v1/repositories")
     body = response.json()
     rows = [r for r in body["items"] if r["id"] == repo_id]
@@ -486,7 +487,7 @@ def test_local_path_never_in_api_output(app_config, workspace_root) -> None:
         original_filename=basename_safely("C:\\Users\\me\\secret.zip"),
     )
     _build_scan_with_workspace(repository_id=repo_id, archive_filename="secret.zip")
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get("/api/v1/repositories")
     assert response.status_code == 200
     body = response.json()
@@ -519,7 +520,7 @@ def test_list_returns_historical_display_name(app_config, workspace_root) -> Non
         repository_id=repo_id,
         archive_filename="test-09-mixed-monorepo.zip",
     )
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get("/api/v1/repositories")
     assert response.status_code == 200
     body = response.json()
@@ -545,7 +546,7 @@ def test_search_by_historical_filename(app_config, workspace_root) -> None:
         repository_id=repo_id,
         archive_filename="test-09-mixed-monorepo.zip",
     )
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get(
         "/api/v1/repositories",
         params={"search": "test-09-mixed-monorepo"},
@@ -573,7 +574,7 @@ def test_search_by_partial_historical_filename(app_config, workspace_root) -> No
         repository_id=repo_id,
         archive_filename="test-09-mixed-monorepo.zip",
     )
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get(
         "/api/v1/repositories",
         params={"search": "mixed-monorepo"},
@@ -601,7 +602,7 @@ def test_historical_filename_search_returns_no_duplicates(app_config, workspace_
     )
     _build_scan_with_workspace(repository_id=repo_id, archive_filename="duplicate-test.zip")
     _build_scan_with_workspace(repository_id=repo_id, archive_filename="duplicate-test.zip")
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get(
         "/api/v1/repositories",
         params={"search": "duplicate-test"},
@@ -626,7 +627,7 @@ def test_scan_id_search_still_works(app_config, workspace_root) -> None:
         original_filename=None,
     )
     scan_id = _build_scan_with_workspace(repository_id=repo_id, archive_filename="x.zip")
-    client = TestClient(app)
+    client = api_client(app)
     # Pure-integer token
     response = client.get("/api/v1/repositories", params={"search": str(scan_id)})
     assert response.status_code == 200
@@ -686,7 +687,7 @@ def test_new_upload_filename_takes_precedence(app_config, workspace_root) -> Non
         original_filename="fresh-upload.zip",
     )
     _build_scan_with_workspace(repository_id=repo_id, archive_filename="fresh-upload.zip")
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get("/api/v1/repositories")
     assert response.status_code == 200
     body = response.json()
@@ -734,7 +735,7 @@ def test_query_count_is_bounded(app_config, workspace_root) -> None:
 
     event.listen(engine, "before_cursor_execute", _before_cursor_execute)
     try:
-        client = TestClient(app)
+        client = api_client(app)
         response = client.get("/api/v1/repositories")
     finally:
         event.remove(engine, "before_cursor_execute", _before_cursor_execute)

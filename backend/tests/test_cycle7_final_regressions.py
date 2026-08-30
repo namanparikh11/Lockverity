@@ -69,7 +69,8 @@ from app.utils.bounded_http import (
     BoundedHttpClient,
     BoundedHttpError,
 )
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 # ---------------------------------------------------------------------------
 # 1. BoundedHttpClient generic 4xx rejection
@@ -591,7 +592,7 @@ def test_historical_reads_do_not_mutate_github_provenance(
 
     # Issue a list / detail read through the API and
     # assert the persisted value is unchanged.
-    client = TestClient(app)
+    client = api_client(app)
     try:
         response = client.get(f"/api/v1/repositories/{repo_id}")
         assert response.status_code == 200

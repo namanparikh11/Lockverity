@@ -43,6 +43,8 @@ from app.services.provider_service import (
     ProviderService,
 )
 
+from tests.api_client import api_client
+
 
 # ----------------------------------------------------------------------
 # Test fixtures
@@ -733,9 +735,8 @@ def test_enrichment_endpoint_does_not_infer_confidence(app_config) -> None:
         )
         s.commit()
     from app.main import app
-    from fastapi.testclient import TestClient
 
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/vulnerabilities")
     assert r.status_code == 200
     row = r.json()["items"][0]
@@ -865,9 +866,8 @@ def test_malformed_evidence_does_not_crash_endpoint(app_config) -> None:
         )
         s.commit()
     from app.main import app
-    from fastapi.testclient import TestClient
 
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(f"/api/v1/scans/{scan_id}/enrichments")
     assert r.status_code == 200
     row = r.json()["items"][0]

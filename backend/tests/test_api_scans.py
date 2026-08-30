@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import pytest
 from app.main import app
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 
 @pytest.fixture
 def client(app_config):
-    return TestClient(app)
+    return api_client(app)
 
 
 @pytest.fixture

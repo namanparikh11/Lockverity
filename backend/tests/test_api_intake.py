@@ -11,7 +11,8 @@ from typing import Any
 import pytest
 from app.main import app
 from app.providers import github_provider
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 
 class _FakeResponse:
@@ -84,7 +85,7 @@ def fake_client(monkeypatch) -> _FakeClient:
 
 @pytest.fixture
 def client(app_config):
-    return TestClient(app)
+    return api_client(app)
 
 
 def _build_tarball_bytes() -> bytes:

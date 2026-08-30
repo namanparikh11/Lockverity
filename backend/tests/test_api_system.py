@@ -9,11 +9,12 @@ from __future__ import annotations
 
 from app._version import __version__
 from app.main import app
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 
 def test_health_ok(app_config) -> None:
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/health")
     assert r.status_code == 200
     body = r.json()
@@ -32,14 +33,14 @@ def test_health_version_matches_system_info(app_config) -> None:
     exactly the drift this milestone's polish pass is meant to
     prevent.
     """
-    client = TestClient(app)
+    client = api_client(app)
     health = client.get("/api/v1/health").json()
     info = client.get("/api/v1/system/info").json()
     assert health["version"] == info["version"] == __version__
 
 
 def test_health_does_not_fake_providers(app_config) -> None:
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/health")
     # The health endpoint must not include provider status payloads.
     assert "providers" not in r.json()
@@ -47,7 +48,7 @@ def test_health_does_not_fake_providers(app_config) -> None:
 
 
 def test_system_info_shape(app_config) -> None:
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/system/info")
     assert r.status_code == 200
     body = r.json()

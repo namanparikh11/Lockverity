@@ -31,7 +31,8 @@ from app.main import app
 from app.models.scan_run import ScanStatus
 from app.services import scan_service
 from app.singletons import get_executor, reset_executor_for_tests
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 
 @pytest.fixture(autouse=True)
@@ -44,7 +45,7 @@ def _reset_executor():
 
 @pytest.fixture
 def client(app_config):
-    return TestClient(app)
+    return api_client(app)
 
 
 def _build_zip_with_manifest() -> bytes:

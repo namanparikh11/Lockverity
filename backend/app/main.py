@@ -36,6 +36,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import __version__
 from app.api import api_router
 from app.core.config import get_settings
+from app.core.control_plane import (
+    CONTROL_HEADER,
+    install_control_plane,
+    mint_control_token,
+)
 from app.core.errors import register_exception_handlers
 from app.db import engine
 from app.static_frontend import FrontendDistError, mount_frontend
@@ -81,15 +86,27 @@ def create_app() -> FastAPI:
         lifespan=_lifespan,
     )
 
+    # The per-process control token. It is minted here, kept only on
+    # ``app.state``, and never written to disk, logged, or serialised
+    # into any response other than the ``index.html`` this same process
+    # serves to its own window. See :mod:`app.core.control_plane`.
+    app.state.control_token = mint_control_token(settings)
+
     if settings.cors_origins:
         app.add_middleware(
             CORSMiddleware,
             allow_origins=settings.cors_origins,
             allow_credentials=False,
             allow_methods=["GET", "POST", "OPTIONS"],
-            allow_headers=["Accept", "Content-Type"],
+            allow_headers=["Accept", "Content-Type", CONTROL_HEADER],
             max_age=600,
         )
+
+    # Registered before the request-id middleware so it ends up *inside*
+    # it: by the time the policy runs, ``request.state.request_id`` is
+    # already set and a refusal can carry the same correlation id as any
+    # other error envelope.
+    app.middleware("http")(install_control_plane(app, settings=settings))
 
     @app.middleware("http")
     async def _request_id_middleware(

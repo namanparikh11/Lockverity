@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from app.main import app
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 
 def test_validation_error_envelope(app_config) -> None:
-    client = TestClient(app)
+    client = api_client(app)
     r = client.post(
         "/api/v1/repositories",
         json={"canonical_url": "not-a-url"},
@@ -23,7 +24,7 @@ def test_validation_error_envelope(app_config) -> None:
 
 def test_pydantic_validation_error_envelope(app_config) -> None:
     """Pydantic-raised validation errors also use the error envelope."""
-    client = TestClient(app)
+    client = api_client(app)
     r = client.post("/api/v1/repositories", json={})  # missing field
     assert r.status_code == 422
     body = r.json()
@@ -32,7 +33,7 @@ def test_pydantic_validation_error_envelope(app_config) -> None:
 
 
 def test_not_found_envelope(app_config) -> None:
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/repositories/9999")
     assert r.status_code == 404
     body = r.json()
@@ -41,7 +42,7 @@ def test_not_found_envelope(app_config) -> None:
 
 
 def test_request_id_round_trips(app_config) -> None:
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get(
         "/api/v1/repositories/9999",
         headers={"x-request-id": "abc-123"},
@@ -51,14 +52,14 @@ def test_request_id_round_trips(app_config) -> None:
 
 
 def test_request_id_minted_when_absent(app_config) -> None:
-    client = TestClient(app)
+    client = api_client(app)
     r = client.get("/api/v1/repositories/9999")
     assert "x-request-id" in r.headers
     assert r.json()["error"]["request_id"] == r.headers["x-request-id"]
 
 
 def test_no_stack_trace_leak(app_config) -> None:
-    client = TestClient(app)
+    client = api_client(app)
     r = client.post(
         "/api/v1/repositories",
         json={"canonical_url": "https://example.com/foo/bar"},

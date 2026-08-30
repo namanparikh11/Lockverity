@@ -41,6 +41,22 @@ class Settings(BaseSettings):
     cors_origins: list[str] = Field(default_factory=list)
     database_url: str = Field(default="sqlite:///./lockverity.sqlite")
 
+    # --- Local control plane (LV-007) ---
+    # The host and port the managing CLI bound this process to. The CLI
+    # publishes both on the child's environment (``build_server_env``),
+    # which lets the request policy pin the ``Host`` header to this
+    # instance's exact authority - including the dynamic port the GUI
+    # reserves. Both are ``None`` for a bare ``uvicorn app.main:app``,
+    # where only the loopback hostname can be checked.
+    cli_host: str | None = Field(default=None)
+    cli_port: int | None = Field(default=None)
+    # Developer-only override for the per-process control token. It lets
+    # the two-port Vite workflow (where the dev server, not this
+    # process, serves index.html) pin a token both sides know. It is
+    # ignored in production, so the shipped runtime always mints a fresh
+    # random token that never leaves memory.
+    control_token: str | None = Field(default=None)
+
     # --- Workspace ---
     workspace_root: str = Field(default="./var/workspace")
 

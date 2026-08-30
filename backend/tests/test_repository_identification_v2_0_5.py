@@ -43,7 +43,8 @@ from app.repositories import repository_repo
 from app.services import scan_service
 from app.services.workspace_service import WorkspaceService
 from app.utils.paths import basename_safely
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 # ---------------------------------------------------------------------------
 # basename_safely unit tests
@@ -274,7 +275,7 @@ def test_list_repositories_returns_scan_count(app_config, workspace_root) -> Non
     )
     _build_scan(app_config, workspace_root, repository_id=repo_id, status=ScanStatus.COMPLETED)
     _build_scan(app_config, workspace_root, repository_id=repo_id, status=ScanStatus.PARTIAL)
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get("/api/v1/repositories")
     assert response.status_code == 200
     body = response.json()
@@ -304,7 +305,7 @@ def test_list_repositories_latest_scan_uses_largest_id(app_config, workspace_roo
     second = _build_scan(
         app_config, workspace_root, repository_id=repo_id, status=ScanStatus.COMPLETED
     )
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get("/api/v1/repositories")
     target = next(item for item in response.json()["items"] if item["id"] == repo_id)
     assert target["summary"]["latest_scan"]["id"] == second
@@ -320,7 +321,7 @@ def test_list_repositories_no_scans_returns_zero_summary(app_config, workspace_r
         source_type=RepositorySourceType.UPLOADED_ARCHIVE,
         original_filename="never-scanned.zip",
     )
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get("/api/v1/repositories")
     target = next(item for item in response.json()["items"] if item["id"] == repo_id)
     assert target["summary"]["scan_count"] == 0
@@ -343,7 +344,7 @@ def test_list_repositories_search_by_filename(app_config, workspace_root) -> Non
         name="Hello-World",
         source_type=RepositorySourceType.GITHUB,
     )
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get("/api/v1/repositories?search=test-09-mixed-monorepo")
     assert response.status_code == 200
     body = response.json()
@@ -366,7 +367,7 @@ def test_list_repositories_search_by_github_owner_name(app_config, workspace_roo
         source_type=RepositorySourceType.UPLOADED_ARCHIVE,
         original_filename="x.zip",
     )
-    client = TestClient(app)
+    client = api_client(app)
     # Search by the unique ``name`` segment; the ``ilike``
     # predicate matches both ``Hello-World`` and the GitHub
     # canonical URL fragment.
@@ -392,7 +393,7 @@ def test_list_repositories_search_by_canonical_upload_key(app_config, workspace_
         name="Hello-World",
         source_type=RepositorySourceType.GITHUB,
     )
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get("/api/v1/repositories?search=zzz123")
     assert response.status_code == 200
     body = response.json()
@@ -418,7 +419,7 @@ def test_list_repositories_search_by_scan_id(app_config, workspace_root) -> None
     target_scan = _build_scan(
         app_config, workspace_root, repository_id=target_repo, status=ScanStatus.COMPLETED
     )
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get(f"/api/v1/repositories?search={target_scan}")
     assert response.status_code == 200
     body = response.json()
@@ -445,7 +446,7 @@ def test_list_repositories_search_by_hash_scan_id(app_config, workspace_root) ->
     target_scan = _build_scan(
         app_config, workspace_root, repository_id=target_repo, status=ScanStatus.COMPLETED
     )
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get(f"/api/v1/repositories?search=%23{target_scan}")
     assert response.status_code == 200
     body = response.json()
@@ -475,7 +476,7 @@ def test_list_repositories_search_does_not_duplicate_when_multiple_scans_match(
     )
     _build_scan(app_config, workspace_root, repository_id=repo_id, status=ScanStatus.COMPLETED)
     _build_scan(app_config, workspace_root, repository_id=repo_id, status=ScanStatus.COMPLETED)
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get(f"/api/v1/repositories?search={scan_id}")
     body = response.json()
     matches = [item for item in body["items"] if item["id"] == repo_id]
@@ -492,7 +493,7 @@ def test_list_repositories_pagination_remains_correct(app_config, workspace_root
             source_type=RepositorySourceType.UPLOADED_ARCHIVE,
             original_filename=f"page-{i:02d}.zip",
         )
-    client = TestClient(app)
+    client = api_client(app)
     page1 = client.get("/api/v1/repositories?page=1&page_size=2")
     page2 = client.get("/api/v1/repositories?page=2&page_size=2")
     page3 = client.get("/api/v1/repositories?page=3&page_size=2")
@@ -523,7 +524,7 @@ def test_list_repositories_provider_isolation_remains_correct(app_config, worksp
     b_scan = _build_scan(
         app_config, workspace_root, repository_id=b_id, status=ScanStatus.COMPLETED
     )
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get("/api/v1/repositories")
     body = response.json()
     a_row = next(item for item in body["items"] if item["id"] == a_id)
@@ -622,7 +623,7 @@ def test_repository_search_does_not_emit_n_plus_1(app_config, workspace_root) ->
     def _count(conn, cursor, statement, parameters, context, executemany):
         counter["n"] += 1
 
-    client = TestClient(app)
+    client = api_client(app)
     with _db_session.SessionLocal() as s:
         event.listen(s.bind, "before_cursor_execute", _count)
         try:

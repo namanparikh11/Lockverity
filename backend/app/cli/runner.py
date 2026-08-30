@@ -504,6 +504,84 @@ def build_server_env(
 # ---------------------------------------------------------------------------
 
 
+def validate_explicit_port(port: int) -> None:
+    """Raise unless ``port`` is a concrete port this CLI can manage.
+
+    The CLI only ever launches a child on a port it names explicitly, so
+    the valid range is ``1..65535``. Port ``0`` is rejected (LV-013):
+    Uvicorn would honour it by asking the kernel for an ephemeral port,
+    but every part of the parent's lifecycle - the readiness probe, the
+    recorded state file, ``status``, ``stop`` - is built around the port
+    the CLI *asked for*. The parent would health-check port 0, never get
+    a response, clear the runtime state, and leave a live backend on a
+    port nothing had recorded, with no way to stop it short of the task
+    manager.
+
+    Dynamic ports are not lost by this: the desktop GUI has its own
+    race-free reservation path
+    (:func:`app.cli.port_reservation.reserve_loopback_port`) that binds
+    the socket *first* and hands the runner the real port, so the runner
+    always sees a concrete value. There is no supported use for
+    ``--port 0`` on the CLI.
+
+    The check runs before the frontend dist is validated, before the
+    runtime home is created, before migrations, and before any child is
+    spawned, so a rejected invocation touches nothing.
+    """
+    if not isinstance(port, int) or isinstance(port, bool):
+        raise RuntimeError(f"port must be an integer, got {port!r}")
+    if port == 0:
+        raise RuntimeError(
+            "port 0 is not supported: the CLI manages a child by the port "
+            "it was given, and an ephemeral port chosen by the kernel "
+            "cannot be health-checked, recorded, or stopped. Pass a "
+            "concrete port in 1..65535 (default: "
+            f"{DEFAULT_PORT})."
+        )
+    if not (1 <= port <= 65535):
+        raise RuntimeError(f"port {port} is outside the valid range 1..65535")
+
+
+def _terminate_unmanaged_child(
+    process_handle: subprocess.Popen[bytes],
+    *,
+    instance_id: str,
+    cli_logger: object,
+) -> bool:
+    """Stop and reap a child the parent is about to stop tracking.
+
+    Called on the one path where the parent gives up on a child it
+    created: the detached child bound its port but never reported
+    healthy. Historically the parent cleared the runtime state and
+    returned, which left a live backend with no recorded state - the
+    orphan LV-013 describes. Whatever the reason for the readiness
+    failure, a child the parent will not record is a child the parent
+    must not leave behind.
+
+    Escalates the same way ``stop`` does: graceful signal, grace period,
+    then force. Returns ``True`` if the child is gone.
+    """
+    pid = process_handle.pid
+    logger_obj = cli_logger
+    if terminate_process(pid, timeout=10.0, instance_id=instance_id):
+        with contextlib.suppress(Exception):
+            process_handle.wait(timeout=1.0)
+        return True
+    getattr(logger_obj, "warning", lambda *a, **k: None)(
+        "start: unhealthy child pid=%d did not stop gracefully; forcing", pid
+    )
+    forced = force_terminate_process(pid, timeout=5.0)
+    with contextlib.suppress(Exception):
+        # Reap the child so it does not linger as a zombie on POSIX.
+        process_handle.wait(timeout=1.0)
+    if not forced:
+        getattr(logger_obj, "error", lambda *a, **k: None)(
+            "start: unhealthy child pid=%d could not be terminated; stop it manually",
+            pid,
+        )
+    return forced
+
+
 def _ensure_no_existing_instance(home: Path) -> None:
     """Refuse to start if a state file points to a live, matching instance.
 
@@ -601,8 +679,9 @@ def start(
             "TLS; do not expose it beyond localhost without a reverse "
             "proxy)."
         )
-    if not (0 <= port <= 65535):
-        raise RuntimeError(f"port {port} is outside 0..65535")
+    # LV-013: the port must be a concrete, bindable port *before* any
+    # child is created. See :func:`validate_explicit_port`.
+    validate_explicit_port(port)
     if frontend_dist is None:
         # Default to the Part B1 settings value, which
         # resolves ``frontend/dist`` against the
@@ -735,9 +814,7 @@ def start(
             try:
                 bound = prebound_socket.getsockname()
             except OSError as exc:
-                raise RuntimeError(
-                    f"the GUI-owned pre-bound socket is not bound: {exc}"
-                ) from exc
+                raise RuntimeError(f"the GUI-owned pre-bound socket is not bound: {exc}") from exc
             if len(bound) < 2:
                 raise RuntimeError(
                     "the GUI-owned pre-bound socket does not expose a port; "
@@ -850,6 +927,16 @@ def start(
                 port,
                 get_settings().api_prefix,
                 timeout,
+            )
+            # LV-013: the parent is about to stop tracking this child,
+            # so it must not leave it running. Without this, a child
+            # that bound its port but never reported healthy survived
+            # with no state file - unreachable by ``stop`` and
+            # invisible to ``status``.
+            _terminate_unmanaged_child(
+                process_handle,
+                instance_id=instance_id,
+                cli_logger=cli_logger,
             )
             clear_state(home)
             return StartResult(
@@ -1296,11 +1383,7 @@ def _start_foreground(
         kwargs["stdout"] = None  # inherit
         kwargs["stderr"] = None  # inherit
     proc = subprocess.Popen(argv, **kwargs)
-    if (
-        prebound_socket is not None
-        and proc.stdin is not None
-        and sys.platform == "win32"
-    ):
+    if prebound_socket is not None and proc.stdin is not None and sys.platform == "win32":
         from app.cli.port_reservation import share_socket_to_subprocess
 
         try:
@@ -1659,9 +1742,7 @@ def stop(
     # path below is the authoritative shutdown.
     if state.module == "app.cli._serve":
         if signal_gui_stop():
-            cli_logger.info(
-                "stop: signaled running desktop GUI to self-terminate"
-            )
+            cli_logger.info("stop: signaled running desktop GUI to self-terminate")
         # Give the GUI a brief grace period to start its own
         # shutdown (close the WebView, run its ``finally`` block,
         # which calls ``supervisor.shutdown`` to terminate the
@@ -1916,4 +1997,5 @@ __all__ = [
     "run_migrations",
     "start",
     "stop",
+    "validate_explicit_port",
 ]

@@ -17,12 +17,13 @@ from app.models.finding import (
 from app.models.scan_run import ScanTriggerType
 from app.services import repository_service, scan_service
 from app.utils.finding_keys import stable_finding_key
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 
 @pytest.fixture
 def client(app_config):
-    return TestClient(app)
+    return api_client(app)
 
 
 def _seed_two_scans_with_findings(session) -> tuple[int, int]:

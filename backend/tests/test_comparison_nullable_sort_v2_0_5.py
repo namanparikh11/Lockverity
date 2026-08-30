@@ -64,7 +64,8 @@ from app.services.comparison_service import (
     _nullable_key_sort_key,
     compare_scans,
 )
-from fastapi.testclient import TestClient
+
+from tests.api_client import api_client
 
 # ---------------------------------------------------------------------------
 # Unit tests for the sort key helper
@@ -498,7 +499,7 @@ def test_api_compare_endpoint_returns_200_for_nullable_fixture(app_config, works
         base_components=[("pypi", "requests", None, True)],
         head_components=[("pypi", "requests", "2.32.3", True)],
     )
-    client = TestClient(app)
+    client = api_client(app)
     response = client.get(f"/api/v1/scans/{head_id}/compare/{base_id}")
     assert response.status_code == 200, response.text
     body = response.json()

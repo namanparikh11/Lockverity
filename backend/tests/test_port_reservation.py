@@ -217,8 +217,7 @@ def _round_trip_via_subprocess(sock: socket.socket, expected_port: int) -> None:
         if proc.poll() is None:
             proc.kill()
     assert proc.returncode == 0, (
-        f"helper subprocess failed (rc={proc.returncode}): "
-        f"stdout={stdout!r} stderr={stderr!r}"
+        f"helper subprocess failed (rc={proc.returncode}): stdout={stdout!r} stderr={stderr!r}"
     )
     assert stdout.decode("ascii").strip() == f"127.0.0.1:{expected_port}"
 
@@ -255,9 +254,8 @@ def test_runner_start_background_honours_explicit_cli_port() -> None:
         monkeypatch.setattr(cli_runner, "run_migrations", lambda url: None)
         # Patch the health-probe helper so the
         # runner does not depend on a real Uvicorn.
-        monkeypatch.setattr(
-            cli_runner, "_wait_for_health", lambda host, port, timeout: True
-        )
+        monkeypatch.setattr(cli_runner, "_wait_for_health", lambda host, port, timeout: True)
+
         # Patch the ``_launch_detached`` helper so
         # the test does not spawn a real
         # ``python -m app.cli._serve`` child. The

@@ -48,9 +48,15 @@ def test_rejects_excessive_depth() -> None:
 
 
 def test_rejects_huge_collection() -> None:
+    # The payload must be bytes: a str input trips the bytes-type guard
+    # before the document is ever parsed, which is how an earlier
+    # version of this test passed without exercising the collection
+    # budget at all. The match pins the rejection to the collection
+    # limiter's own message so the wrong guard cannot satisfy it again.
     items = ",".join(f'"{i}"' for i in range(500))
-    with pytest.raises(BoundedYamlError):
-        safe_load_yaml_bytes(f"[{items}]", max_collection_items=100)
+    payload = f"[{items}]".encode("ascii")
+    with pytest.raises(BoundedYamlError, match="sequence has 500 items; max is 100"):
+        safe_load_yaml_bytes(payload, max_collection_items=100)
 
 
 def test_rejects_non_bytes() -> None:

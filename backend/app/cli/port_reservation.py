@@ -104,9 +104,7 @@ def reserve_loopback_port(*, host: str = LOOPBACK_HOST) -> tuple[socket.socket, 
         sock.bind((host, 0))
     except OSError as exc:
         sock.close()
-        raise PortReservationError(
-            f"could not reserve a loopback port on {host!r}: {exc}"
-        ) from exc
+        raise PortReservationError(f"could not reserve a loopback port on {host!r}: {exc}") from exc
     sock.listen(128)
     _bound_host, bound_port = sock.getsockname()[:2]
     return sock, int(bound_port)

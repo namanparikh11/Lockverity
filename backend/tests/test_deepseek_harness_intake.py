@@ -138,9 +138,7 @@ def test_deepseek_harness_intake_continues_with_skipped_symlink(
     # contributed to the file count.
     assert len(result.skipped_symlinks) == 1
     skipped = result.skipped_symlinks[0]
-    assert skipped.path == (
-        "deepseek-harness/.agents/notes/implemented/CLAUDE.md"
-    )
+    assert skipped.path == ("deepseek-harness/.agents/notes/implemented/CLAUDE.md")
     # Resolution calculation (documented in the
     # module docstring above):
     #   posixpath.dirname("deepseek-harness/.agents/notes/implemented/CLAUDE.md")
@@ -161,8 +159,7 @@ def test_deepseek_harness_intake_continues_with_skipped_symlink(
     # archive namespace (no leading ``..``, no
     # absolute prefix, no drive letter, no UNC).
     assert not skipped.target.startswith("/"), (
-        "the classifier must reject POSIX-absolute symlink targets; "
-        f"got {skipped.target!r}"
+        f"the classifier must reject POSIX-absolute symlink targets; got {skipped.target!r}"
     )
     assert not skipped.target.startswith(".."), (
         "the classifier must reject symlink targets that escape "
@@ -184,9 +181,7 @@ def test_deepseek_harness_intake_continues_with_skipped_symlink(
     # symlink in the extracted workspace.
     for candidate in contents.rglob("*"):
         assert not candidate.is_symlink(), (
-            "the intake layer must not materialise "
-            "filesystem symlinks; found one at "
-            f"{candidate}"
+            f"the intake layer must not materialise filesystem symlinks; found one at {candidate}"
         )
 
 

@@ -220,9 +220,7 @@ class DesktopBackendSupervisor:
                 prebound_socket=self.prebound_socket,
             )
             if self.ready.is_set() and not self.shutdown_requested.is_set():
-                self.error = BackendUnexpectedExitError(
-                    "the local backend stopped unexpectedly"
-                )
+                self.error = BackendUnexpectedExitError("the local backend stopped unexpectedly")
         except BaseException as exc:  # worker must report every startup/child failure
             self.error = exc
         finally:
@@ -230,9 +228,7 @@ class DesktopBackendSupervisor:
 
     def wait_until_ready(self) -> bool:
         deadline = time.monotonic() + self.timeout
-        logger.info(
-            "WebView startup: wait_until_ready entered timeout=%.1fs", self.timeout
-        )
+        logger.info("WebView startup: wait_until_ready entered timeout=%.1fs", self.timeout)
         polls = 0
         while time.monotonic() < deadline:
             if self.ready.wait(timeout=0.05):
@@ -464,6 +460,7 @@ def _pywebview_version() -> str:
         return str(version)
     try:
         from importlib.metadata import version as _md_version  # type: ignore
+
         return _md_version("pywebview")
     except Exception as exc:  # pragma: no cover - metadata-failure path
         return f"unknown ({type(exc).__name__})"

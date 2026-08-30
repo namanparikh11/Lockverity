@@ -68,7 +68,8 @@ def test_code_signing_policy_is_bounded_and_current() -> None:
     policy = _read("docs/code-signing-policy.md")
     assert "Lockverity v2.1.2 is currently unsigned" in policy
     assert "There is no current SignPath-signed Lockverity release" in policy
-    assert "Free code signing provided by SignPath.io, certificate by SignPath Foundation" in policy
+    assert "SignPath Foundation approval was not obtained" in policy
+    assert "Lockverity has no SignPath signing integration" in policy
     assert "portable ZIP itself does not receive Authenticode" in policy
     assert "definitive artifact configuration is present today" in policy
     assert "immutable source tag is not moved" in policy

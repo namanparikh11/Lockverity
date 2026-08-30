@@ -7,13 +7,14 @@ strictly; development configuration has safe defaults.
 
 from __future__ import annotations
 
+import json
 import sys
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 from app._version import __version__
 
@@ -38,7 +39,15 @@ class Settings(BaseSettings):
     # --- Core runtime ---
     environment: Environment = Field(default="development")
     api_prefix: str = Field(default="/api/v1")
-    cors_origins: list[str] = Field(default_factory=list)
+    # ``NoDecode`` stops pydantic-settings from JSON-decoding the raw
+    # environment string before the ``_split_cors_origins`` validator
+    # runs. Without it, the documented comma-separated form
+    # (``LOCKVERITY_CORS_ORIGINS=https://a,https://b``) raises
+    # ``SettingsError`` in ``EnvSettingsSource`` before any validator
+    # can handle it, because ``list[str]`` is a "complex" field that
+    # the source tries to ``json.loads`` first. The validator below is
+    # then the single place that parses both accepted spellings.
+    cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
     database_url: str = Field(default="sqlite:///./lockverity.sqlite")
 
     # --- Local control plane (LV-007) ---
@@ -147,15 +156,42 @@ class Settings(BaseSettings):
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_cors_origins(cls, value: object) -> object:
-        """Allow comma-separated CORS origins in env.
+        """Allow comma-separated or JSON-list CORS origins in env.
 
         ``LOCKVERITY_CORS_ORIGINS="https://a.example,https://b.example"``
-        is easier to maintain in deployment than a JSON list.
+        is easier to maintain in deployment than a JSON list, and is the
+        form documented in ``.env.example``. The field is annotated with
+        ``NoDecode``, so this validator receives the raw environment
+        string and must decode a JSON list itself: a value that begins
+        like a JSON document is parsed as JSON, anything else is split
+        on commas. Whitespace around entries is trimmed and empty
+        entries are dropped. Values that are not strings (init
+        arguments, the default factory) pass through untouched.
         """
         if isinstance(value, str):
             stripped = value.strip()
             if not stripped:
                 return []
+            # A CORS origin never begins with ``[``, ``{``, or ``"``, so
+            # a value that does is an attempt at the JSON form. Parsing
+            # it here (and letting pydantic reject anything that is not
+            # a list of strings) keeps a mis-quoted value a loud
+            # startup error instead of a silent origin that can never
+            # match a real ``Origin`` header.
+            if stripped.startswith(("[", "{", '"')):
+                try:
+                    decoded = json.loads(stripped)
+                except json.JSONDecodeError as exc:
+                    raise ValueError(
+                        "cors_origins must be a JSON list or a comma-separated list of origins."
+                    ) from exc
+                if isinstance(decoded, list) and all(isinstance(item, str) for item in decoded):
+                    return [item.strip() for item in decoded if item.strip()]
+                # Non-list JSON or non-string items fall through to
+                # pydantic's list[str] validation, which rejects them -
+                # the same outcome the pre-``NoDecode`` JSON decoding
+                # produced.
+                return decoded
             return [item.strip() for item in stripped.split(",") if item.strip()]
         return value
 

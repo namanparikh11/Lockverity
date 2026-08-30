@@ -27,9 +27,9 @@ release.
 - [Code signing policy](code-signing-policy.md)
 - [Privacy policy](privacy.md)
 
-Lockverity v2.1.2 is unsigned. Lockverity is preparing an application
-to the SignPath Foundation Open Source code-signing program; no
-SignPath-signed Lockverity release currently exists.
+Lockverity v2.1.2 is unsigned. SignPath Foundation approval was not
+obtained; Lockverity has no code-signing integration, and no
+SignPath-signed release exists.
 
 > **Code → Download ZIP** downloads the Lockverity **source code**.
 > It is not the Windows installer and is not the Windows portable.

@@ -96,9 +96,7 @@ def test_normal_gui_waits_for_readiness_never_opens_default_browser_and_shuts_do
             assert kwargs.get("prebound_socket") is not None
             prebound_socket = kwargs.get("prebound_socket")
             captured["port"] = int(kwargs["port"])
-            captured["prebound_socket_port"] = int(
-                prebound_socket.getsockname()[1]
-            )
+            captured["prebound_socket_port"] = int(prebound_socket.getsockname()[1])
             self.error = None
             self.home = fake_home
             self.host = "127.0.0.1"
@@ -487,10 +485,7 @@ def test_gui_stop_event_handling_is_wired() -> None:
     # The launcher either references STOP_EVENT_NAME directly or
     # imports it from the shared gui_stop module; both routes
     # exercise the documented event.
-    assert (
-        STOP_EVENT_NAME in source
-        or "from app.cli.gui_stop import" in source
-    ), (
+    assert STOP_EVENT_NAME in source or "from app.cli.gui_stop import" in source, (
         f"Launcher must reference or import the documented stop event {STOP_EVENT_NAME}."
     )
     assert "_poll_stop_event" in source, (

@@ -2,8 +2,7 @@
 
 - Lockverity v2.1.2 is currently unsigned.
 - The Windows installer and the PE executables distributed inside the portable package are currently unsigned. The portable ZIP itself does not receive Authenticode signing.
-- Lockverity is preparing an application to the SignPath Foundation Open Source code-signing program. There is no current SignPath-signed Lockverity release.
-- If the application is accepted, attribution will read: "Free code signing provided by SignPath.io, certificate by SignPath Foundation".
+- SignPath Foundation approval was not obtained and Lockverity has no SignPath signing integration. There is no current SignPath-signed Lockverity release.
 - Committers and reviewers: Naman Parikh ([@namanparikh11](https://github.com/namanparikh11)).
 - Approvers: Naman Parikh ([@namanparikh11](https://github.com/namanparikh11)).
 - [Privacy policy](privacy.md).

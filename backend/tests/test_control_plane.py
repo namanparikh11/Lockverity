@@ -373,6 +373,85 @@ def test_read_responses_never_carry_the_token(raw_client: TestClient, token: str
 # ---------------------------------------------------------------------------
 # Coverage: every mutating route is under the policy
 # ---------------------------------------------------------------------------
+# FastAPI >= 0.139 returns lazy ``_IncludedRouter`` wrappers from
+# ``app.routes`` for routers added via ``include_router``; the wrappers
+# expose no ``.methods``/``.path``, so the original ``route.methods``
+# walk silently discovered zero mutating routes and both inventory
+# tests went green-vacuous. Discovery is now dual-source so it cannot
+# go quietly blind again:
+
+
+def _schema_mutations(app: Any) -> dict[str, set[str]]:
+    """Return ``{full_path: mutating_methods}`` from ``app.openapi()``.
+
+    The OpenAPI path table is the public, version-stable view of every
+    operation the application serves, so it is the primary discovery
+    source.
+    """
+    paths = app.openapi().get("paths") or {}
+    assert paths, "app.openapi() returned no paths; route discovery is blind."
+    mutations: dict[str, set[str]] = {}
+    for path, operations in paths.items():
+        methods = {op.upper() for op in operations if op.upper() in MUTATING_METHODS}
+        if methods:
+            mutations[path] = methods
+    assert mutations, "app.openapi() lists no mutating operations; route discovery is blind."
+    return mutations
+
+
+def _routing_table_mutations(app: Any) -> dict[str, set[str]]:
+    """Return ``{full_path: mutating_methods}`` from the routing table.
+
+    Walks ``app.routes`` directly: plain routes carry ``.methods`` and
+    ``.path`` themselves, and the lazy router wrappers of newer FastAPI
+    releases expose their resolved per-route contexts through
+    ``effective_route_contexts`` (absent on older versions, whose plain
+    routes are already complete). This is a private FastAPI detail, so
+    it is only ever a cross-check - never the primary source.
+    """
+    mutations: dict[str, set[str]] = {}
+    for entry in app.routes:
+        # A wrapper resolves to its contexts; a plain route stands for
+        # itself. Both shapes carry ``.methods`` and ``.path``.
+        holders: Any = (
+            entry.effective_route_contexts()
+            if callable(getattr(entry, "effective_route_contexts", None))
+            else (entry,)
+        )
+        for holder in holders:
+            methods = getattr(holder, "methods", None)
+            path = getattr(holder, "path", None)
+            if not methods or not path:
+                continue
+            mutating = set(methods) & MUTATING_METHODS
+            if mutating:
+                mutations.setdefault(path, set()).update(mutating)
+    assert mutations, (
+        "structural routing-table walk found no mutating routes; route discovery is blind."
+    )
+    return mutations
+
+
+def _mutating_routes(app: Any) -> dict[str, set[str]]:
+    """Discover the application's real mutating routes, dual-source.
+
+    The two sources must agree exactly: a mutation the routing table
+    has but the schema lacks would be a route hidden from review (for
+    example via ``include_in_schema=False``), and a mutation only the
+    schema has would mean the walk no longer sees the real table.
+    Either mismatch - or an empty source - fails loudly rather than
+    letting the coverage gate pass vacuously.
+    """
+    schema = _schema_mutations(app)
+    routing = _routing_table_mutations(app)
+    schema_only = sorted(set(schema) - set(routing))
+    assert not schema_only, f"schema lists mutations the routing table does not: {schema_only}"
+    hidden = sorted(set(routing) - set(schema))
+    assert not hidden, (
+        "mutating routes missing from the OpenAPI schema (include_in_schema"
+        f"=False?) would escape review: {hidden}"
+    )
+    return schema
 
 
 def test_route_inventory_matches_the_application(app: Any) -> None:
@@ -386,14 +465,15 @@ def test_route_inventory_matches_the_application(app: Any) -> None:
     here.
     """
     prefix = get_settings().api_prefix
-    discovered = {
-        route.path[len(prefix) :]
-        for route in app.routes
-        if getattr(route, "methods", None)
-        and set(route.methods) & MUTATING_METHODS
-        and route.path.startswith(prefix)
-    }
+    discovered_all = _mutating_routes(app)
+    # A mutation outside the API prefix would fall outside the reviewed
+    # inventory's vocabulary, so it must fail here rather than be
+    # filtered away silently.
+    off_prefix = sorted(path for path in discovered_all if not path.startswith(prefix))
+    assert not off_prefix, f"mutating routes outside {prefix}: {off_prefix}"
+    discovered = {path[len(prefix) :] for path in discovered_all}
     assert discovered == set(STATE_CHANGING_ROUTES)
+    assert STATE_CHANGING_ROUTES, "the reviewed inventory must not be empty."
 
 
 def test_every_mutating_route_refuses_an_untokened_request(
@@ -404,24 +484,21 @@ def test_every_mutating_route_refuses_an_untokened_request(
     A 403 with a control reason proves the policy fired. Anything else
     (404, 422, 200) would mean the request reached routing.
     """
-    prefix = get_settings().api_prefix
-    checked = 0
-    for route in app.routes:
-        methods = set(getattr(route, "methods", None) or ())
-        if not methods & MUTATING_METHODS or not route.path.startswith(prefix):
-            continue
+    mutations = _mutating_routes(app)
+    checked: set[str] = set()
+    for path, methods in sorted(mutations.items()):
         # Substitute any path parameter with a plausible id; the request
         # must be refused before the id is ever looked up.
-        concrete = route.path
+        concrete = path
         for name in ("repository_id", "scan_id"):
             concrete = concrete.replace("{" + name + "}", "1")
-        assert "{" not in concrete, f"unhandled path parameter in {route.path}"
+        assert "{" not in concrete, f"unhandled path parameter in {path}"
         for method in sorted(methods & MUTATING_METHODS):
             response = raw_client.request(method, concrete)
             assert response.status_code == 403, f"{method} {concrete}"
             assert response.json()["error"]["details"]["reason"].startswith("control_")
-            checked += 1
-    assert checked == len(STATE_CHANGING_ROUTES)
+        checked.add(path)
+    assert checked == set(mutations), "some discovered mutating route was not exercised"
 
 
 # ---------------------------------------------------------------------------

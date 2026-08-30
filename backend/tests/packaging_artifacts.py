@@ -43,9 +43,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # release check may resolve artifacts from.
 CANONICAL_PACKAGING_DIR = REPO_ROOT / "build" / "packaging"
 
-# The canonical portable name produced by the v2.1.2 portable
+# The canonical portable name produced by the v2.1.3 portable
 # build (``DEFAULT_PORTABLE_NAME`` in the build script).
-PORTABLE_NAME = "Lockverity-2.1.2-windows-x64-portable"
+PORTABLE_NAME = "Lockverity-2.1.3-windows-x64-portable"
 
 # The full canonical portable root. Use this constant in skip /
 # failure messages so the operator always sees the exact path

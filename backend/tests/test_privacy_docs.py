@@ -66,7 +66,7 @@ def test_new_policy_relative_links_resolve() -> None:
 
 def test_code_signing_policy_is_bounded_and_current() -> None:
     policy = _read("docs/code-signing-policy.md")
-    assert "Lockverity v2.1.2 is currently unsigned" in policy
+    assert "Lockverity v2.1.3 is currently unsigned" in policy
     assert "There is no current SignPath-signed Lockverity release" in policy
     assert "SignPath Foundation approval was not obtained" in policy
     assert "Lockverity has no SignPath signing integration" in policy

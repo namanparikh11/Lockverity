@@ -46,7 +46,7 @@ PRIVACY_FILE = REPO_ROOT / "docs" / "privacy.md"
 PORTABLE_BUILD_SCRIPT = BACKEND_ROOT / "scripts" / "build_windows_portable.py"
 
 STABLE_APP_ID = "{E5B0C0F4-7C42-4D6A-9B17-1A2B3C4D5E6F}"
-APP_VERSION = "2.1.2"
+APP_VERSION = "2.1.3"
 
 # In the new provenance design, the build script captures
 # the installer build's current ``git rev-parse HEAD`` at
@@ -128,10 +128,10 @@ class TestInstallerSourceContract:
             "MyAppName must be defined as 'Lockverity'"
         )
 
-    def test_app_version_2_1_2(self) -> None:
+    def test_app_version_2_1_3(self) -> None:
         text = _iss_text()
-        assert re.search(r'#define\s+MyAppVersion\s+"2\.1\.2"', text), (
-            "MyAppVersion must be the v2.1.2 accepted version"
+        assert re.search(r'#define\s+MyAppVersion\s+"2\.1\.3"', text), (
+            "MyAppVersion must be the v2.1.3 accepted version"
         )
         assert re.search(r"AppVersion=\{#MyAppVersion\}", text), (
             "AppVersion must reference MyAppVersion"

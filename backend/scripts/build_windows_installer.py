@@ -70,7 +70,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 BACKEND_ROOT = REPO_ROOT / "backend"
 INSTALLER_DIR = BACKEND_ROOT / "installer"
 ISS_SOURCE = INSTALLER_DIR / "lockverity.iss"
-PAYLOAD_NAME = "Lockverity-2.1.2-windows-x64-portable"
+PAYLOAD_NAME = "Lockverity-2.1.3-windows-x64-portable"
 DEFAULT_PAYLOAD_ZIP = REPO_ROOT / "build" / "packaging" / f"{PAYLOAD_NAME}.zip"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "build" / "installer"
 DEFAULT_STAGING_DIR = DEFAULT_OUTPUT_DIR / "staging"
@@ -80,7 +80,7 @@ PAYLOAD_DIR_NAME = "app"
 # script is a sanity-check only; the .iss source is the
 # authoritative declaration of the per-user uninstaller key.
 STABLE_APP_ID = "{E5B0C0F4-7C42-4D6A-9B17-1A2B3C4D5E6F}"
-APP_VERSION = "2.1.2"
+APP_VERSION = "2.1.3"
 # Inno Setup 6.7.3 is the only trusted compiler for this build.
 # The compiler is installed under the current user's LocalAppData
 # when fetched via the recommended publisher (jrsoftware.org).

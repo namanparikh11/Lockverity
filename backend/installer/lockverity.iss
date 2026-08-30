@@ -26,7 +26,7 @@
 
 #define MyAppName "Lockverity"
 #define MyAppDisplayName "Lockverity"
-#define MyAppVersion "2.1.2"
+#define MyAppVersion "2.1.3"
 #define MyAppPublisher "Lockverity Contributors"
 #define MyAppURL "https://github.com/namanparikh11/lockverity"
 #define MyAppCopyright "(C) Lockverity Contributors"

@@ -28,7 +28,7 @@ export function DemoHomePage() {
     <>
       <PageHeader
         title="Local demo"
-        description="A 60-second guided walkthrough of the Lockverity v2.1.2 demo. The five pages below cover every v0.5–v2.1.2 surface; the live demo is the canonical evidence."
+        description="A 60-second guided walkthrough of the Lockverity v2.1.3 demo. The five pages below cover every v0.5–v2.1.2 surface; the live demo is the canonical evidence."
         breadcrumbs={[{ label: "Demo" }]}
       />
       <div className="space-y-6">

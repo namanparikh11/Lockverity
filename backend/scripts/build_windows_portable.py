@@ -84,7 +84,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 BACKEND_ROOT = REPO_ROOT / "backend"
 PYINSTALLER_DIR = BACKEND_ROOT / "pyinstaller"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "build" / "packaging"
-DEFAULT_PORTABLE_NAME = "Lockverity-2.1.2-windows-x64-portable"
+DEFAULT_PORTABLE_NAME = "Lockverity-2.1.3-windows-x64-portable"
 PORTABLE_ZIP_NAME = f"{DEFAULT_PORTABLE_NAME}.zip"
 
 # Source tree roots that are bundled into the portable

@@ -31,8 +31,10 @@ from app.exporters._common import (
     component_purl,
     fetch_components,
     fetch_findings,
+    fetch_observations,
     format_iso_utc,
     get_scan_or_raise,
+    provider_coverage_summary,
 )
 from app.models.component import Component
 from app.models.dependency_edge import DependencyEdge
@@ -75,13 +77,14 @@ class CycloneDxExporter:
                 )
             components = fetch_components(session, scan_run_id)
             findings = fetch_findings(session, scan_run_id)
+            observations = fetch_observations(session, scan_run_id)
             edges = (
                 session.query(DependencyEdge)
                 .filter(DependencyEdge.scan_run_id == scan_run_id)
                 .order_by(DependencyEdge.id.asc())
                 .all()
             )
-            bom = self._build_bom(scan, components, findings, edges)
+            bom = self._build_bom(scan, components, findings, edges, observations)
         finally:
             session.close()
         try:
@@ -105,10 +108,20 @@ class CycloneDxExporter:
         components: list[Component],
         findings: list[Finding],
         edges: list[DependencyEdge],
+        observations,
     ) -> dict[str, Any]:
         components_block = [self._component_to_cdx(c) for c in components]
         dependencies_block = self._build_dependencies(components, edges)
         vulnerabilities_block = self._build_vulnerabilities(findings)
+        # Evidence-honesty contract: an empty
+        # ``vulnerabilities`` array is only a verified clean
+        # result when the external evidence providers actually
+        # answered. The coverage markers are standard
+        # CycloneDX ``metadata.properties`` name/value pairs
+        # (the same representation the 1.7 exporter uses at
+        # the top level); they add no components and never
+        # fabricate a vulnerability entry.
+        coverage_label, provider_status = provider_coverage_summary(scan, observations)
         return {
             "bomFormat": "CycloneDX",
             "specVersion": CYCLONEDX_SPEC_VERSION,
@@ -132,6 +145,8 @@ class CycloneDxExporter:
                 "properties": [
                     {"name": "lockverity:scan_run_id", "value": str(scan.id)},
                     {"name": "lockverity:scan_status", "value": scan.status.value},
+                    {"name": "lockverity:provider-coverage", "value": coverage_label},
+                    {"name": "lockverity:provider-status", "value": provider_status},
                 ],
             },
             "components": components_block,

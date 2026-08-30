@@ -24,6 +24,7 @@ def list_provider_observations(
     page: int,
     page_size: int,
     status: ProviderStatus | None = None,
+    provider: str | None = None,
 ) -> tuple[Sequence[ProviderObservation], int]:
     scan_service.get_scan_or_404(session, scan_id)
     return observation_repo.list_observations_for_scan(
@@ -32,6 +33,7 @@ def list_provider_observations(
         page=page,
         page_size=page_size,
         status=status,
+        provider=provider,
     )
 
 

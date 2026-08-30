@@ -12,6 +12,7 @@ import type {
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
 import { PageHeader } from "@/components/PageHeader";
+import { providerHealthEntryReason } from "@/components/providerHealthReason";
 import { ProviderStatusBadge } from "@/components/ProviderStatusBadge";
 import { PipelineSummary, ScanTimeline } from "@/components/ScanTimeline";
 import { Skeleton } from "@/components/Skeleton";
@@ -287,11 +288,24 @@ function ProviderHealthPanel() {
               <p className="text-xs text-ink-500">
                 {entry.records_returned} records
               </p>
-              {entry.redacted_failure_summary ? (
-                <p className="truncate text-xs text-rose-700" title={entry.redacted_failure_summary}>
-                  {entry.redacted_failure_summary}
-                </p>
-              ) : null}
+              {(() => {
+                // Concise structured reason only (status /
+                // error_code taxonomy). The raw
+                // ``redacted_failure_summary`` is preserved on
+                // the API payload but is not rendered here -
+                // not as text and not as a tooltip; technical
+                // detail belongs to Diagnostics and the logs.
+                const reason = providerHealthEntryReason(entry);
+                if (!reason) return null;
+                return (
+                  <p
+                    className="truncate text-xs text-rose-700"
+                    data-testid="dashboard-provider-reason"
+                  >
+                    {reason}
+                  </p>
+                );
+              })()}
             </li>
           ))}
         </ul>

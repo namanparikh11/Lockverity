@@ -39,11 +39,14 @@ const PROVIDER_STATUS_OPTIONS = [
  * Two layers:
  *  - A per-scan observation list (rows from `provider_observations`)
  *  - A per-provider rollup (the most-recent state per provider
- *    across scans, with retrieval time, records, cache status,
- *    and redacted failure summary).
+ *    across scans, with retrieval time, records, and cache
+ *    status).
  *
  * The per-provider rollup is what makes provider honesty
- * visible at a glance.
+ * visible at a glance. Both layers render only the concise
+ * structured reason (status / error_code / http_status);
+ * endpoint-bearing raw summaries stay in Diagnostics and the
+ * application logs.
  */
 export function ProviderHealthPage() {
   const { scanId } = useParams<{ scanId?: string }>();
@@ -165,22 +168,20 @@ export function ProviderHealthPage() {
                   <p className="mt-1 text-xs text-ink-500">cache: {entry.cache_status}</p>
                 ) : null}
                 {(() => {
-                  // The reason line is derived from the
+                  // The reason line is derived only from the
                   // structured status / error_code / http_status
                   // fields. The raw ``redacted_failure_summary``
-                  // is preserved on the underlying entry and is
-                  // surfaced here only as a tooltip for
-                  // operators who want the original provider
-                  // message. The full text remains available in
-                  // Diagnostics, the per-scan observation list,
-                  // and the application logs.
+                  // stays on the underlying entry and is NOT
+                  // surfaced here - not as visible text and not
+                  // as a tooltip. Technical detail (endpoint,
+                  // exception text) belongs to Diagnostics and
+                  // the application logs.
                   const reason = providerHealthEntryReason(entry);
                   if (!reason) return null;
                   return (
                     <p
                       className="mt-1 truncate text-xs text-rose-700"
                       data-testid="provider-health-reason"
-                      title={entry.redacted_failure_summary ?? reason}
                     >
                       {reason}
                     </p>
@@ -244,10 +245,7 @@ export function ProviderHealthPage() {
                       {obs.records_returned}
                     </td>
                     <td className="table-cell max-w-md">
-                      <p
-                        className="text-xs text-ink-500"
-                        title={obs.error_summary ?? providerObservationDetail(obs)}
-                      >
+                      <p className="text-xs text-ink-500">
                         {providerObservationDetail(obs)}
                       </p>
                     </td>
@@ -270,12 +268,13 @@ export function ProviderHealthPage() {
 
 function providerObservationDetail(observation: ProviderObservation): string {
   // The per-scan observation row uses the same structured
-  // presentation as the per-provider rollup card. When the
-  // structured fields do not yield a reason (e.g. an
-  // available / cached / not_requested row, or a skip-code
-  // like ``no_components``), fall back to the small set of
-  // historical phrases that those specific skip-codes used to
-  // render, then to the raw bounded summary as a last resort.
+  // presentation as the per-provider rollup card: the concise
+  // reason derived from status / error_code / http_status,
+  // then the small set of historical phrases the skip-codes
+  // used to render. The raw ``error_summary`` is deliberately
+  // NOT used as visible or tooltip text on this normal page -
+  // endpoint-bearing technical detail belongs to Diagnostics
+  // and the application logs.
   const reason = providerObservationReason(observation);
   if (reason) return reason;
   if (observation.error_code === "no_components") {
@@ -284,7 +283,7 @@ function providerObservationDetail(observation: ProviderObservation): string {
   if (observation.error_code === "no_workflow_files") {
     return "No applicable workflow files";
   }
-  return observation.error_summary ?? "—";
+  return "—";
 }
 
 function rollupTone(status: ProviderStatus) {

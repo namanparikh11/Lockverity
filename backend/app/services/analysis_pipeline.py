@@ -55,6 +55,7 @@ from app.providers.results import (
 from app.providers.selection import ExternalEvidenceProviders
 from app.rules import default_rules
 from app.services import write_service
+from app.services.provider_aggregation import aggregate_provider_observations
 from app.services.provider_service import (
     DEPS_DEV_PROVIDER,
     OP_DEPS_DEV_ENRICH,
@@ -557,29 +558,29 @@ class AnalysisPipeline:
                     0,
                 )
             session.commit()
-            # The latest OSV observation is the source of truth
-            # for whether the call was a real success. An
-            # ``unavailable`` / ``rate_limited`` / ``partial``
-            # observation means the stage is not ``completed``;
-            # the per-component observations are honest, but
-            # the stage is not.
-            latest_osv = (
+            # The aggregate over ALL OSV observations is the
+            # source of truth for whether the call was a real
+            # success. An ``unavailable`` / ``rate_limited`` /
+            # ``partial`` observation for *any* request means
+            # the stage is not ``completed``; a later
+            # unrelated success must not launder an earlier
+            # per-request failure into a clean result. Explicit
+            # retries for the same logical request do supersede
+            # the earlier attempt (see
+            # :mod:`app.services.provider_aggregation`).
+            osv_rows = (
                 session.query(ProviderObservation)
                 .filter(
                     ProviderObservation.scan_run_id == scan_id,
                     ProviderObservation.provider == "osv",
                 )
-                .order_by(ProviderObservation.id.desc())
-                .first()
+                .all()
             )
+            aggregate = aggregate_provider_observations(osv_rows)
             status = "completed"
             failure_summary: str | None = None
             failure_code: str | None = None
-            if latest_osv is not None and latest_osv.status in {
-                ProviderStatus.UNAVAILABLE,
-                ProviderStatus.RATE_LIMITED,
-                ProviderStatus.PARTIAL,
-            }:
+            if aggregate is not None and aggregate.degraded:
                 # The provider is honest-unavailable. The
                 # orchestrator must NOT mark this stage
                 # ``completed``; the truthful terminal
@@ -592,8 +593,9 @@ class AnalysisPipeline:
                 status = "skipped"
                 failure_code = "provider_unavailable"
                 failure_summary = (
-                    f"OSV provider returned {latest_osv.status.value}; "
-                    f"see provider observation for the redacted error."
+                    f"OSV provider evidence degraded (aggregate "
+                    f"{aggregate.status.value}); see provider observations "
+                    f"for the redacted errors."
                 )
             elif not lookups:
                 # Successful call, zero matching advisories.
@@ -799,34 +801,35 @@ class AnalysisPipeline:
                     0,
                 )
             session.commit()
-            # The latest deps.dev observation is the source of
-            # truth for whether the call was a real success.
-            # An ``unavailable`` / ``rate_limited`` / ``partial``
-            # observation means the stage is not ``completed``.
-            latest_deps = (
+            # The aggregate over ALL deps.dev observations is
+            # the source of truth for whether the enrichment
+            # was a real success. A per-component failure
+            # (``unavailable`` / ``rate_limited`` /
+            # ``partial``) degrades the whole stage even when
+            # later components succeeded; see
+            # :mod:`app.services.provider_aggregation` for the
+            # retry/replacement rule.
+            deps_rows = (
                 session.query(ProviderObservation)
                 .filter(
                     ProviderObservation.scan_run_id == scan_id,
                     ProviderObservation.provider == "deps_dev",
                 )
-                .order_by(ProviderObservation.id.desc())
-                .first()
+                .all()
             )
+            aggregate = aggregate_provider_observations(deps_rows)
             status = "completed"
             failure_summary: str | None = (
                 "No deps.dev enrichments returned." if not lookups else None
             )
             failure_code: str | None = None
-            if latest_deps is not None and latest_deps.status in {
-                ProviderStatus.UNAVAILABLE,
-                ProviderStatus.RATE_LIMITED,
-                ProviderStatus.PARTIAL,
-            }:
+            if aggregate is not None and aggregate.degraded:
                 status = "skipped"
                 failure_code = "provider_unavailable"
                 failure_summary = (
-                    f"deps.dev provider returned {latest_deps.status.value}; "
-                    f"see provider observation for the redacted error."
+                    f"deps.dev provider evidence degraded (aggregate "
+                    f"{aggregate.status.value}); see provider observations "
+                    f"for the redacted errors."
                 )
             return (
                 StageOutcome(

@@ -7,7 +7,9 @@
  * The visible text is derived from the structured
  * status / error_code / http_status fields. The raw
  * ``redacted_failure_summary`` is preserved on the underlying
- * entry and surfaces only as a tooltip.
+ * API payload but is never present in the rendered page DOM -
+ * not as text, not as a tooltip. Technical detail remains
+ * available through Diagnostics and the application logs.
  */
 
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -150,7 +152,7 @@ describe("Provider Health card error display", () => {
     expect(reason).toHaveTextContent("Disabled by operator");
   });
 
-  it("preserves the raw redacted summary as a tooltip on the reason line", async () => {
+  it("does not expose the raw summary as a tooltip on the reason line", async () => {
     const raw = "HTTP GET https://api.securityscorecards.dev/... failed: 503";
     mockProviderHealth({
       providers: ["openssf"],
@@ -174,7 +176,40 @@ describe("Provider Health card error display", () => {
       ).toBeInTheDocument();
     });
     const reason = screen.getByTestId("provider-health-reason");
-    expect(reason).toHaveAttribute("title", raw);
+    // The raw endpoint-bearing summary is not present anywhere
+    // in the rendered Providers page DOM - not as text and not
+    // as a title/tooltip attribute (LV-016).
+    expect(reason).not.toHaveAttribute("title");
+    expect(document.body.innerHTML).not.toContain(raw);
+    expect(document.body.innerHTML).not.toContain("api.securityscorecards.dev");
+  });
+
+  it("renders the explicit Not applicable phrase for not_applicable", async () => {
+    mockProviderHealth({
+      providers: ["openssf"],
+      entries: [
+        {
+          provider: "openssf",
+          status: "not_requested",
+          last_retrieved_at: null,
+          records_returned: 0,
+          cache_status: null,
+          redacted_failure_summary: null,
+          last_error_code: "not_applicable",
+          scans_with_observations: 0,
+        },
+      ],
+    });
+    renderProviders();
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("provider-health-reason"),
+      ).toBeInTheDocument();
+    });
+    // LV-014: the explicit user-facing semantic is restored.
+    const reason = screen.getByTestId("provider-health-reason");
+    expect(reason).toHaveTextContent("Not applicable");
+    expect(reason).not.toHaveTextContent("Disabled by operator");
   });
 
   it("does not render a reason line for an available provider", async () => {

@@ -84,6 +84,13 @@ class FindingRead(TimestampMixin):
 class ProviderObservationRead(TimestampMixin):
     id: int
     scan_run_id: int
+    # The logical request the row belongs to. Per-component
+    # observations (OSV lookups, deps.dev enrichments) set it;
+    # scan-level observations (Scorecard) leave it ``None``.
+    # Consumers use it to keep retry semantics truthful: a
+    # later row for the same request supersedes the earlier
+    # attempt, while unrelated requests stay independent.
+    component_id: int | None = None
     provider: str
     operation: str
     status: str

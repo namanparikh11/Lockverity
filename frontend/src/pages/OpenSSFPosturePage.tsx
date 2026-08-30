@@ -4,7 +4,7 @@ import { useParams } from "react-router";
 import { api } from "@/api/api";
 import { isNotImplemented } from "@/api/fallback";
 import {
-  providerWasDisabledByOperator,
+  providerEvidenceState,
   useProviderObservation,
 } from "@/api/useProviderObservation";
 import type { OpenSSFCheck, PageMeta } from "@/api/types";
@@ -34,10 +34,7 @@ export function OpenSSFPosturePage() {
   const [checkId, setCheckId] = useState("");
   const [notImpl, setNotImpl] = useState(false);
   const openssfObservation = useProviderObservation(sid, "openssf");
-  const openssfDisabled = providerWasDisabledByOperator(openssfObservation);
-  const openssfNotApplicable =
-    openssfObservation?.status === "not_requested" &&
-    openssfObservation.error_code === "not_applicable";
+  const openssfState = providerEvidenceState(openssfObservation);
 
   useEffect(() => {
     setPage(1);
@@ -102,26 +99,7 @@ export function OpenSSFPosturePage() {
       ) : items === null || meta === null ? (
         <Skeleton rows={5} />
       ) : items.length === 0 ? (
-        <EmptyState
-          title={
-            notImpl
-              ? "OpenSSF endpoint not exposed"
-              : openssfDisabled
-                ? "OpenSSF Scorecard was not requested"
-                : openssfNotApplicable
-                  ? "OpenSSF Scorecard is not applicable"
-                  : "No OpenSSF checks imported"
-          }
-          description={
-            notImpl
-              ? "When the backend exposes an OpenSSF endpoint, this table will appear automatically."
-              : openssfDisabled
-                ? "OpenSSF Scorecard was disabled by the operator for this scan. No Scorecard request or cache lookup was made."
-                : openssfNotApplicable
-                  ? "OpenSSF Scorecard repository posture applies only to supported GitHub repositories, not archive uploads."
-              : "No OpenSSF Scorecard observations are attached to this scan yet."
-          }
-        />
+        <EmptyState {...openSSFEmptyState(openssfState, notImpl)} />
       ) : (
         <>
           <ResponsiveTable
@@ -152,4 +130,76 @@ export function OpenSSFPosturePage() {
       )}
     </>
   );
+}
+
+/**
+ * Evidence-honest empty state for the OpenSSF posture grid.
+ *
+ * "No OpenSSF checks imported" is only justified when the
+ * Scorecard evidence source actually answered. Not-requested
+ * and not-applicable stay neutral (the operator chose, or the
+ * source cannot apply); degraded states never read as a clean
+ * result.
+ */
+function openSSFEmptyState(
+  state: ReturnType<typeof providerEvidenceState>,
+  notImpl: boolean,
+): { title: string; description: string } {
+  if (notImpl) {
+    return {
+      title: "OpenSSF endpoint not exposed",
+      description:
+        "When the backend exposes an OpenSSF endpoint, this table will appear automatically.",
+    };
+  }
+  switch (state) {
+    case "checked":
+      return {
+        title: "No OpenSSF checks imported",
+        description:
+          "OpenSSF Scorecard was queried for this scan and no check observations were attached.",
+      };
+    case "disabled":
+      return {
+        title: "OpenSSF Scorecard was not requested",
+        description:
+          "OpenSSF Scorecard was disabled by the operator for this scan. No Scorecard request or cache lookup was made.",
+      };
+    case "not_applicable":
+      return {
+        title: "OpenSSF Scorecard is not applicable",
+        description:
+          "OpenSSF Scorecard repository posture applies only to supported GitHub repositories, not archive uploads.",
+      };
+    case "not_requested":
+      return {
+        title: "OpenSSF Scorecard was not queried for this scan",
+        description:
+          "No Scorecard request was recorded for this scan, so posture evidence is not established. See the Provider status page.",
+      };
+    case "rate_limited":
+      return {
+        title: "OpenSSF evidence not available",
+        description:
+          "OpenSSF Scorecard rate-limited this scan's request, so posture evidence is not established. See the Provider status page.",
+      };
+    case "partial":
+      return {
+        title: "OpenSSF evidence incomplete",
+        description:
+          "OpenSSF Scorecard returned partial results for this scan. See the Provider status page.",
+      };
+    case "unavailable":
+      return {
+        title: "OpenSSF evidence not available",
+        description:
+          "OpenSSF Scorecard could not be reached for this scan, so posture evidence is not established. See the Provider status page.",
+      };
+    case "unknown":
+      return {
+        title: "OpenSSF evidence not available",
+        description:
+          "No OpenSSF Scorecard observation was recorded for this scan, so posture evidence is not established.",
+      };
+  }
 }

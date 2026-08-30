@@ -26,7 +26,9 @@ from app._version import __version__
 from app.exporters._common import (
     ScanNotFoundError,
     fetch_findings,
+    fetch_observations,
     get_scan_or_raise,
+    provider_coverage_summary,
 )
 from app.providers.results import (
     ProviderOutcome,
@@ -81,7 +83,8 @@ class FindingsCsvExporter:
                     outcome=ProviderOutcome.UNAVAILABLE,
                 )
             findings = fetch_findings(session, scan_run_id)
-            output = self._render_csv(scan, findings)
+            observations = fetch_observations(session, scan_run_id)
+            output = self._render_csv(scan, findings, observations)
         finally:
             session.close()
         return ProviderSuccess(
@@ -90,7 +93,7 @@ class FindingsCsvExporter:
             records_returned=len(findings),
         )
 
-    def _render_csv(self, scan, findings) -> str:
+    def _render_csv(self, scan, findings, observations) -> str:
         # Determinism contract: the export header carries
         # ``exported_at`` derived from the scan's
         # ``completed_at`` (falling back to ``created_at``).
@@ -112,12 +115,23 @@ class FindingsCsvExporter:
         from app.exporters.findings_json import _stable_fetched_at
 
         when_iso = _stable_fetched_at(scan)
+        # Evidence-honesty contract: a CSV with zero data rows
+        # must still state whether the external evidence
+        # providers behind a "no findings" result actually
+        # answered. The coverage lines live in the ``#``
+        # comment header so they are present even when the
+        # findings grid is empty, and they never add a fake
+        # finding row. The values derive from the persisted
+        # provider observations (deterministic per scan).
+        coverage_label, provider_status = provider_coverage_summary(scan, observations)
         lines: list[str] = []
         lines.append(
             f"# lockverity findings export, tool=lockverity, version={self._app_version}, "
             f"scan_run_id={scan.id}, repository_id={scan.repository_id}, "
             f"exported_at={when_iso}"
         )
+        lines.append(f"# provider_coverage={coverage_label}")
+        lines.append(f"# provider_status={provider_status}")
         lines.append(_format_row(CSV_COLUMNS))
         for finding in findings:
             row = (

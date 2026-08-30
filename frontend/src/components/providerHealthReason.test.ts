@@ -131,13 +131,20 @@ describe("providerReason", () => {
         httpStatus: null,
       })
     ).toBeNull();
+  });
+
+  // LV-014: ``not_applicable`` keeps its explicit user-facing
+  // semantic instead of being suppressed into the skip-code
+  // null path; it must not degrade into failure / unavailable /
+  // not_requested / clean-success phrasing either.
+  it("renders the explicit Not applicable phrase for not_applicable", () => {
     expect(
       providerReason({
         status: "not_requested",
         errorCode: "not_applicable",
         httpStatus: null,
       })
-    ).toBeNull();
+    ).toBe("Not applicable");
   });
 
   it("renders a rate-limited phrase when only the status is available", () => {

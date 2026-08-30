@@ -10,6 +10,7 @@ component-to-format adapters.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -22,6 +23,10 @@ from app.models.finding import Finding
 from app.models.manifest import Manifest
 from app.models.provider_observation import ProviderObservation, ProviderStatus
 from app.models.scan_run import ScanRun, ScanStatus
+from app.services.provider_aggregation import (
+    aggregate_provider_observations,
+    final_observation_per_request,
+)
 
 # Reasonable hard caps. The defaults match the v0.1 configuration
 # limits. An exporter can lower them.
@@ -314,6 +319,12 @@ def _provider_coverage_from_observations(
     ``None`` and an explicit empty sequence both mean there is no persisted
     evidence from which to derive provider coverage. Completion alone never
     becomes proof of successful provider coverage.
+
+    The classification runs over the *final* observation per logical
+    request (see :func:`app.services.provider_aggregation.final_observation_per_request`)
+    so an explicit later retry for the same request supersedes the earlier
+    attempt, while an unresolved failure for any other request still
+    degrades the coverage label.
     """
 
     if observations is None:
@@ -322,9 +333,10 @@ def _provider_coverage_from_observations(
     external = [row for row in observations if row.provider in {"osv", "deps_dev", "openssf"}]
     if not external:
         return "unknown", False
+    final_rows = tuple(final_observation_per_request(external).values())
     omitted_by_operator = any(
         row.status == ProviderStatus.NOT_REQUESTED and row.error_code == "disabled_by_operator"
-        for row in external
+        for row in final_rows
     )
     if any(
         row.status
@@ -333,19 +345,66 @@ def _provider_coverage_from_observations(
             ProviderStatus.PARTIAL,
             ProviderStatus.RATE_LIMITED,
         }
-        for row in external
+        for row in final_rows
     ):
         return "degraded", omitted_by_operator
     if omitted_by_operator:
         return "not_requested", True
-    if any(row.status == ProviderStatus.UNKNOWN for row in external):
+    if any(row.status == ProviderStatus.UNKNOWN for row in final_rows):
         return "unknown", False
-    not_requested = [row for row in external if row.status == ProviderStatus.NOT_REQUESTED]
+    not_requested = [row for row in final_rows if row.status == ProviderStatus.NOT_REQUESTED]
     if any(row.error_code not in {"no_components", "not_applicable"} for row in not_requested):
         return "not_requested", False
-    if any(row.status in {ProviderStatus.AVAILABLE, ProviderStatus.CACHED} for row in external):
+    if any(row.status in {ProviderStatus.AVAILABLE, ProviderStatus.CACHED} for row in final_rows):
         return "ok", False
     return "not_applicable", False
+
+
+# External evidence providers whose coverage the exports surface.
+_EXPORT_EVIDENCE_PROVIDERS: tuple[str, ...] = ("deps_dev", "openssf", "osv")
+
+# Defensive token whitelist for the export coverage strings. The
+# values derive from enum members and provider-name constants,
+# but the exports are security artefacts: the whitelist
+# guarantees no cell can ever carry a formula or a newline.
+_SAFE_TOKEN = re.compile(r"[^a-z0-9_]")
+
+
+def provider_coverage_summary(
+    scan: ScanRun,
+    observations: Sequence[ProviderObservation] | None,
+) -> tuple[str, str]:
+    """Return ``(coverage_label, provider_status_detail)`` for export headers.
+
+    The label reuses :func:`_provider_coverage_from_observations` so every
+    export agrees with the CycloneDX 1.7 eligibility verdict. The detail
+    string is a deterministic, comma-separated ``provider:status`` list of
+    the final per-provider aggregate statuses (e.g.
+    ``"deps_dev:unavailable,osv:available,openssf:not_requested"``), or the
+    empty string when no external observation exists. The summary never
+    invents a finding row; it only states whether the evidence sources
+    behind a "no findings" result actually answered.
+    """
+
+    label, _omitted = _provider_coverage_from_observations(scan, observations)
+    if observations is None:
+        return label, ""
+    external = [row for row in observations if row.provider in set(_EXPORT_EVIDENCE_PROVIDERS)]
+    if not external:
+        return label, ""
+    final_rows = final_observation_per_request(external)
+    by_provider: dict[str, list[ProviderObservation]] = {}
+    for row in final_rows.values():
+        by_provider.setdefault(row.provider, []).append(row)
+    parts: list[str] = []
+    for provider in sorted(by_provider):
+        aggregate = aggregate_provider_observations(by_provider[provider])
+        if aggregate is None:  # pragma: no cover - defensive
+            continue
+        name = _SAFE_TOKEN.sub("", provider)
+        status = _SAFE_TOKEN.sub("", aggregate.status.value)
+        parts.append(f"{name}:{status}")
+    return label, ",".join(parts)
 
 
 def fetch_manifests(

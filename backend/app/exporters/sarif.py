@@ -24,7 +24,9 @@ from app._version import __version__
 from app.exporters._common import (
     ScanNotFoundError,
     fetch_findings,
+    fetch_observations,
     get_scan_or_raise,
+    provider_coverage_summary,
 )
 from app.providers.results import (
     ProviderOutcome,
@@ -65,7 +67,8 @@ class SarifStaticFindingsExporter:
                     outcome=ProviderOutcome.UNAVAILABLE,
                 )
             findings = fetch_findings(session, scan_run_id)
-            sarif = self._build_sarif(scan, findings)
+            observations = fetch_observations(session, scan_run_id)
+            sarif = self._build_sarif(scan, findings, observations)
         finally:
             session.close()
         try:
@@ -83,7 +86,7 @@ class SarifStaticFindingsExporter:
             records_returned=len(findings),
         )
 
-    def _build_sarif(self, scan, findings) -> dict[str, Any]:
+    def _build_sarif(self, scan, findings, observations) -> dict[str, Any]:
         rules: dict[str, dict[str, Any]] = {}
         results: list[dict[str, Any]] = []
         skipped_count = 0
@@ -94,6 +97,13 @@ class SarifStaticFindingsExporter:
                 continue
             results.append(self._result(finding))
         sarif_results = sorted(results, key=lambda r: r.get("ruleId", ""))
+        # Evidence-honesty contract: an empty ``results`` array
+        # is only a verified clean result when the external
+        # evidence providers actually answered. The coverage
+        # properties are plain string values in the standard
+        # SARIF 2.1.0 run-level property bag; they add no
+        # results and never fabricate a finding.
+        coverage_label, provider_status = provider_coverage_summary(scan, observations)
         return {
             "$schema": SARIF_SCHEMA,
             "version": SARIF_VERSION,
@@ -112,6 +122,13 @@ class SarifStaticFindingsExporter:
                         "lockverity:scan_run_id": str(scan.id),
                         "lockverity:scan_status": scan.status.value,
                         "lockverity:findings_skipped_no_location": skipped_count,
+                        # Evidence coverage for the whole run. An
+                        # empty results array plus
+                        # ``provider-coverage != "ok"`` means the
+                        # evidence sources did not answer, not
+                        # that the code is clean.
+                        "lockverity:provider-coverage": coverage_label,
+                        "lockverity:provider-status": provider_status,
                         # v0.4: surface the provider
                         # provenance for every finding that
                         # carries a non-local rule id. The

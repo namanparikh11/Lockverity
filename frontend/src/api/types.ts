@@ -307,6 +307,8 @@ export interface Finding {
 export interface ProviderObservation {
   id: number;
   scan_run_id: number;
+  /** Logical request key; null for scan-level observations. */
+  component_id?: number | null;
   provider: string;
   operation: string;
   status: ProviderStatus;

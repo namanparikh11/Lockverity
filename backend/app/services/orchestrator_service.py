@@ -41,6 +41,7 @@ from app.repositories import (
     scan_repo,
     stage_repo,
 )
+from app.services.provider_aggregation import aggregate_provider_observations
 from app.services.scan_service import (
     assert_legal_scan_transition,
     assert_legal_stage_transition,
@@ -423,7 +424,7 @@ class ScanOrchestrator:
                     StageType.REPOSITORY_POSTURE,
                 }:
                     stage.provider = self._provider_name_for_stage(stage_type)
-                    stage.provider_status = self._latest_provider_status(
+                    stage.provider_status = self._aggregate_provider_status(
                         session, scan_id, stage.provider
                     )
                 if outcome.status == "completed":
@@ -522,35 +523,36 @@ class ScanOrchestrator:
         return ""
 
     @staticmethod
-    def _latest_provider_status(session: Session, scan_id: int, provider: str) -> str | None:
-        """Read the latest ``ProviderObservation.status`` for ``provider``.
+    def _aggregate_provider_status(session: Session, scan_id: int, provider: str) -> str | None:
+        """Aggregate every ``ProviderObservation`` for ``provider`` into one status.
 
-        Returns the string value of the latest observation's
-        status (``"available"``, ``"unavailable"``,
-        ``"rate_limited"``, ``"partial"``,
-        ``"not_requested"``, ``"cached"``) or ``None`` if
-        no observation was recorded. The result is
-        independent of the ``ScanStage`` status: a stage
-        may be ``PARTIAL`` because the provider was
-        ``unavailable``, and the UI uses the
-        ``provider_status`` column to render the truthful
-        "unavailable" pill.
+        Returns the truthful aggregate status value
+        (``"available"``, ``"unavailable"``, ``"rate_limited"``,
+        ``"partial"``, ``"not_requested"``, ``"unknown"``) or
+        ``None`` if no observation was recorded. The aggregate
+        is derived from ALL observations for the provider, not
+        just the chronologically latest row: a per-component
+        failure followed by an unrelated component's success
+        must not launder the stage into a fully successful
+        provider call. Explicit retries for the same logical
+        request (same operation + component) do supersede the
+        earlier attempt; see
+        :mod:`app.services.provider_aggregation`.
         """
         if not provider:
             return None
-        row = (
+        rows = (
             session.query(ProviderObservation)
             .filter(
                 ProviderObservation.scan_run_id == scan_id,
                 ProviderObservation.provider == provider,
             )
-            .order_by(ProviderObservation.id.desc())
-            .first()
+            .all()
         )
-        if row is None:
+        aggregate = aggregate_provider_observations(rows)
+        if aggregate is None:
             return None
-        status = row.status
-        return status.value if hasattr(status, "value") else str(status)
+        return aggregate.status.value
 
     def _read_stage_record(
         self,

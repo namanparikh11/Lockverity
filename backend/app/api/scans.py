@@ -414,6 +414,11 @@ def list_providers(
         alias="status",
         description="Filter by provider status.",
     ),
+    provider: str | None = Query(
+        default=None,
+        max_length=64,
+        description="Filter by provider name (e.g. osv, deps_dev, openssf).",
+    ),
 ) -> PaginatedObservations:
     items, total = observation_service.list_provider_observations(
         session,
@@ -421,6 +426,7 @@ def list_providers(
         page=page_params.page,
         page_size=page_params.page_size,
         status=status_filter,
+        provider=provider,
     )
     return PaginatedObservations(
         items=[observation_to_read(item) for item in items],

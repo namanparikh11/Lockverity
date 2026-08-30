@@ -60,6 +60,7 @@ to a non-loopback host.
 
 from __future__ import annotations
 
+from datetime import UTC
 from unittest.mock import MagicMock
 
 import pytest
@@ -593,4 +594,239 @@ def test_api_exposes_partial_scan_and_partial_provider_stage(
         assert vuln_stage.provider_status in {
             ProviderStatus.UNAVAILABLE.value,
             ProviderStatus.PARTIAL.value,
+        }
+
+
+def test_later_unrelated_success_must_not_launder_earlier_component_failure(
+    app_config, workspace_root, monkeypatch
+) -> None:
+    """LV-011: a later success for another component must not erase an earlier failure.
+
+    Failure mode under test (pre-fix): the deps.dev stage read
+    only the chronologically latest observation. Component A
+    fails (``unavailable`` row), component B succeeds
+    (``available`` row, higher id), and the latest-row check
+    saw only B's success - the stage completed and the scan
+    presented dependency/licence enrichment as fully
+    successful even though it was incomplete.
+
+    Truthful contract:
+
+    - the ``dependency_enrichment`` stage is ``PARTIAL`` with
+      ``failure_code == "provider_unavailable"``;
+    - the stage's ``provider_status`` aggregate is
+      ``"unavailable"`` even though the latest deps.dev row
+      is ``"available"``;
+    - the overall scan is ``PARTIAL``;
+    - the successful component's observation is preserved
+      (the aggregate is honest about partial evidence, it
+      does not erase the row that did answer).
+    """
+    from datetime import datetime
+
+    from app.providers.results import ProviderSuccess
+
+    def _enrich(*, ecosystem: str, package_name: str, version: str | None):
+        if package_name == "aaa-fails":
+            return ProviderUnavailable(
+                error_code="provider_unavailable",
+                error_summary="deps.dev 503 for aaa-fails",
+                attempted_at=None,
+                http_status=503,
+            )
+        return ProviderSuccess(
+            data={"licenses": ["MIT"], "dependencies": []},
+            fetched_at=datetime(2026, 8, 30, tzinfo=UTC),
+            records_returned=1,
+        )
+
+    deps_dev = MagicMock()
+    deps_dev.enrich.side_effect = _enrich
+    osv = MagicMock()
+    # OSV succeeds cleanly so the partial state is provably
+    # caused by the degraded deps.dev evidence alone.
+    osv.query_batch.return_value = ProviderSuccess(
+        data=[],
+        fetched_at=datetime(2026, 8, 30, tzinfo=UTC),
+        records_returned=0,
+    )
+    scorecard = MagicMock()
+    scorecard.read.return_value = ProviderUnavailable(
+        error_code="provider_unavailable",
+        error_summary="Scorecard 503",
+        attempted_at=None,
+        http_status=503,
+    )
+    _patch_provider_service(monkeypatch, osv=osv, deps_dev=deps_dev, scorecard=scorecard)
+
+    with _db_session.SessionLocal() as s:
+        scan_id = _setup_scan_with_components(
+            s,
+            [
+                ("npm", "aaa-fails", "1.0.0", True, False),
+                ("npm", "bbb-succeeds", "2.0.0", True, False),
+            ],
+        )
+    orchestrator = ScanOrchestrator(_db_session.SessionLocal)
+    outcome = orchestrator.run(scan_id)
+    assert outcome.final_status == ScanStatus.PARTIAL
+
+    with _db_session.SessionLocal() as s:
+        from app.models.scan_stage import ScanStage
+
+        deps_stage = (
+            s.query(ScanStage)
+            .filter(
+                ScanStage.scan_run_id == scan_id,
+                ScanStage.stage_type == StageType.DEPENDENCY_ENRICHMENT,
+            )
+            .one()
+        )
+        assert deps_stage.status == StageStatus.PARTIAL, (
+            "a per-component deps.dev failure followed by an unrelated "
+            "component success must not complete the stage; got "
+            f"{deps_stage.status!r}"
+        )
+        assert deps_stage.failure_code == "provider_unavailable"
+
+        deps_obs = (
+            s.query(ProviderObservation)
+            .filter(
+                ProviderObservation.scan_run_id == scan_id,
+                ProviderObservation.provider == "deps_dev",
+            )
+            .order_by(ProviderObservation.id.asc())
+            .all()
+        )
+        statuses = [obs.status for obs in deps_obs]
+        assert ProviderStatus.UNAVAILABLE in statuses, (
+            "the failed component's observation must be recorded"
+        )
+        assert ProviderStatus.AVAILABLE in statuses, (
+            "the successful component's observation must be recorded"
+        )
+        # The chronologically latest row is the success; the
+        # aggregate on the stage row must still be the degraded
+        # state, proving the stage state is derived from ALL
+        # observations rather than the latest row.
+        assert deps_obs[-1].status is ProviderStatus.AVAILABLE
+        assert deps_stage.provider_status == ProviderStatus.UNAVAILABLE.value
+
+        # OSV succeeded cleanly: its stage stays completed with
+        # an available provider status, proving the deps.dev
+        # degradation is isolated and truthful.
+        vuln_stage = (
+            s.query(ScanStage)
+            .filter(
+                ScanStage.scan_run_id == scan_id,
+                ScanStage.stage_type == StageType.VULNERABILITY_QUERY,
+            )
+            .one()
+        )
+        assert vuln_stage.status == StageStatus.COMPLETED
+        assert vuln_stage.provider_status == ProviderStatus.AVAILABLE.value
+
+
+def test_retry_success_for_same_component_supersedes_failure_in_stage_aggregate(
+    app_config, workspace_root, monkeypatch
+) -> None:
+    """LV-011 retry semantics: a retry for the SAME logical request replaces it.
+
+    The aggregation must not make historical failures
+    permanent: when a later observation exists for the same
+    ``(provider, operation, component_id)`` request and
+    succeeded, the earlier failure is superseded and the
+    aggregate is a clean success. The seeded row mimics a
+    failed earlier attempt for the same component inside the
+    same scan; the pipeline's successful re-run supersedes it.
+    """
+    from datetime import datetime
+
+    from app.providers.results import ProviderSuccess
+
+    deps_dev = MagicMock()
+    deps_dev.enrich.return_value = ProviderSuccess(
+        data={"licenses": ["MIT"], "dependencies": []},
+        fetched_at=datetime(2026, 8, 30, tzinfo=UTC),
+        records_returned=1,
+    )
+    osv = MagicMock()
+    osv.query_batch.return_value = ProviderSuccess(
+        data=[],
+        fetched_at=datetime(2026, 8, 30, tzinfo=UTC),
+        records_returned=0,
+    )
+    scorecard = MagicMock()
+    scorecard.read.return_value = ProviderUnavailable(
+        error_code="provider_unavailable",
+        error_summary="Scorecard 503",
+        attempted_at=None,
+        http_status=500,
+    )
+    _patch_provider_service(monkeypatch, osv=osv, deps_dev=deps_dev, scorecard=scorecard)
+
+    with _db_session.SessionLocal() as s:
+        scan_id = _setup_scan_with_components(s, [("npm", "left-pad", "1.0.0", True, False)])
+
+    # Seed a superseded earlier failure for the SAME logical
+    # request (same provider + operation + component) the way
+    # an earlier partial attempt inside the same scan would
+    # have; the pipeline's retry below succeeds.
+    from app.services.provider_service import OP_DEPS_DEV_ENRICH
+
+    component = (
+        s.query(Component).filter(Component.scan_run_id == scan_id).order_by(Component.id).one()
+    )
+    component_id = component.id
+    s.add(
+        ProviderObservation(
+            scan_run_id=scan_id,
+            component_id=component_id,
+            provider="deps_dev",
+            operation=OP_DEPS_DEV_ENRICH,
+            status=ProviderStatus.UNAVAILABLE,
+            records_returned=0,
+            cache_status="miss",
+            error_code="provider_unavailable",
+            error_summary="deps.dev earlier attempt failed",
+        )
+    )
+    s.commit()
+
+    orchestrator = ScanOrchestrator(_db_session.SessionLocal)
+    outcome = orchestrator.run(scan_id)
+
+    with _db_session.SessionLocal() as s:
+        from app.models.scan_stage import ScanStage
+
+        deps_stage = (
+            s.query(ScanStage)
+            .filter(
+                ScanStage.scan_run_id == scan_id,
+                ScanStage.stage_type == StageType.DEPENDENCY_ENRICHMENT,
+            )
+            .one()
+        )
+        # The earlier failure for the same request was
+        # superseded by the successful retry: the aggregate is
+        # available and the stage completes.
+        assert deps_stage.provider_status == ProviderStatus.AVAILABLE.value
+        assert deps_stage.status == StageStatus.COMPLETED, (
+            "an explicit successful retry for the same logical request "
+            "must supersede the earlier failure; "
+            f"got {deps_stage.status!r} (outcome {outcome.final_status!r})"
+        )
+        # Both rows are preserved for observability.
+        rows = (
+            s.query(ProviderObservation)
+            .filter(
+                ProviderObservation.scan_run_id == scan_id,
+                ProviderObservation.provider == "deps_dev",
+                ProviderObservation.component_id == component_id,
+            )
+            .all()
+        )
+        assert {row.status for row in rows} == {
+            ProviderStatus.UNAVAILABLE,
+            ProviderStatus.AVAILABLE,
         }

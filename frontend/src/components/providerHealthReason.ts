@@ -21,10 +21,14 @@
  * exception string, error code) is preserved on the underlying
  * data structure and remains available in:
  *
- *  - the ``title`` tooltip on the rendered reason
- *  - the per-scan observation list
- *  - the Diagnostics page
+ *  - the Diagnostics page (structured provider table)
  *  - the application logs
+ *  - the underlying API payloads
+ *
+ * It is deliberately NOT re-surfaced on normal pages (no
+ * tooltip / title attribute and no raw-summary fallback text);
+ * the normal Provider Health UI exposes only the concise
+ * structured reason derived here.
  *
  * Nothing is dropped from the API contract; this helper is a
  * pure presentation layer.
@@ -48,15 +52,15 @@ export interface ProviderFailureContext {
  * Codes that mean "the provider was deliberately not queried"
  * or "there was nothing to query against". The status badge
  * already communicates the absence; we do not add a separate
- * reason line for these. ``disabled_by_operator`` is handled
- * separately above the early-return so the operator-facing
- * phrase is still surfaced even when the status badge says
+ * reason line for these. ``disabled_by_operator`` and
+ * ``not_applicable`` are handled separately above the
+ * early-return so the operator-facing and applicability
+ * phrases are still surfaced even when the status badge says
  * ``not_requested``.
  */
 const SKIP_CODES: ReadonlySet<string> = new Set([
   "no_components",
   "no_workflow_files",
-  "not_applicable",
 ]);
 
 /**
@@ -114,6 +118,16 @@ export function providerReason(ctx: ProviderFailureContext): string | null {
   // alone ("not requested") would otherwise be ambiguous.
   if (ctx.errorCode === "disabled_by_operator") {
     return "Disabled by operator";
+  }
+
+  // ``not_applicable`` keeps its explicit user-facing semantic
+  // ("this provider cannot apply to this source"), distinct
+  // from not-requested, from failure, and from clean success.
+  // Like the disabled case it is derived purely from the
+  // structured ``error_code`` taxonomy, never from free-form
+  // summary text.
+  if (ctx.errorCode === "not_applicable") {
+    return "Not applicable";
   }
 
   if (

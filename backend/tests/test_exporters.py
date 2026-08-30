@@ -526,3 +526,274 @@ def test_all_exporters_share_protocol() -> None:
     ):
         assert hasattr(cls, "format")
         assert isinstance(cls.format, str)
+
+
+# ----------------------------------------------------------------------
+# Evidence-coverage semantics (LV-012)
+# ----------------------------------------------------------------------
+
+from app.models.provider_observation import (  # noqa: E402
+    ProviderObservation,
+    ProviderStatus,
+)
+
+_scan_counter = 0
+
+
+def _make_scan_without_findings(session, observations: list[dict]) -> int:
+    """Create a completed scan with zero findings plus raw observation rows.
+
+    ``observations`` entries are ``dict(provider=, status=,
+    error_code=)`` kwargs for :class:`ProviderObservation`.
+    """
+    global _scan_counter
+    _scan_counter += 1
+    repo = Repository(
+        source_type=RepositorySourceType.GITHUB,
+        provider=RepositoryProvider.GITHUB,
+        owner="o",
+        name=f"cov{_scan_counter}",
+        canonical_url=f"https://github.com/o/cov{_scan_counter}",
+        visibility=RepositoryVisibility.PUBLIC,
+    )
+    session.add(repo)
+    session.flush()
+    scan = ScanRun(
+        repository_id=repo.id,
+        trigger_type=ScanTriggerType.MANUAL,
+        status=ScanStatus.COMPLETED,
+    )
+    session.add(scan)
+    session.flush()
+    for _index, obs in enumerate(observations, start=1):
+        session.add(
+            ProviderObservation(
+                scan_run_id=scan.id,
+                component_id=obs.get("component_id"),
+                provider=obs["provider"],
+                operation=obs.get("operation", f"{obs['provider']}_op"),
+                status=obs["status"],
+                records_returned=0,
+                cache_status="miss",
+                error_code=obs.get("error_code"),
+            )
+        )
+    session.commit()
+    return scan.id
+
+
+_ALL_OK = [
+    {"provider": "osv", "status": ProviderStatus.AVAILABLE},
+    {"provider": "deps_dev", "status": ProviderStatus.AVAILABLE},
+    {"provider": "openssf", "status": ProviderStatus.CACHED},
+]
+
+_DEPS_UNAVAILABLE = [
+    {"provider": "osv", "status": ProviderStatus.AVAILABLE},
+    {
+        "provider": "deps_dev",
+        "component_id": 1,
+        "status": ProviderStatus.UNAVAILABLE,
+        "error_code": "provider_unavailable",
+    },
+    {
+        "provider": "deps_dev",
+        "component_id": 2,
+        "status": ProviderStatus.AVAILABLE,
+    },
+    {"provider": "openssf", "status": ProviderStatus.AVAILABLE},
+]
+
+_ALL_DISABLED = [
+    {
+        "provider": "osv",
+        "status": ProviderStatus.NOT_REQUESTED,
+        "error_code": "disabled_by_operator",
+    },
+    {
+        "provider": "deps_dev",
+        "status": ProviderStatus.NOT_REQUESTED,
+        "error_code": "disabled_by_operator",
+    },
+    {
+        "provider": "openssf",
+        "status": ProviderStatus.NOT_REQUESTED,
+        "error_code": "disabled_by_operator",
+    },
+]
+
+_DEPS_RATE_LIMITED = [
+    {"provider": "osv", "status": ProviderStatus.AVAILABLE},
+    {
+        "provider": "deps_dev",
+        "component_id": 1,
+        "status": ProviderStatus.RATE_LIMITED,
+        "error_code": "rate_limited",
+    },
+    {"provider": "openssf", "status": ProviderStatus.AVAILABLE},
+]
+
+_DEPS_PARTIAL = [
+    {"provider": "osv", "status": ProviderStatus.AVAILABLE},
+    {
+        "provider": "deps_dev",
+        "component_id": 1,
+        "status": ProviderStatus.PARTIAL,
+        "error_code": "partial_batch",
+    },
+    {"provider": "openssf", "status": ProviderStatus.AVAILABLE},
+]
+
+
+def _csv_lines(result: ProviderSuccess) -> list[str]:
+    return result.data.decode("utf-8").splitlines()
+
+
+def test_csv_distinguishes_provider_success_from_provider_failure_at_zero_findings(
+    session,
+) -> None:
+    """A zero-finding CSV must state whether the evidence sources answered."""
+
+    ok_id = _make_scan_without_findings(session, _ALL_OK)
+    fail_id = _make_scan_without_findings(session, _DEPS_UNAVAILABLE)
+    ok_text = FindingsCsvExporter(lambda: session).export(scan_run_id=ok_id).data.decode("utf-8")
+    fail_text = (
+        FindingsCsvExporter(lambda: session).export(scan_run_id=fail_id).data.decode("utf-8")
+    )
+
+    def _header(text: str) -> dict[str, str]:
+        fields: dict[str, str] = {}
+        for line in text.splitlines():
+            if line.startswith("# ") and "=" in line:
+                key, _, value = line[2:].partition("=")
+                if key in {"provider_coverage", "provider_status"}:
+                    fields[key] = value
+        return fields
+
+    ok_header = _header(ok_text)
+    fail_header = _header(fail_text)
+    # Successful provider + zero findings is a verified clean
+    # grid; provider failure + zero findings is NOT.
+    assert ok_header["provider_coverage"] == "ok"
+    assert fail_header["provider_coverage"] == "degraded"
+    assert ok_header["provider_coverage"] != fail_header["provider_coverage"]
+    # The per-provider detail names the degraded source even
+    # though another component later succeeded (LV-011 rule).
+    assert fail_header["provider_status"] == (
+        "deps_dev:unavailable,openssf:available,osv:available"
+    )
+    # The all-ok scan reports every provider as checked; a
+    # cached final row aggregates to the same successful
+    # "available" state (cached evidence is checked evidence).
+    assert ok_header["provider_status"] == ("deps_dev:available,openssf:available,osv:available")
+    # No fake finding row was invented to communicate
+    # coverage: the data grid contains only the column header
+    # row and zero finding rows in both exports.
+    for text in (ok_text, fail_text):
+        data_rows = [line for line in text.splitlines() if line and not line.startswith("#")]
+        assert len(data_rows) == 1
+        assert "scan_run_id" in data_rows[0]
+        assert "title" in data_rows[0]
+    # The coverage lines live in the '#' comment block that
+    # spreadsheet importers skip; they cannot become cells.
+    for text in (ok_text, fail_text):
+        for line in text.splitlines():
+            if "provider" in line:
+                assert line.startswith("#")
+
+
+def test_csv_disabled_and_not_requested_is_not_provider_failure(session) -> None:
+    scan_id = _make_scan_without_findings(session, _ALL_DISABLED)
+    text = FindingsCsvExporter(lambda: session).export(scan_run_id=scan_id).data.decode("utf-8")
+    assert "# provider_coverage=not_requested" in text
+    assert "# provider_status=deps_dev:not_requested,openssf:not_requested,osv:not_requested"
+    assert "degraded" not in text
+
+
+def test_csv_rate_limited_and_partial_remain_incomplete(session) -> None:
+    rate_id = _make_scan_without_findings(session, _DEPS_RATE_LIMITED)
+    partial_id = _make_scan_without_findings(session, _DEPS_PARTIAL)
+    rate_text = (
+        FindingsCsvExporter(lambda: session).export(scan_run_id=rate_id).data.decode("utf-8")
+    )
+    partial_text = (
+        FindingsCsvExporter(lambda: session).export(scan_run_id=partial_id).data.decode("utf-8")
+    )
+    assert "# provider_coverage=degraded" in rate_text
+    assert "deps_dev:rate_limited" in rate_text
+    assert "# provider_coverage=degraded" in partial_text
+    assert "deps_dev:partial" in partial_text
+
+
+def test_sarif_carries_provider_coverage_in_run_properties(session) -> None:
+    ok_id = _make_scan_without_findings(session, _ALL_OK)
+    fail_id = _make_scan_without_findings(session, _DEPS_UNAVAILABLE)
+    for scan_id, expected in ((ok_id, "ok"), (fail_id, "degraded")):
+        result = SarifStaticFindingsExporter(lambda: session).export(scan_run_id=scan_id)
+        assert isinstance(result, ProviderSuccess)
+        sarif = json.loads(result.data)
+        assert sarif["version"] == "2.1.0"
+        props = sarif["runs"][0]["properties"]
+        assert props["lockverity:provider-coverage"] == expected
+        # No result was fabricated to communicate coverage.
+        assert sarif["runs"][0]["results"] == []
+    fail_props = json.loads(
+        SarifStaticFindingsExporter(lambda: session).export(scan_run_id=fail_id).data
+    )["runs"][0]["properties"]
+    assert fail_props["lockverity:provider-status"] == (
+        "deps_dev:unavailable,openssf:available,osv:available"
+    )
+
+
+def test_sarif_disabled_providers_are_not_reported_as_failure(session) -> None:
+    scan_id = _make_scan_without_findings(session, _ALL_DISABLED)
+    result = SarifStaticFindingsExporter(lambda: session).export(scan_run_id=scan_id)
+    assert isinstance(result, ProviderSuccess)
+    props = json.loads(result.data)["runs"][0]["properties"]
+    assert props["lockverity:provider-coverage"] == "not_requested"
+    assert props["lockverity:provider-coverage"] != "degraded"
+
+
+def test_cyclonedx_15_carries_provider_coverage_in_metadata_properties(session) -> None:
+    ok_id = _make_scan_without_findings(session, _ALL_OK)
+    fail_id = _make_scan_without_findings(session, _DEPS_UNAVAILABLE)
+    for scan_id, expected in ((ok_id, "ok"), (fail_id, "degraded")):
+        result = CycloneDxExporter(lambda: session).export(scan_run_id=scan_id)
+        assert isinstance(result, ProviderSuccess)
+        bom = json.loads(result.data)
+        assert bom["bomFormat"] == "CycloneDX"
+        assert bom["specVersion"] == "1.5"
+        props = {p["name"]: p["value"] for p in bom["metadata"]["properties"]}
+        # Standard CycloneDX property shape (name/value strings)
+        # only; no schema extension was invented.
+        assert props["lockverity:provider-coverage"] == expected
+        assert props["lockverity:provider-status"]
+        # No vulnerability entry was fabricated.
+        assert bom["vulnerabilities"] == []
+    fail_bom = json.loads(CycloneDxExporter(lambda: session).export(scan_run_id=fail_id).data)
+    fail_props = {p["name"]: p["value"] for p in fail_bom["metadata"]["properties"]}
+    assert fail_props["lockverity:provider-coverage"] == "degraded"
+    assert fail_props["lockverity:provider-status"] == (
+        "deps_dev:unavailable,openssf:available,osv:available"
+    )
+
+
+def test_cyclonedx_15_disabled_providers_are_not_reported_as_degraded(session) -> None:
+    scan_id = _make_scan_without_findings(session, _ALL_DISABLED)
+    result = CycloneDxExporter(lambda: session).export(scan_run_id=scan_id)
+    assert isinstance(result, ProviderSuccess)
+    props = {p["name"]: p["value"] for p in json.loads(result.data)["metadata"]["properties"]}
+    assert props["lockverity:provider-coverage"] == "not_requested"
+
+
+def test_findings_json_still_lists_raw_provider_observations(session) -> None:
+    """The JSON export keeps its stronger evidence shape (no regression)."""
+
+    scan_id = _make_scan_without_findings(session, _DEPS_UNAVAILABLE)
+    result = FindingsJsonExporter(lambda: session).export(scan_run_id=scan_id)
+    assert isinstance(result, ProviderSuccess)
+    doc = json.loads(result.data)
+    statuses = {(p["provider"], p["status"]) for p in doc["providers"]}
+    assert ("deps_dev", "unavailable") in statuses
+    assert ("deps_dev", "available") in statuses
+    assert doc["findings"] == []

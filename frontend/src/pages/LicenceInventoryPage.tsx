@@ -4,7 +4,7 @@ import { useParams } from "react-router";
 import { api } from "@/api/api";
 import { isNotImplemented } from "@/api/fallback";
 import {
-  providerWasDisabledByOperator,
+  providerEvidenceState,
   useProviderObservation,
 } from "@/api/useProviderObservation";
 import type {
@@ -66,7 +66,8 @@ export function LicenceInventoryPage() {
   });
   const [notImpl, setNotImpl] = useState(false);
   const depsObservation = useProviderObservation(sid, "deps_dev");
-  const depsDisabled = providerWasDisabledByOperator(depsObservation);
+  const depsState = providerEvidenceState(depsObservation);
+  const depsDisabled = depsState === "disabled";
 
   useEffect(() => {
     setPage(1);
@@ -165,22 +166,7 @@ export function LicenceInventoryPage() {
       ) : items === null || meta === null ? (
         <Skeleton rows={6} />
       ) : items.length === 0 ? (
-        <EmptyState
-          title={
-            notImpl
-              ? "Licence endpoint not exposed"
-              : depsDisabled
-                ? "deps.dev was not requested"
-                : "No licence assertions recorded"
-          }
-          description={
-            notImpl
-              ? "When the backend exposes a paginated licence endpoint, this table will appear automatically."
-              : depsDisabled
-                ? "deps.dev package metadata was disabled by the operator for this scan. No deps.dev request or cache lookup was made; local licence analysis may still be available."
-              : "No licence assertions were recorded for this scan. The dependency-enrichment stage may not have run yet."
-          }
-        />
+        <EmptyState {...licenceEmptyState(depsState, notImpl)} />
       ) : (
         <>
           <ResponsiveTable
@@ -222,6 +208,73 @@ export function LicenceInventoryPage() {
       )}
     </>
   );
+}
+
+/**
+ * Evidence-honest empty state for the licence inventory.
+ *
+ * "No licence assertions recorded" is only justified when
+ * deps.dev actually answered. Degraded, not-requested, and
+ * not-applicable states get their own concise copy; local
+ * rule-engine licence findings (if any) are unaffected and
+ * remain listed above.
+ */
+function licenceEmptyState(
+  state: ReturnType<typeof providerEvidenceState>,
+  notImpl: boolean,
+): { title: string; description: string } {
+  if (notImpl) {
+    return {
+      title: "Licence endpoint not exposed",
+      description:
+        "When the backend exposes a paginated licence endpoint, this table will appear automatically.",
+    };
+  }
+  switch (state) {
+    case "checked":
+      return {
+        title: "No licence assertions recorded",
+        description:
+          "deps.dev was queried for this scan and returned no licence metadata for the analyzed components.",
+      };
+    case "disabled":
+      return {
+        title: "deps.dev was not requested",
+        description:
+          "deps.dev package metadata was disabled by the operator for this scan. No deps.dev request or cache lookup was made; local licence analysis may still be available.",
+      };
+    case "not_applicable":
+    case "not_requested":
+      return {
+        title: "deps.dev was not queried for this scan",
+        description:
+          "No deps.dev request was recorded for this scan, so licence evidence is not established. See the Provider status page.",
+      };
+    case "rate_limited":
+      return {
+        title: "Licence evidence unavailable",
+        description:
+          "deps.dev rate-limited this scan's queries, so licence evidence is incomplete. See the Provider status page.",
+      };
+    case "partial":
+      return {
+        title: "Licence enrichment incomplete",
+        description:
+          "deps.dev returned partial results for this scan; some components have no licence evidence. See the Provider status page.",
+      };
+    case "unavailable":
+      return {
+        title: "Licence evidence unavailable",
+        description:
+          "deps.dev could not be reached for this scan, so licence evidence is not established. See the Provider status page.",
+      };
+    case "unknown":
+      return {
+        title: "Licence evidence not available",
+        description:
+          "No deps.dev observation was recorded for this scan, so licence evidence is not established.",
+      };
+  }
 }
 
 function EnrichmentSummary({

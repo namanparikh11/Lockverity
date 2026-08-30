@@ -17,6 +17,7 @@ def list_observations_for_scan(
     page: int,
     page_size: int,
     status: ProviderStatus | None = None,
+    provider: str | None = None,
 ) -> tuple[Sequence[ProviderObservation], int]:
     if page < 1:
         raise ValueError("page must be >= 1")
@@ -31,6 +32,9 @@ def list_observations_for_scan(
     if status is not None:
         stmt_total = stmt_total.where(ProviderObservation.status == status)
         stmt = stmt.where(ProviderObservation.status == status)
+    if provider:
+        stmt_total = stmt_total.where(ProviderObservation.provider == provider)
+        stmt = stmt.where(ProviderObservation.provider == provider)
     total = session.execute(stmt_total).scalar_one()
     stmt = (
         stmt.order_by(ProviderObservation.id.asc()).limit(page_size).offset((page - 1) * page_size)

@@ -652,7 +652,7 @@ begin
         exit;
     end;
     Log('LV-001: removing previous application payload at ' + OldPayloadDir);
-    if not DelTree(OldPayloadDir, True, True) then
+    if not DelTree(OldPayloadDir, True, True, True) then
     begin
         // A locked or unreadable file inside the old payload means
         // the old tree cannot be cleanly retired. Abort instead of

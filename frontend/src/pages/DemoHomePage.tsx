@@ -273,11 +273,11 @@ npm run dev`}</code></pre>
             Beyond the demo
           </h2>
           <p className="mt-2 text-sm text-ink-700">
-            The v1.5 guided intake page lets you analyze a public
-            GitHub repository or upload a <code>.zip</code> source
-            archive on top of the seeded demo. The page reuses the
-            same intake endpoints the rest of the application uses;
-            it does not duplicate business logic in the frontend.
+            The guided Analyze page lets you analyze a public GitHub
+            repository or upload a <code>.zip</code> source archive
+            on top of the seeded demo. The page reuses the same
+            intake endpoints the rest of the application uses; it
+            does not duplicate business logic in the frontend.
           </p>
           <ul className="mt-2 ml-5 list-disc space-y-1 text-sm text-ink-700">
             <li>
@@ -304,7 +304,7 @@ npm run dev`}</code></pre>
 
         <DataCompletenessNotice
           title="This is a demo, not a hosted service"
-          description="The application has no authentication, no multi-tenancy, and no hosted control plane. The reviewer runs the demo on their own laptop; Lockverity makes no provider calls during the demo. The current status is a local-first, portfolio-ready release candidate; the public/private recommendation is in docs/demo-pack.md."
+          description="The application has no user accounts or login authentication, no multi-tenancy, and no hosted control plane. The reviewer runs the demo on their own laptop; Lockverity makes no provider calls during the demo. Lockverity is a local-first desktop application. Deployment and repository guidance is documented in the project documentation."
           tone="muted"
         />
       </div>

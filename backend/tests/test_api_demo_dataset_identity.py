@@ -119,15 +119,9 @@ def _seed_collision_scenario(session: Session) -> None:
     repo = _fixture_repository(session)
     # Real user scans: no marker, despite matching every legacy
     # demo heuristic.
-    _seed_scan(
-        session, repo.id, scan_id=1, status=ScanStatus.COMPLETED, seeded_dataset=None
-    )
-    _seed_scan(
-        session, repo.id, scan_id=3, status=ScanStatus.FAILED, seeded_dataset=None
-    )
-    _seed_scan(
-        session, repo.id, scan_id=4, status=ScanStatus.CANCELLED, seeded_dataset=None
-    )
+    _seed_scan(session, repo.id, scan_id=1, status=ScanStatus.COMPLETED, seeded_dataset=None)
+    _seed_scan(session, repo.id, scan_id=3, status=ScanStatus.FAILED, seeded_dataset=None)
+    _seed_scan(session, repo.id, scan_id=4, status=ScanStatus.CANCELLED, seeded_dataset=None)
     # Seeded demo scans at non-historical ids.
     _seed_scan(
         session,
@@ -209,9 +203,7 @@ def test_seeded_dataset_filter_returns_only_marker_scans(
     assert {1, 3, 4}.isdisjoint(returned_ids)
 
 
-def test_unfiltered_rollup_still_returns_every_scan(
-    client: TestClient, writer: Session
-) -> None:
+def test_unfiltered_rollup_still_returns_every_scan(client: TestClient, writer: Session) -> None:
     """The additive filter must not change the unfiltered
     cross-repo rollup: real and seeded rows are all listed.
     """
@@ -241,15 +233,11 @@ def test_seeded_dataset_filter_empty_when_no_marker_rows(
     assert body["pagination"]["total"] == 0
 
 
-def test_seeded_dataset_filter_combines_with_status(
-    client: TestClient, writer: Session
-) -> None:
+def test_seeded_dataset_filter_combines_with_status(client: TestClient, writer: Session) -> None:
     """The demo filter composes with the existing status filter."""
     _seed_collision_scenario(writer)
 
-    resp = client.get(
-        f"/api/v1/scans?seeded_dataset={DEMO_SEEDED_DATASET}&status=partial"
-    )
+    resp = client.get(f"/api/v1/scans?seeded_dataset={DEMO_SEEDED_DATASET}&status=partial")
     assert resp.status_code == 200
     body = resp.json()
     assert [item["id"] for item in body["items"]] == [82]

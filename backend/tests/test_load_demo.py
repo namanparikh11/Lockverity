@@ -81,8 +81,7 @@ def _discover_alembic_head() -> str:
     heads = [revision for revision in revisions if revision not in referenced]
     if len(heads) != 1:
         raise RuntimeError(
-            f"expected exactly one Alembic head, found {heads!r} "
-            f"(revisions: {revisions!r})"
+            f"expected exactly one Alembic head, found {heads!r} (revisions: {revisions!r})"
         )
     return heads[0]
 
@@ -235,9 +234,7 @@ def test_loader_stamps_explicit_demo_marker():
         assert result.returncode == 0, result.stderr
         conn = sqlite3.connect(str(db_path))
         try:
-            rows = conn.execute(
-                "SELECT id, seeded_dataset FROM scan_runs ORDER BY id"
-            ).fetchall()
+            rows = conn.execute("SELECT id, seeded_dataset FROM scan_runs ORDER BY id").fetchall()
         finally:
             conn.close()
         assert rows, "the loader must seed scans"

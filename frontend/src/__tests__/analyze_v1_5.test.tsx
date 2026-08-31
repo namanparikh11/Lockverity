@@ -646,7 +646,7 @@ describe("v1.5 guided intake / analyze flow", () => {
     ).toBeInTheDocument();
     // The v1.5 "beyond the demo" section is present.
     expect(
-      screen.getByRole("heading", { name: /beyond the demo/i })
+      screen.getByRole("heading", { name: /analyze your own repository/i })
     ).toBeInTheDocument();
     // The /analyze link from the v1.5 demo section is
     // reachable.

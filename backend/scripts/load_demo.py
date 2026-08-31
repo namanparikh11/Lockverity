@@ -76,6 +76,7 @@ from app.models.repository import (  # noqa: E402
     RepositoryVisibility,
 )
 from app.models.scan_run import (  # noqa: E402
+    DEMO_SEEDED_DATASET,
     ScanRun,
     ScanStatus,
     ScanTriggerType,
@@ -255,6 +256,10 @@ def _build_scan_1_completed() -> tuple[
         requested_ref="main",
         resolved_commit_sha=RESOLVED_COMMIT_SHA,
         analyzer_version=f"lockverity {__version__}",
+        # Explicit seeded-demo provenance. This marker - never
+        # the numeric id, the repository URL, or the status -
+        # is what the read-side APIs use to identify demo rows.
+        seeded_dataset=DEMO_SEEDED_DATASET,
         started_at=None,
         completed_at=None,
         failure_code=None,
@@ -532,6 +537,7 @@ def _build_scan_2_partial() -> tuple[
         requested_ref="main",
         resolved_commit_sha=RESOLVED_COMMIT_SHA,
         analyzer_version=f"lockverity {__version__}",
+        seeded_dataset=DEMO_SEEDED_DATASET,
         started_at=None,
         completed_at=None,
         failure_code=None,
@@ -654,6 +660,7 @@ def _build_scan_3_failed() -> tuple[
         requested_ref="main",
         resolved_commit_sha=RESOLVED_COMMIT_SHA,
         analyzer_version=f"lockverity {__version__}",
+        seeded_dataset=DEMO_SEEDED_DATASET,
         started_at=None,
         completed_at=None,
         failure_code="scanner_crashed",
@@ -679,6 +686,7 @@ def _build_scan_4_cancelled() -> tuple[
         requested_ref="main",
         resolved_commit_sha=RESOLVED_COMMIT_SHA,
         analyzer_version=f"lockverity {__version__}",
+        seeded_dataset=DEMO_SEEDED_DATASET,
         started_at=None,
         completed_at=None,
         failure_code="operator_cancelled",

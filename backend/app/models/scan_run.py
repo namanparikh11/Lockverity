@@ -49,6 +49,15 @@ class ScanTriggerType(str, enum.Enum):
     API = "api"
 
 
+# The only value any application write path is forbidden to
+# set: ``seeded_dataset`` is written exclusively by the demo
+# loader (``backend/scripts/load_demo.py``) so product
+# surfaces can distinguish synthetic seeded rows from real
+# user scans by an explicit persisted marker rather than by
+# numeric primary keys, repository URLs, or status heuristics.
+DEMO_SEEDED_DATASET = "demo"
+
+
 TERMINAL_SCAN_STATUSES: frozenset[ScanStatus] = frozenset(
     {ScanStatus.COMPLETED, ScanStatus.PARTIAL, ScanStatus.FAILED, ScanStatus.CANCELLED}
 )
@@ -63,6 +72,7 @@ class ScanRun(Base, TimestampMixin):
         ),
         Index("ix_scan_runs_repository_id", "repository_id"),
         Index("ix_scan_runs_status", "status"),
+        Index("ix_scan_runs_seeded_dataset", "seeded_dataset"),
         Index(
             "ix_scan_runs_repository_id_created_at",
             "repository_id",
@@ -87,6 +97,13 @@ class ScanRun(Base, TimestampMixin):
     requested_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)
     resolved_commit_sha: Mapped[str | None] = mapped_column(String(64), nullable=True)
     analyzer_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Explicit seeded-dataset provenance. Nullable because every
+    # scan created by the application's own write paths (intake,
+    # rescan, API) leaves it NULL; only the demo loader writes
+    # ``DEMO_SEEDED_DATASET``. Read-side surfaces use this marker
+    # to identify demo rows and must never fall back to numeric
+    # ids, repository URLs, statuses, or creation order.
+    seeded_dataset: Mapped[str | None] = mapped_column(String(32), nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     failure_code: Mapped[str | None] = mapped_column(String(64), nullable=True)

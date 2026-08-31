@@ -52,6 +52,11 @@ export interface ListScansFilters {
   page_size?: number;
   status?: ScanStatus | "all";
   trigger_type?: string;
+  // Explicit seeded-dataset provenance marker (e.g. "demo").
+  // Selects rows the demo loader stamped; a numeric scan id
+  // never implies demo identity. Supported by the cross-repo
+  // ``GET /scans`` rollup.
+  seeded_dataset?: string;
 }
 
 export interface ListFindingsFilters {
@@ -186,14 +191,16 @@ export const api = {
         trigger_type: filters.trigger_type,
       }),
     }),
-  listAllScans: (filters: ListScansFilters = {}) =>
+  listAllScans: (filters: ListScansFilters = {}, options: { signal?: AbortSignal } = {}) =>
     apiClient.get<Paginated<Scan>>("/scans", {
       query: buildQuery({
         page: filters.page ?? 1,
         page_size: filters.page_size ?? 25,
         status: filters.status,
         trigger_type: filters.trigger_type,
+        seeded_dataset: filters.seeded_dataset,
       }),
+      signal: options.signal,
     }),
   createScan: (repositoryId: number, payload: ScanCreatePayload = {}) =>
     apiClient.post<Scan>(`/repositories/${repositoryId}/scans`, payload),

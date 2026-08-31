@@ -229,6 +229,13 @@ export interface Scan {
   requested_ref: string | null;
   resolved_commit_sha: string | null;
   analyzer_version: string | null;
+  // Explicit seeded-dataset provenance. "demo" marks a row
+  // written by the demo loader; every application-created
+  // scan reports null. Demo surfaces identify demo rows by
+  // this marker alone - never by numeric id, repository URL,
+  // status, or creation order - so a real user scan can never
+  // be treated as demo data.
+  seeded_dataset?: string | null;
   started_at: string | null;
   completed_at: string | null;
   failure_code: string | null;

@@ -960,7 +960,7 @@ class TestRunner:
         with sqlite3.connect(relative_target) as conn:
             row = conn.execute("SELECT version_num FROM alembic_version").fetchone()
             assert row is not None
-            assert row[0] == "f6a7b8c9d0e1"
+            assert row[0] == "b8d2f4a6c1e9"
 
     def test_open_browser_refuses_non_loopback(self) -> None:
         assert runner.open_browser("0.0.0.0", 8000) is False  # noqa: S104 - testing refusal

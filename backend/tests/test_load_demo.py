@@ -37,35 +37,54 @@ def _discover_alembic_head() -> str:
     The loader must run the same migration chain the
     application uses, so the resulting ``alembic_version``
     row must match the value ``alembic heads`` reports at
-    test time. We discover the head by reading the latest
-    migration file's ``revision`` variable rather than by
-    invoking the ``alembic`` CLI (the CLI is environment-
-    dependent and adds a hard subprocess dependency to
-    this test).
+    test time. We discover the head by reading the migration
+    files' ``revision`` / ``down_revision`` declarations rather
+    than by invoking the ``alembic`` CLI (the CLI is
+    environment-dependent and adds a hard subprocess
+    dependency to this test).
+
+    The head is the revision that no other migration declares
+    as its ``down_revision``. Walking the chain is required:
+    revision ids are arbitrary hex, so ordering them
+    lexicographically would misidentify the head whenever a
+    newer migration's id happens to sort before an older one.
     """
     import re
 
     versions_dir = BACKEND_DIR / "alembic" / "versions"
-    head: str | None = None
+    revisions: dict[str, str | None] = {}
+    referenced: set[str] = set()
     for migration in sorted(versions_dir.glob("*.py")):
         if migration.name.startswith("_"):
             continue
         text = migration.read_text(encoding="utf-8")
-        match = re.search(
-            r"^revision\s*=\s*[\"']?([0-9a-f]+)[\"']?",
+        # Migrations in this repository declare the ids either
+        # plain (``revision = "..."``) or with a type annotation
+        # (``revision: str = "..."``); the pattern accepts both.
+        revision_match = re.search(
+            r"^revision(?:\s*:\s*str)?\s*=\s*[\"']?([0-9a-f]+)[\"']?",
             text,
             re.MULTILINE,
         )
-        if match is None:
+        if revision_match is None:
             continue
-        revision = match.group(1)
-        # The chain is linear in this repository; the
-        # lexicographically latest revision id is the head.
-        if head is None or revision > head:
-            head = revision
-    if head is None:
-        raise RuntimeError("could not discover Alembic head revision")
-    return head
+        down_match = re.search(
+            r"^down_revision(?:\s*:\s*[^=\n]+)?\s*=\s*(.+)$",
+            text,
+            re.MULTILINE,
+        )
+        revisions[revision_match.group(1)] = (
+            down_match.group(1).strip() if down_match is not None else None
+        )
+        if down_match is not None:
+            referenced.update(re.findall(r"[\"']([0-9a-f]+)[\"']", down_match.group(1)))
+    heads = [revision for revision in revisions if revision not in referenced]
+    if len(heads) != 1:
+        raise RuntimeError(
+            f"expected exactly one Alembic head, found {heads!r} "
+            f"(revisions: {revisions!r})"
+        )
+    return heads[0]
 
 
 EXPECTED_ALEMBIC_HEAD = _discover_alembic_head()
@@ -194,6 +213,37 @@ def test_loader_creates_deterministic_dataset():
             (3, "FAILED"),
             (4, "CANCELLED"),
         ]
+    finally:
+        if db_path.exists():
+            os.unlink(db_path)
+
+
+def test_loader_stamps_explicit_demo_marker():
+    """Every seeded scan must carry the explicit
+    ``seeded_dataset = 'demo'`` provenance marker.
+
+    The marker - not the numeric id, the repository URL, the
+    commit SHA, or the status - is what read-side surfaces use
+    to identify demo rows, so a real user scan can never be
+    conflated with demo data. See
+    ``test_api_demo_dataset_identity.py`` for the read-side
+    collision contract.
+    """
+    db_path = _test_db_path("demo-marker")
+    try:
+        result = _run(["--output", str(db_path), "--reset-demo-db"])
+        assert result.returncode == 0, result.stderr
+        conn = sqlite3.connect(str(db_path))
+        try:
+            rows = conn.execute(
+                "SELECT id, seeded_dataset FROM scan_runs ORDER BY id"
+            ).fetchall()
+        finally:
+            conn.close()
+        assert rows, "the loader must seed scans"
+        assert all(row[1] == "demo" for row in rows), (
+            f"every seeded scan must carry the demo marker, got {rows!r}"
+        )
     finally:
         if db_path.exists():
             os.unlink(db_path)

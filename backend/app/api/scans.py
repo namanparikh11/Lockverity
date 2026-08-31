@@ -275,6 +275,17 @@ def list_scans(
         description="Filter by scan status.",
     ),
     trigger_type: ScanTriggerType | None = Query(default=None),
+    seeded_dataset: str | None = Query(
+        default=None,
+        description=(
+            "Filter by the explicit seeded-dataset provenance marker "
+            "(e.g. 'demo' for demo-loader rows). Matches the persisted "
+            "marker only; a numeric scan id never implies demo identity, "
+            "so real user scans are excluded even when their ids collide "
+            "with historical demo ids."
+        ),
+        max_length=32,
+    ),
 ) -> PaginatedScans:
     """Cross-repository scan listing for the dashboard rollup.
 
@@ -282,6 +293,11 @@ def list_scans(
     unchanged. This endpoint exists for product surfaces that need
     a global view, such as the dashboard "scans" summary card and
     the operator's "all scans" panel.
+
+    The ``seeded_dataset`` filter is the supported way for the
+    Demo page to resolve seeded demo rows: it selects rows that
+    carry the explicit provenance marker, never rows picked by
+    numeric id or status.
     """
     items, total = scan_service.list_all_scans(
         session,
@@ -289,6 +305,7 @@ def list_scans(
         page_size=page_params.page_size,
         status=status_filter,
         trigger_type=trigger_type,
+        seeded_dataset=seeded_dataset,
     )
     return PaginatedScans(
         items=[scan_to_read(item) for item in items],

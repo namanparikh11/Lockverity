@@ -51,7 +51,11 @@ MIGRATION_PATH = (
 )
 ALEMBIC_INI = BACKEND_ROOT / "alembic.ini"
 MIGRATIONS_DIR = BACKEND_ROOT / "alembic"
-EXPECTED_HEAD = "f6a7b8c9d0e1"
+# The chain head moved forward when the additive
+# ``scan_runs.seeded_dataset`` migration landed after this
+# one; ``head`` resolves to the current tip, so the cycle
+# assertions follow the new head.
+EXPECTED_HEAD = "b8d2f4a6c1e9"
 
 
 # ---------------------------------------------------------------------------

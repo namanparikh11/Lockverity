@@ -25,6 +25,14 @@ class ScanRead(TimestampMixin):
     requested_ref: str | None = None
     resolved_commit_sha: str | None = None
     analyzer_version: str | None = None
+    # Explicit seeded-dataset provenance. ``"demo"`` marks a row
+    # written by the demo loader; every application-created scan
+    # reports ``None``. Read-side surfaces use this marker - not
+    # the numeric id, repository URL, or status - to identify
+    # demo rows, so a real user scan can never collide with
+    # demo identity even when it occupies id 1/3/4 or targets
+    # the fixture repository.
+    seeded_dataset: str | None = None
     started_at: datetime | None = None
     completed_at: datetime | None = None
     failure_code: str | None = None

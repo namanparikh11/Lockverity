@@ -73,13 +73,22 @@ def list_scans(
     page_size: int,
     status: ScanStatus | None = None,
     trigger_type: ScanTriggerType | None = None,
+    seeded_dataset: str | None = None,
 ) -> tuple[Sequence[ScanRun], int]:
     """List scans across all repositories, paginated.
 
     Used by the cross-repository dashboard rollup. The query is
-    intentionally simple: ``(status, trigger_type)`` are optional
-    filters, results are ordered newest-first so the dashboard
-    can show "the most recent scans across everything".
+    intentionally simple: ``(status, trigger_type,
+    seeded_dataset)`` are optional filters, results are ordered
+    newest-first so the dashboard can show "the most recent
+    scans across everything".
+
+    ``seeded_dataset`` selects rows carrying the explicit
+    seeded-data provenance marker (e.g. ``"demo"`` for
+    demo-loader rows). It is the only supported way to select
+    seeded rows: the filter matches the persisted marker, never
+    a numeric id or any heuristic, so real user scans are
+    excluded by construction.
     """
     if page < 1:
         raise ValueError("page must be >= 1")
@@ -90,6 +99,8 @@ def list_scans(
         base = base.where(ScanRun.status == status)
     if trigger_type is not None:
         base = base.where(ScanRun.trigger_type == trigger_type)
+    if seeded_dataset is not None:
+        base = base.where(ScanRun.seeded_dataset == seeded_dataset)
     total = session.execute(select(func.count()).select_from(base.subquery())).scalar_one()
     stmt = base.order_by(ScanRun.id.desc()).limit(page_size).offset((page - 1) * page_size)
     items = session.execute(stmt).scalars().all()

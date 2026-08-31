@@ -222,11 +222,17 @@ def list_all_scans(
     page_size: int,
     status: ScanStatus | None = None,
     trigger_type: ScanTriggerType | None = None,
+    seeded_dataset: str | None = None,
 ) -> tuple[Sequence[ScanRun], int]:
     """List scans across every repository, paginated.
 
     Used by the dashboard rollup; the per-repository listing keeps
     its narrower contract on ``/repositories/{id}/scans``.
+
+    ``seeded_dataset`` selects only rows carrying the explicit
+    seeded-data provenance marker. It exists so product surfaces
+    (the Demo page) can resolve seeded demo rows by identity
+    rather than by numeric primary key or status heuristics.
     """
     return scan_repo.list_scans(
         session,
@@ -234,6 +240,7 @@ def list_all_scans(
         page_size=page_size,
         status=status,
         trigger_type=trigger_type,
+        seeded_dataset=seeded_dataset,
     )
 
 

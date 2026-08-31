@@ -91,6 +91,7 @@ import psutil
 
 from app import __version__
 from app.cli import lock as start_lock
+from app.cli.child_job import OwnedChildJob
 from app.cli.gui_stop import signal_gui_stop
 from app.cli.home import data_dir, ensure_home, logs_dir
 from app.cli.logging_setup import configure_logging, get_cli_logger
@@ -1383,6 +1384,18 @@ def _start_foreground(
         kwargs["stdout"] = None  # inherit
         kwargs["stderr"] = None  # inherit
     proc = subprocess.Popen(argv, **kwargs)
+    # Contain the child before it can serve. The supervisor reaps this child
+    # explicitly on every path that unwinds through Python, but nothing runs
+    # when the supervisor is killed outright (Task Manager "End task", a
+    # native WebView2 crash, logoff). The job object is the kernel's
+    # guarantee for exactly those paths, scoped to this one PID -- it can
+    # never reach an unrelated Lockverity instance. Assigning here, before
+    # the share blob is written, means a Windows GUI child is contained
+    # while it is still blocked reading its socket handle from stdin, so it
+    # cannot begin serving outside the job.
+    child_job = OwnedChildJob()
+    if child_job.open():
+        child_job.contain(proc.pid)
     if prebound_socket is not None and proc.stdin is not None and sys.platform == "win32":
         from app.cli.port_reservation import share_socket_to_subprocess
 
@@ -1591,6 +1604,12 @@ def _start_foreground(
             elapsed_seconds=elapsed,
             health_check_ok=health_ok,
         )
+    finally:
+        # Runs on the raise path and the return path alike. By here every
+        # branch above has already terminated and reaped the child, so this
+        # normally closes an empty job; if a branch ever failed to, closing
+        # the handle reaps the child rather than leaking it.
+        child_job.close()
 
 
 def _now_iso() -> str:

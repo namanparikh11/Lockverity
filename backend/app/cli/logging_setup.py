@@ -26,6 +26,7 @@ that emits the log records, not by this handler.
 from __future__ import annotations
 
 import logging
+import time
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -36,8 +37,39 @@ DEFAULT_BACKUP_COUNT = 5
 # timestamp, the level, the logger name, and the message.
 # The format is intentionally short so each rotated file
 # holds the maximum number of records.
+#
+# The ``Z`` literal in the format string asserts that the
+# ``%(asctime)s`` token is true UTC. The default
+# :class:`logging.Formatter` populates ``%(asctime)s`` via
+# :func:`time.localtime`, which on a non-UTC host would
+# mislabel wall-clock local time as UTC under the ``Z``
+# suffix. The handler built by :func:`_build_handler`
+# therefore uses :func:`_make_formatter` which swaps the
+# formatter's ``converter`` to :func:`time.gmtime` so the
+# emitted timestamp and the trailing ``Z`` are both honest
+# UTC.
 LOG_FORMAT = "%(asctime)sZ %(levelname)s %(name)s: %(message)s"
 LOG_DATEFMT = "%Y-%m-%dT%H:%M:%S"
+
+
+def _make_formatter() -> logging.Formatter:
+    """Build the file log formatter with a true-UTC timestamp.
+
+    The default :attr:`logging.Formatter.converter` is
+    :func:`time.localtime`. The ``LOG_FORMAT`` literal ``Z``
+    suffix asserts UTC; the formatter therefore swaps the
+    converter to :func:`time.gmtime` so the emitted
+    ``%(asctime)s`` and the ``Z`` are both honest UTC.
+
+    The function is exported (and is the only place the
+    converter swap happens) so the logging tests can
+    exercise the formatter end-to-end without re-deriving
+    the contract from a private constant.
+    """
+    formatter = logging.Formatter(LOG_FORMAT, datefmt=LOG_DATEFMT)
+    formatter.converter = time.gmtime
+    return formatter
+
 
 # Logger name used by the CLI for its own messages (start
 # / stop / status output). The application loggers
@@ -89,7 +121,7 @@ def _build_handler(
         delay=True,
     )
     handler.setLevel(level)
-    handler.setFormatter(logging.Formatter(LOG_FORMAT, datefmt=LOG_DATEFMT))
+    handler.setFormatter(_make_formatter())
     return handler
 
 

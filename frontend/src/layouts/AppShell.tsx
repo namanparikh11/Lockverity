@@ -58,7 +58,14 @@ export function AppShell() {
     return () => controller.abort();
   }, []);
   return (
-    <div className="min-h-screen bg-canvas">
+    // The shell is a vertical flex column. The header pins to
+    // the top and the content row below claims the remaining
+    // viewport via ``min-h-[calc(100vh-3.5rem)]`` so the sidebar
+    // rail always reaches the bottom of the usable window, even
+    // on short routes such as Providers, About and Demo. Long
+    // routes still drive the row's height from their content, so
+    // page-level scrolling is preserved exactly as before.
+    <div className="flex min-h-screen flex-col bg-canvas">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-brand-solid focus:px-3 focus:py-1.5 focus:text-white"
@@ -96,12 +103,17 @@ export function AppShell() {
           </span>
         </div>
       </header>
-      <div className="mx-auto flex max-w-screen-2xl">
+      <div className="mx-auto flex w-full max-w-screen-2xl min-h-[calc(100vh-3.5rem)] flex-1">
         <nav
           aria-label="Primary"
+          // ``lg:flex lg:flex-col`` turns the sidebar into a flex
+          // column at the desktop breakpoint so the version /
+          // privacy footer can be pinned to the bottom of the rail
+          // with ``mt-auto`` below. Mobile keeps ``block`` / ``hidden``
+          // so the off-canvas menu behaviour is unchanged.
           className={`${
             open ? "block" : "hidden"
-          } w-full shrink-0 border-b border-ink-200 bg-surface-sidebar lg:block lg:w-60 lg:border-b-0 lg:border-r`}
+          } w-full shrink-0 border-b border-ink-200 bg-surface-sidebar lg:flex lg:w-60 lg:flex-col lg:border-b-0 lg:border-r`}
         >
           <ul className="space-y-1 p-3 text-sm">
             {PRIMARY_NAV.map((item) => (
@@ -124,7 +136,7 @@ export function AppShell() {
               </li>
             ))}
           </ul>
-          <div className="border-t border-ink-100 p-3 text-xs text-ink-500">
+          <div className="mt-auto border-t border-ink-100 p-3 text-xs text-ink-500">
             <p
               className="flex items-center gap-2 px-3"
               data-testid="brand-footer-version"

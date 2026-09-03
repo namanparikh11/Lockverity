@@ -106,15 +106,44 @@ export function AppShell() {
       <div className="mx-auto flex w-full max-w-screen-2xl min-h-[calc(100vh-3.5rem)] flex-1">
         <nav
           aria-label="Primary"
-          // ``lg:flex lg:flex-col`` turns the sidebar into a flex
-          // column at the desktop breakpoint so the version /
-          // privacy footer can be pinned to the bottom of the rail
-          // with ``mt-auto`` below. Mobile keeps ``block`` / ``hidden``
-          // so the off-canvas menu behaviour is unchanged.
+          // The outer ``<nav>`` is the full-document-height
+          // rail: it carries the sidebar background and the
+          // right-hand border and stretches with the content
+          // row above, so the background reaches the bottom
+          // of long pages instead of revealing the canvas
+          // underneath. Its desktop flex-column rules also
+          // give the inner sticky wrapper a proper width
+          // track. The actual sidebar contents (navigation
+          // items + version / privacy footer) live in a
+          // sticky, viewport-height inner wrapper below so
+          // the footer no longer disappears when the main
+          // column is taller than the window. Mobile keeps
+          // the original off-canvas ``block`` / ``hidden``
+          // behaviour so the menu can grow to fit all items.
           className={`${
             open ? "block" : "hidden"
           } w-full shrink-0 border-b border-ink-200 bg-surface-sidebar lg:flex lg:w-60 lg:flex-col lg:border-b-0 lg:border-r`}
         >
+          <div
+            // Desktop-only sticky inner sidebar. ``lg:sticky``
+            // + ``lg:top-14`` pins it directly under the
+            // 3.5rem (``h-14``) app header, and the height
+            // matches the content row's own
+            // ``min-h-[calc(100vh-3.5rem)]`` so the flex
+            // column always fills the visible viewport. The
+            // footer below uses ``mt-auto`` to pin itself to
+            // the bottom of this wrapper instead of the
+            // bottom of the potentially much taller
+            // document-height rail. ``lg:overflow-y-auto``
+            // is a safety net for unusually short viewports:
+            // the nav items scroll inside the sidebar
+            // rather than clipping, and no scrollbar appears
+            // when the content fits. The ``flex flex-col``
+            // base classes are harmless on mobile, where the
+            // off-canvas nav simply stacks the items in a
+            // single column.
+            className="flex flex-col lg:sticky lg:top-14 lg:h-[calc(100vh-3.5rem)] lg:overflow-y-auto"
+          >
           <ul className="space-y-1 p-3 text-sm">
             {PRIMARY_NAV.map((item) => (
               <li key={item.to}>
@@ -153,6 +182,7 @@ export function AppShell() {
                 Privacy policy
               </Link>
             </p>
+          </div>
           </div>
         </nav>
         <main

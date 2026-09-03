@@ -87,9 +87,11 @@ describe("AppShell layout", () => {
   });
 
   // The sidebar must lay out as a flex column at the desktop
-  // breakpoint so the version / privacy footer can be pinned to
-  // the bottom of the rail with ``mt-auto``. The mobile
-  // ``block`` / ``hidden`` behaviour is preserved unchanged.
+  // breakpoint so the inner sticky wrapper sits inside a
+  // proper width track and the version / privacy footer can
+  // be pinned to the bottom of that wrapper with ``mt-auto``.
+  // The mobile ``block`` / ``hidden`` behaviour is preserved
+  // unchanged.
   it("lays the sidebar out as a flex column on desktop", () => {
     render(
       <MemoryRouter initialEntries={["/"]}>
@@ -109,7 +111,12 @@ describe("AppShell layout", () => {
 
   // The sidebar footer must use ``mt-auto`` so it pins to the
   // bottom of the rail on short pages instead of floating
-  // directly under the navigation items.
+  // directly under the navigation items. The footer is the
+  // last block-level child of the inner sticky flex column
+  // (not the outer document-height rail), so ``mt-auto``
+  // pushes it to the bottom of the viewport-height wrapper
+  // on long pages too instead of to the bottom of the entire
+  // document.
   it("pins the sidebar footer to the bottom of the rail", () => {
     render(
       <MemoryRouter initialEntries={["/"]}>
@@ -126,9 +133,121 @@ describe("AppShell layout", () => {
     const footer = privacyLink.closest("div");
     expect(footer).not.toBeNull();
     expect(footer).toHaveClass("mt-auto");
-    // The footer is the last block-level child of the nav so
-    // ``mt-auto`` can push it to the bottom of the flex column.
+    // The footer is the last block-level child of the inner
+    // sticky flex column so ``mt-auto`` can push it to the
+    // bottom of the viewport, not the bottom of the
+    // potentially much taller document-height rail.
+    const innerColumn = footer?.parentElement;
+    expect(innerColumn).not.toBeNull();
+    expect(innerColumn?.lastElementChild).toBe(footer);
+  });
+
+  // On desktop the sidebar contents must be wrapped in a
+  // sticky, viewport-height flex column so the navigation
+  // items and the version / privacy footer stay visible
+  // even when the main column is taller than the window.
+  // Without this, the footer's ``mt-auto`` pushes it to
+  // the bottom of the document-height rail and the footer
+  // disappears off-screen until the user scrolls.
+  it("keeps the desktop sidebar content sticky and viewport-height", () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
     const nav = screen.getByRole("navigation", { name: "Primary" });
-    expect(nav.lastElementChild).toBe(footer);
+    const innerColumn = nav.querySelector("div");
+    expect(innerColumn).not.toBeNull();
+    // Sticky directly under the 3.5rem (``h-14``) app
+    // header so the inner column never slides behind it.
+    expect(innerColumn).toHaveClass("lg:sticky");
+    expect(innerColumn).toHaveClass("lg:top-14");
+    // Viewport-height sizing that matches the content row's
+    // own ``min-h-[calc(100vh-3.5rem)]`` so the flex column
+    // always fills the available viewport.
+    expect(innerColumn).toHaveClass("lg:h-[calc(100vh-3.5rem)]");
+    // Flex column so ``mt-auto`` on the footer pins it to
+    // the bottom of the inner wrapper. The flex-column base
+    // class is always present (it is harmless on mobile
+    // where the off-canvas menu simply stacks the items),
+    // while the sticky / viewport-height sizing above is
+    // desktop-only.
+    expect(innerColumn).toHaveClass("flex-col");
+    // Safety net for unusually short viewports: scroll
+    // inside the sidebar rather than clip. No scrollbar
+    // appears when the content fits, so there is no extra
+    // scrollbar under ordinary desktop heights.
+    expect(innerColumn).toHaveClass("lg:overflow-y-auto");
+  });
+
+  // The outer ``<nav>`` rail must remain a full-height flex
+  // column on desktop so the sidebar background stretches
+  // with long pages instead of revealing the canvas
+  // underneath. The sticky inner wrapper is a child of the
+  // rail and must not replace it.
+  it("keeps the outer sidebar rail as a full-height flex column on desktop", () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    const nav = screen.getByRole("navigation", { name: "Primary" });
+    // The rail itself remains a flex column at the desktop
+    // breakpoint so the inner wrapper fills its width.
+    expect(nav).toHaveClass("lg:flex");
+    expect(nav).toHaveClass("lg:flex-col");
+    // The rail still carries the background and right-hand
+    // border that span the full document height.
+    expect(nav).toHaveClass("bg-surface-sidebar");
+    expect(nav).toHaveClass("lg:border-r");
+    // The rail itself is not viewport-height: that sizing
+    // lives on the inner wrapper so the background can keep
+    // growing on long pages.
+    expect(nav).not.toHaveClass("h-[calc(100vh-3.5rem)]");
+    // The inner sticky wrapper is the only direct child of
+    // the rail on desktop, not the navigation list or the
+    // footer.
+    expect(nav.firstElementChild?.tagName).toBe("DIV");
+  });
+
+  // The sticky / viewport-height sidebar treatment is
+  // desktop-only. Mobile must keep the original off-canvas
+  // block behaviour so the menu can grow to fit all items
+  // and the inner wrapper must not be sticky, must not be
+  // pinned to the header, and must not be viewport-height.
+  it("does not make the mobile sidebar sticky or viewport-height", () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    const nav = screen.getByRole("navigation", { name: "Primary" });
+    const innerColumn = nav.querySelector("div");
+    expect(innerColumn).not.toBeNull();
+    // No ``sticky``, no ``top-14`` and no viewport-height
+    // sizing outside the ``lg:`` prefix. The inner wrapper
+    // therefore behaves as a normal flow element on mobile
+    // and the off-canvas menu can grow to fit all items.
+    expect(innerColumn).not.toHaveClass("sticky");
+    expect(innerColumn).not.toHaveClass("top-14");
+    expect(innerColumn).not.toHaveClass("h-[calc(100vh-3.5rem)]");
   });
 });

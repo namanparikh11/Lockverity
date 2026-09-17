@@ -11,7 +11,10 @@ The v2.1.3 portable package is built and verified from the same artifact source 
 | Runtime home | `%LOCALAPPDATA%\Lockverity` by default |
 | Signing | unsigned |
 
-The large portable ZIP attachment is still being finalized on GitHub. The [v2.1.3 release page](https://github.com/namanparikh11/Lockverity/releases/tag/v2.1.3) is the source of truth; do not use a guessed direct URL until the ZIP appears there as an uploaded release asset.
+The portable ZIP is now available as an uploaded release asset on the v2.1.3 release page:
+
+- Download: [`Lockverity-2.1.3-windows-x64-portable.zip`](https://github.com/namanparikh11/Lockverity/releases/download/v2.1.3/Lockverity-2.1.3-windows-x64-portable.zip)
+- SHA-256: `5c68d1b06ad570d829a53eeb400ab4d7f2e8576c4b0a6079197d9dbdec35844f`
 
 When available, extract the **entire** archive to a directory you control and run `Lockverity.exe`. Do not run it from inside the ZIP viewer. `Lockverity.exe` opens the dedicated WebView2 desktop window; `lockverity-cli.exe` provides the documented CLI lifecycle and diagnostics commands.
 

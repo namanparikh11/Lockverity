@@ -77,7 +77,7 @@ The installer launches the dedicated Lockverity Windows desktop shell backed by 
 
 > **Source ZIP is not the app.** GitHub's **Code → Download ZIP** is source code for development/auditing. Use the release installer above to run Lockverity on Windows.
 
-The v2.1.3 portable ZIP has been built and verified from the same source commit, but its GitHub release attachment is still being finalized. Do not use a guessed portable URL until that asset appears on the v2.1.3 release page.
+The v2.1.3 portable ZIP is now published as a release asset on the v2.1.3 release page from the same artifact source commit. Verify the published SHA-256 before use.
 
 **Release:** https://github.com/namanparikh11/Lockverity/releases/tag/v2.1.3
 
@@ -122,14 +122,14 @@ v2.1.0; the v2.1.0 binaries are not republished.
 | Platform | Recommended option | Availability |
 | --- | --- | --- |
 | Windows 10 / 11 x64 | Installer EXE | Available |
-| Windows portable | Portable ZIP | Built and verified; GitHub attachment pending |
+| Windows portable | Portable ZIP | Available |
 | macOS | Source installation | **No packaged app yet** — source-based only |
 | Linux | Source installation | **No packaged app yet** — source-based only |
 
 Lockverity v2.1.3 does not publish a DMG, PKG, AppImage, DEB, or RPM
 asset. The macOS and Linux workflows are intended for developers and
 technical operators. The Windows installer is the current published
-packaged distribution; the verified portable ZIP is awaiting attachment.
+packaged distribution; the verified portable ZIP is published alongside it.
 
 > **Current Windows release:** v2.1.3 uses a dedicated Lockverity desktop
 > window backed by Microsoft Edge WebView2 and an owned loopback FastAPI
@@ -224,8 +224,9 @@ autorun.
 
 ### Download and verify
 
-1. Check the [v2.1.3 release page](https://github.com/namanparikh11/Lockverity/releases/tag/v2.1.3) for the portable attachment.
-2. When attached, verify the SHA-256 matches:
+1. Download the portable ZIP:
+   [`Lockverity-2.1.3-windows-x64-portable.zip`](https://github.com/namanparikh11/Lockverity/releases/download/v2.1.3/Lockverity-2.1.3-windows-x64-portable.zip)
+2. Verify the SHA-256 matches:
    `5c68d1b06ad570d829a53eeb400ab4d7f2e8576c4b0a6079197d9dbdec35844f`
 
    ```powershell
@@ -439,10 +440,10 @@ The Linux source-based workflow is also documented in
 [`docs/install.md`](docs/install.md#linux-source-setup).
 
 > **macOS and Linux are not at the same packaged-acceptance level as
-> Windows.** The v2.1.3 release publishes the accepted Windows installer.
-> The verified Windows portable is awaiting its large GitHub attachment.
-> macOS and Linux remain source-based developer workflows; Lockverity does
-> not claim a packaged macOS or Linux distribution in v2.1.3.
+> Windows.** The v2.1.3 release publishes the accepted Windows installer
+> and the verified Windows portable ZIP. macOS and Linux remain
+> source-based developer workflows; Lockverity does not claim a packaged
+> macOS or Linux distribution in v2.1.3.
 
 ## What Lockverity does
 

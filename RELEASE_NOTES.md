@@ -35,7 +35,7 @@ The current **published** release is **Lockverity v2.1.3**, on tag `v2.1.3` (202
 
 The Windows installer is unsigned. Verify SHA-256 `831264757dccde2c8feef0422390d9812f053fcad811455bde868756c7757bfd` before running it. The release page is the canonical asset index: https://github.com/namanparikh11/Lockverity/releases/tag/v2.1.3.
 
-The v2.1.3 portable payload is built and verified from the same source commit; its large GitHub attachment is still being finalized.
+The v2.1.3 portable ZIP is built, verified, and now available as a release asset on the v2.1.3 release page from the same artifact source commit.
 
 ## Status — v2.1.1 public release (previous)
 

@@ -48,7 +48,10 @@ The v2.1.3 portable ZIP has been built and verified from the same source commit 
 | SHA-256 | `5c68d1b06ad570d829a53eeb400ab4d7f2e8576c4b0a6079197d9dbdec35844f` |
 | Size | 59,874,734 bytes |
 
-The large portable attachment is still being finalized on GitHub. Use the [v2.1.3 release page](https://github.com/namanparikh11/Lockverity/releases/tag/v2.1.3) as the source of truth and do not use a guessed direct portable URL until the asset appears there.
+The portable ZIP is now available as a release asset on the v2.1.3 release page:
+
+- Download: [`Lockverity-2.1.3-windows-x64-portable.zip`](https://github.com/namanparikh11/Lockverity/releases/download/v2.1.3/Lockverity-2.1.3-windows-x64-portable.zip)
+- SHA-256: `5c68d1b06ad570d829a53eeb400ab4d7f2e8576c4b0a6079197d9dbdec35844f`
 
 ## Unsigned-build warning
 

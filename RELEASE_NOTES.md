@@ -29,10 +29,17 @@ The product is built around three guarantees:
   dependency graph is reported as `partial`, never
   `complete`.
 
+## Status — v2.1.3 public release (current)
+
+The current **published** release is **Lockverity v2.1.3**, on tag `v2.1.3` (2026-09-17), with artifact source commit `2ddb0e2d8f3771c711e98809beab409d468bebdd`. The Windows installer uses the dedicated WebView2 desktop shell and owned loopback runtime lifecycle. Provider choice/privacy state, archive intake, lifecycle handling, evidence semantics, packaging provenance, and UI appearance were hardened for this release.
+
+The Windows installer is unsigned. Verify SHA-256 `831264757dccde2c8feef0422390d9812f053fcad811455bde868756c7757bfd` before running it. The release page is the canonical asset index: https://github.com/namanparikh11/Lockverity/releases/tag/v2.1.3.
+
+The v2.1.3 portable payload is built and verified from the same source commit; its large GitHub attachment is still being finalized.
+
 ## Status — v2.1.1 public release (previous)
 
-The current **published** release is **Lockverity
-v2.1.1**, on the annotated tag
+The historical v2.1.1 release is **Lockverity v2.1.1**, on the annotated tag
 ``checkpoint-v2.1.1-public-release`` (2026-08-04).
 The v2.1.1 hotfix is a code-only correction: it ships
 the v2.1.0 public-repository scan-intake repair, the
@@ -102,9 +109,9 @@ What v2.1.1 does **not** do (preserved contracts):
   ``Unknown publisher`` or SmartScreen warnings.
   Verify the SHA-256 hash before installing.
 
-## Status — v2.1.2 public release (current)
+## Status — v2.1.2 public release (previous)
 
-The current **published** release is **Lockverity v2.1.2**,
+The previous **published** release is **Lockverity v2.1.2**,
 on the annotated tag
 ``checkpoint-v2.1.2-public-release``
 (2026-08-06). The v2.1.2 hotfix is a narrow Windows-only

@@ -15,9 +15,9 @@ an explicit omission marker.
 
 **Website:** https://lockverity.namanp.de
 
-## Current release candidate
+## Current release
 
-**Lockverity v2.1.3** is the current source and Windows release candidate.
+**Lockverity v2.1.3** is the current source and published Windows release.
 It advances the v2.1 line with the native Windows desktop shell, stronger
 local-runtime lifecycle handling, explicit provider privacy/availability
 states, per-scan evidence-provider selection, hardened archive intake,
@@ -28,9 +28,9 @@ and bounded UI/appearance refinements.
 | --- | --- |
 | Version | `2.1.3` |
 | Source commit / artifact source | `2ddb0e2d8f3771c711e98809beab409d468bebdd` |
-| Status | **Release candidate — final publication pending** |
+| Status | **Published current release** |
 | Website | https://lockverity.namanp.de |
-| Latest published release | [`v2.1.2`](https://github.com/namanparikh11/Lockverity/releases/tag/checkpoint-v2.1.2-public-release) |
+| Latest published release | [`v2.1.3`](https://github.com/namanparikh11/Lockverity/releases/tag/v2.1.3) |
 
 What v2.1.3 adds and hardens:
 
@@ -56,53 +56,42 @@ What v2.1.3 adds and hardens:
   appearance, provider-status presentation, demo isolation, and sidebar
   behavior were refined while preserving reduced-motion and focus states.
 
-Final v2.1.3 Windows artifacts are already built from the source commit above.
-They remain **unsigned** and are not considered published until the `v2.1.3`
-GitHub Release exists with the matching assets and checksums. Until then, the
-latest downloadable public binaries are v2.1.2.
+Lockverity v2.1.3 is published from the source commit above. The Windows
+build remains **unsigned**; verify the published SHA-256 before running it.
 
 ## Download and install
 
-**For most Windows users:** download the Windows installer, verify the
-SHA-256, double-click, and follow the wizard.
+**Lockverity v2.1.3 is the current published release.** For most Windows users, use the per-user installer.
 
-| Pick this | If you are a normal Windows user who wants the recommended install path |
+| Windows installer | Value |
 | --- | --- |
-| [Lockverity-2.1.2-windows-x64-setup.exe](https://github.com/namanparikh11/lockverity/releases/download/checkpoint-v2.1.2-public-release/Lockverity-2.1.2-windows-x64-setup.exe) | Windows x64 installer (per-user, no UAC, no admin) |
-| SHA-256 | `6ec50d612c8edb49ab9a7e8cdf20b071a0094070998eee8555ef09bbbdc5af5b` |
-| Size | 31,227,275 bytes |
+| Download | [Lockverity-2.1.3-windows-x64-setup.exe](https://github.com/namanparikh11/Lockverity/releases/download/v2.1.3/Lockverity-2.1.3-windows-x64-setup.exe) |
+| SHA-256 | `831264757dccde2c8feef0422390d9812f053fcad811455bde868756c7757bfd` |
+| Size | 34,710,883 bytes |
 | Privilege mode | per-user, no admin, no UAC |
 | Default install path | `%LOCALAPPDATA%\Programs\Lockverity` |
 | Runtime home | `%LOCALAPPDATA%\Lockverity` |
-| Status | **Unsigned** (see [SmartScreen / unsigned / antivirus](#smartscreen--unsigned--antivirus)) |
+| Signing | **Unsigned** — verify the SHA-256 before running |
 
-> **Code → Download ZIP** downloads the Lockverity **source code**. It
-> is not the Windows installer and is not the Windows portable. If
-> you want to run Lockverity, use the installer or portable ZIP
-> above. The source ZIP is intended for development and auditing only.
+The installer launches the dedicated Lockverity Windows desktop shell backed by Microsoft Edge WebView2. It does not install a service, modify PATH, add autorun, or require elevation.
 
-| Pick this | If you want Lockverity without a formal install |
-| --- | --- |
-| [Lockverity-2.1.2-windows-x64-portable.zip](https://github.com/namanparikh11/lockverity/releases/download/checkpoint-v2.1.2-public-release/Lockverity-2.1.2-windows-x64-portable.zip) | Windows x64 portable (extract anywhere, no install) |
-| SHA-256 | `7b8824e1fa780f46caafef25e84f3249e4f7f5cb11d5c5e22cfcf4491bfe6996` |
-| Size | 56,198,519 bytes |
-| Runtime home | `%LOCALAPPDATA%\Lockverity` (still under LocalAppData) |
-| Status | **Unsigned** (see [SmartScreen / unsigned / antivirus](#smartscreen--unsigned--antivirus)) |
+> **Source ZIP is not the app.** GitHub's **Code → Download ZIP** is source code for development/auditing. Use the release installer above to run Lockverity on Windows.
+
+The v2.1.3 portable ZIP has been built and verified from the same source commit, but its GitHub release attachment is still being finalized. Do not use a guessed portable URL until that asset appears on the v2.1.3 release page.
+
+**Release:** https://github.com/namanparikh11/Lockverity/releases/tag/v2.1.3
+
+**Website:** https://lockverity.namanp.de
 
 **Code signing policy:** [`docs/code-signing-policy.md`](docs/code-signing-policy.md)
 
 **Privacy policy:** [`docs/privacy.md`](docs/privacy.md)
 
-Lockverity v2.1.2 is unsigned. SignPath Foundation approval was not
-obtained; Lockverity has no code-signing integration, and no
-SignPath-signed release exists.
+The release includes `INSTALLER-MANIFEST.json`, `BUILD-MANIFEST.json`, and checksum files so the published installer can be checked against the recorded artifact provenance.
 
-The central install guide is in [`docs/install.md`](docs/install.md).
-The full release manifest, including every uploaded asset hash, is in
-the [`INSTALLER-MANIFEST.json`](https://github.com/namanparikh11/lockverity/releases/download/checkpoint-v2.1.2-public-release/INSTALLER-MANIFEST.json)
-and the
-[`Lockverity-2.1.2-SHA256SUMS.txt`](https://github.com/namanparikh11/lockverity/releases/download/checkpoint-v2.1.2-public-release/Lockverity-2.1.2-SHA256SUMS.txt)
-attached to the GitHub Release.
+### Previous v2.1.2 release (historical)
+
+The previous public Windows release remains available at [`checkpoint-v2.1.2-public-release`](https://github.com/namanparikh11/Lockverity/releases/tag/checkpoint-v2.1.2-public-release). Its binaries and hashes remain immutable historical artifacts.
 
 ### Previous v2.1.1 release (historical)
 
@@ -133,21 +122,18 @@ v2.1.0; the v2.1.0 binaries are not republished.
 | Platform | Recommended option | Availability |
 | --- | --- | --- |
 | Windows 10 / 11 x64 | Installer EXE | Available |
-| Windows portable | Portable ZIP | Available |
+| Windows portable | Portable ZIP | Built and verified; GitHub attachment pending |
 | macOS | Source installation | **No packaged app yet** — source-based only |
 | Linux | Source installation | **No packaged app yet** — source-based only |
 
-Lockverity v2.1.2 does not publish a DMG, PKG, AppImage, DEB, or RPM
+Lockverity v2.1.3 does not publish a DMG, PKG, AppImage, DEB, or RPM
 asset. The macOS and Linux workflows are intended for developers and
-technical operators. The Windows installer and portable are the only
-packaged, fully-accepted distributions in v2.1.2.
+technical operators. The Windows installer is the current published
+packaged distribution; the verified portable ZIP is awaiting attachment.
 
-> **Current development status:** Windows artifacts built from `main`
-> now use a dedicated native Lockverity window backed by Microsoft Edge
-> WebView2 and an owned loopback FastAPI lifecycle. The published v2.1.2
-> assets, tag, checksums, manifests, and provenance remain immutable and
-> keep the browser-launch behavior documented in the download steps
-> below. No replacement v2.1.2 release asset is implied.
+> **Current Windows release:** v2.1.3 uses a dedicated Lockverity desktop
+> window backed by Microsoft Edge WebView2 and an owned loopback FastAPI
+> lifecycle. The v2.1.3 tag remains pinned to the exact artifact source commit.
 
 ## Windows installer
 
@@ -158,12 +144,12 @@ and self-contained.
 ### Download and verify
 
 1. Download the installer:
-   [`Lockverity-2.1.2-windows-x64-setup.exe`](https://github.com/namanparikh11/lockverity/releases/download/checkpoint-v2.1.2-public-release/Lockverity-2.1.2-windows-x64-setup.exe)
+   [`Lockverity-2.1.3-windows-x64-setup.exe`](https://github.com/namanparikh11/Lockverity/releases/download/v2.1.3/Lockverity-2.1.3-windows-x64-setup.exe)
 2. Verify the SHA-256 matches:
-   `6ec50d612c8edb49ab9a7e8cdf20b071a0094070998eee8555ef09bbbdc5af5b`
+   `831264757dccde2c8feef0422390d9812f053fcad811455bde868756c7757bfd`
 
    ```powershell
-   Get-FileHash .\Lockverity-2.1.2-windows-x64-setup.exe -Algorithm SHA256
+   Get-FileHash .\Lockverity-2.1.3-windows-x64-setup.exe -Algorithm SHA256
    ```
 
    The output hash must equal the value above. If it does not, do not
@@ -172,7 +158,7 @@ and self-contained.
 4. Read the licence, accept it, and click **Install**. No UAC prompt
    appears because the installer is per-user.
 5. Optionally check **Launch Lockverity** on the completion page to
-   open the trusted loopback URL in your default browser.
+   open the dedicated Lockverity desktop window.
 
 After install, the Start Menu contains a **Lockverity** folder with the
 application shortcut, the documentation link, and the
@@ -238,20 +224,19 @@ autorun.
 
 ### Download and verify
 
-1. Download the portable:
-   [`Lockverity-2.1.2-windows-x64-portable.zip`](https://github.com/namanparikh11/lockverity/releases/download/checkpoint-v2.1.2-public-release/Lockverity-2.1.2-windows-x64-portable.zip)
-2. Verify the SHA-256 matches:
-   `7b8824e1fa780f46caafef25e84f3249e4f7f5cb11d5c5e22cfcf4491bfe6996`
+1. Check the [v2.1.3 release page](https://github.com/namanparikh11/Lockverity/releases/tag/v2.1.3) for the portable attachment.
+2. When attached, verify the SHA-256 matches:
+   `5c68d1b06ad570d829a53eeb400ab4d7f2e8576c4b0a6079197d9dbdec35844f`
 
    ```powershell
-   Get-FileHash .\Lockverity-2.1.2-windows-x64-portable.zip -Algorithm SHA256
+   Get-FileHash .\Lockverity-2.1.3-windows-x64-portable.zip -Algorithm SHA256
    ```
 3. **Extract the entire archive** to any directory the operator
    controls (for example `C:\Tools\Lockverity` or
    `C:\Users\<you>\Lockverity`). Do not run from inside the ZIP
    viewer; extract first.
 4. Double-click `Lockverity.exe` to start the runtime and open the
-   trusted local URL in the default browser.
+   dedicated Lockverity desktop window.
 5. From a second terminal, use `lockverity-cli.exe` for the documented
    `start`, `stop`, `status`, `open`, `doctor`, and `logs`
    subcommands. `lockverity-cli.exe doctor --json` prints a
@@ -302,7 +287,7 @@ The full portable operator reference is in
 
 ## macOS
 
-Lockverity v2.1.2 does **not** publish a packaged macOS binary (no
+Lockverity v2.1.3 does **not** publish a packaged macOS binary (no
 `.dmg`, no `.pkg`, no signed `.app`). The macOS workflow is
 **source-based only** and is intended for developers or technical
 operators.
@@ -379,7 +364,7 @@ The macOS source-based workflow is also documented in
 
 ## Linux
 
-Lockverity v2.1.2 does **not** publish a packaged Linux binary (no
+Lockverity v2.1.3 does **not** publish a packaged Linux binary (no
 `AppImage`, no `.deb`, no `.rpm`, no Flatpak, no Snap). The Linux
 workflow is **source-based only** and is intended for developers or
 technical operators.
@@ -454,12 +439,10 @@ The Linux source-based workflow is also documented in
 [`docs/install.md`](docs/install.md#linux-source-setup).
 
 > **macOS and Linux are not at the same packaged-acceptance level as
-> Windows.** The v2.1.2 release ships an accepted Windows installer
-> and an accepted Windows portable. macOS and Linux are
-> source-based developer workflows. The CLI, the single-port runtime,
-> the Alembic migrations, and the React build all work on macOS and
-> Linux, but Lockverity does not claim a packaged macOS or Linux
-> distribution in v2.1.2.
+> Windows.** The v2.1.3 release publishes the accepted Windows installer.
+> The verified Windows portable is awaiting its large GitHub attachment.
+> macOS and Linux remain source-based developer workflows; Lockverity does
+> not claim a packaged macOS or Linux distribution in v2.1.3.
 
 ## What Lockverity does
 

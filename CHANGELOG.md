@@ -5,6 +5,12 @@ follow [Semantic Versioning](https://semver.org/). Lockverity is
 pre-1.0 in the sense that the public API may evolve; the
 underlying data model and Alembic migrations are stable.
 
+## v2.1.3 — Native Windows shell and release hardening (published 2026-09-17)
+
+Published as `v2.1.3` from artifact source commit `2ddb0e2d8f3771c711e98809beab409d468bebdd`. The release adds the dedicated WebView2 Windows desktop shell, owned loopback runtime lifecycle, explicit per-scan provider selection and privacy/availability states, hardened archive intake, stronger mutation/lifecycle/logging behavior, preserved partial-evidence semantics, deterministic Windows packaging/provenance, native icon resources, and UI appearance/sidebar refinements. The published Windows installer is unsigned and must be verified by SHA-256.
+
+The release tag remains pinned to the exact artifact source commit; later documentation-only commits do not move the tag or alter the published binary provenance.
+
 ## v2.1.2 — Windows application icon and signing readiness (published 2026-08-06)
 
 The hotfix was tagged and published as

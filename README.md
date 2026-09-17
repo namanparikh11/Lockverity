@@ -13,67 +13,53 @@ The product is **defensive-only**, **read-only for analyzed evidence**,
 makes is backed by a file path, a manifest, a provider response, or
 an explicit omission marker.
 
-## Current release
+**Website:** https://lockverity.namanp.de
 
-**Lockverity v2.1.2** — Narrow Windows-only hotfix for the
-Settings → Installed apps icon, the canonical Windows ICO
-size set, the Inno Setup ``UninstallDisplayIcon`` path,
-and Authenticode signing-readiness hooks. The v2.1.2
-GitHub release is **public** on the
-``checkpoint-v2.1.2-public-release`` tag. v2.1.1 is the
-previous published release (tag unchanged); v2.1.0 is
-the release before that (tag unchanged). Neither is
-republished.
+## Current release candidate
+
+**Lockverity v2.1.3** is the current source and Windows release candidate.
+It advances the v2.1 line with the native Windows desktop shell, stronger
+local-runtime lifecycle handling, explicit provider privacy/availability
+states, per-scan evidence-provider selection, hardened archive intake,
+improved evidence-coverage semantics, deterministic packaging/provenance,
+and bounded UI/appearance refinements.
 
 | Field | Value |
 | --- | --- |
-| Version | `2.1.2` |
-| Release tag | [`checkpoint-v2.1.2-public-release`](https://github.com/namanparikh11/lockverity/releases/tag/checkpoint-v2.1.2-public-release) |
-| Source commit (release tag target / artifact source) | `2aa8729832ac94093966a67d2f3f76c0e2110d15` |
-| Published | 2026-08-06 |
-| Latest release | https://github.com/namanparikh11/lockverity/releases/latest |
-| Previous release | [`checkpoint-v2.1.1-public-release`](https://github.com/namanparikh11/lockverity/releases/tag/checkpoint-v2.1.1-public-release) (2026-08-04) |
-| Older release | [`checkpoint-v2.1.0-public-release`](https://github.com/namanparikh11/lockverity/releases/tag/checkpoint-v2.1.0-public-release) |
+| Version | `2.1.3` |
+| Source commit / artifact source | `2ddb0e2d8f3771c711e98809beab409d468bebdd` |
+| Status | **Release candidate — final publication pending** |
+| Website | https://lockverity.namanp.de |
+| Latest published release | [`v2.1.2`](https://github.com/namanparikh11/Lockverity/releases/tag/checkpoint-v2.1.2-public-release) |
 
-What v2.1.2 fixes:
+What v2.1.3 adds and hardens:
 
-- **Settings → Installed apps shows the Lockverity icon.**
-  v2.1.0 and v2.1.1 declared
-  ``UninstallDisplayIcon={app}\Lockverity.exe`` -- a path
-  that does not exist on disk (the launcher is installed
-  under ``{app}\app\``) and that omitted the explicit
-  ``,0`` icon index. v2.1.2 fixes the path to
-  ``{app}\app\Lockverity.exe,0``.
-- **Complete multi-resolution Windows ICO.** The
-  canonical ICO at ``backend/pyinstaller/favicon-exe.ico``
-  is regenerated from the approved 1024x1024 source
-  PNG with the full size set the Windows shell queries
-  (16/24/32/48/64/128/256). v2.1.0 and v2.1.1 shipped
-  only ``{16, 32, 48, 256}``.
-- **Consistent installer, executable, shortcut and
-  uninstaller branding.** The same canonical ICO is
-  used as ``SetupIconFile``, bundled at the install
-  root, and referenced by the Start Menu and desktop
-  shortcuts via the ``IconFilename`` directive.
-- **Authenticode signing-readiness hooks.** A
-  disabled-by-default helper
-  (``backend/scripts/_authenticode_sign.py``) exposes
-  the documented env-var contract for a future
-  trusted Authenticode provider. When all env vars
-  are unset the build is unchanged: still functional,
-  still unsigned, no code-signing integration.
+- **Native Windows desktop shell.** The packaged app uses a dedicated
+  Microsoft Edge WebView2 window with an owned loopback FastAPI lifecycle
+  instead of relying on a normal browser tab.
+- **Provider choice and privacy transparency.** Per-scan evidence-provider
+  selection is explicit, provider availability/privacy state stays visible,
+  and unavailable evidence is never silently converted into a clean result.
+- **Safer archive intake.** Untrusted ZIP/TAR handling is hardened, including
+  bounded validation and safe relative-symlink handling without executing
+  repository-controlled code.
+- **Lifecycle and mutation hardening.** Local mutation routes, CLI/desktop
+  process ownership, shutdown, duplicate-launch, and logging behavior are
+  tightened and covered by release-gate tests.
+- **Evidence semantics preserved.** Provider coverage and partial-evidence
+  states remain explicit across findings and provider health surfaces.
 
-What v2.1.2 does **not** claim (preserved contracts):
+- **Windows packaging/provenance closure.** Portable staging, installer
+  payload provenance, upgrade behavior, native icon resources, and final
+  artifact identity are deterministic and verified.
+- **UI polish without changing the product language.** System/light/dark
+  appearance, provider-status presentation, demo isolation, and sidebar
+  behavior were refined while preserving reduced-motion and focus states.
 
-- v2.1.2 does **not** add a code signature. The
-  Windows build remains unsigned; operators may see
-  ``Unknown publisher`` or SmartScreen warnings.
-  Verify the SHA-256 hash before installing.
-- v2.1.2 does not change the v2.1.0 or v2.1.1
-  release assets. Both tags and their six assets
-  each remain unchanged and continue to resolve
-  from the original release URLs.
-- v2.1.2 does not claim private-repository support.
+Final v2.1.3 Windows artifacts are already built from the source commit above.
+They remain **unsigned** and are not considered published until the `v2.1.3`
+GitHub Release exists with the matching assets and checksums. Until then, the
+latest downloadable public binaries are v2.1.2.
 
 ## Download and install
 
